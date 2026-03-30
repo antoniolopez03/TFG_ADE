@@ -1,20 +1,13 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Header
-from typing import Optional
+from fastapi import APIRouter, Depends
 
 from app.config import settings
+from app.dependencies import verificar_api_key
 from app.models import MapsSearchRequest, ScrapeResponse
 from app.scrapers.maps_scraper import MapsScraper
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-async def verificar_api_key(x_api_key: Optional[str] = Header(default=None)):
-    """Dependency: verifica que la petición incluye la API key correcta."""
-    if not x_api_key or x_api_key != settings.api_key:
-        raise HTTPException(status_code=401, detail="API key inválida o ausente.")
-    return x_api_key
 
 
 @router.post(
@@ -44,23 +37,21 @@ async def scrape_google_maps(request: MapsSearchRequest):
         f"'{request.query}' en '{request.location}' (max: {request.max_results})"
     )
 
-    scraper = MapsScraper()
     errores = []
 
     try:
-        await scraper.iniciar()
-        empresas = await scraper.scrape(
-            query=request.query,
-            location=request.location,
-            max_results=min(request.max_results, settings.max_results_per_job),
-            organizacion_id=request.organizacion_id,
-        )
+        async with MapsScraper() as scraper:
+            empresas = await scraper.scrape(
+                query=request.query,
+                location=request.location,
+                max_results=min(request.max_results, settings.max_results_per_job),
+                organizacion_id=request.organizacion_id,
+            )
     except Exception as e:
-        logger.error(f"[{request.organizacion_id}] Error en Maps scraper: {e}")
-        errores.append(str(e))
+        msg = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
+        logger.error(f"[{request.organizacion_id}] Error en Maps scraper: {msg}", exc_info=True)
+        errores.append(msg)
         empresas = []
-    finally:
-        await scraper.cerrar()
 
     duracion = time.time() - inicio
 

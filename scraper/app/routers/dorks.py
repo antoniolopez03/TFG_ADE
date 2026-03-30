@@ -1,21 +1,15 @@
 import logging
 import time
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends
 
 from app.config import settings
+from app.dependencies import verificar_api_key
 from app.models import DorksSearchRequest, ScrapeResponse
 from app.scrapers.dorks_scraper import DorksScraper
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-async def verificar_api_key(x_api_key: Optional[str] = Header(default=None)):
-    if not x_api_key or x_api_key != settings.api_key:
-        raise HTTPException(status_code=401, detail="API key inválida o ausente.")
-    return x_api_key
 
 
 @router.post(
@@ -46,22 +40,20 @@ async def scrape_google_dorks(request: DorksSearchRequest):
         f"[{request.organizacion_id}] Dorks scrape: '{request.dork_query[:60]}...'"
     )
 
-    scraper = DorksScraper()
     errores = []
 
     try:
-        await scraper.iniciar()
-        empresas = await scraper.scrape(
-            dork_query=request.dork_query,
-            max_results=min(request.max_results, settings.max_results_per_job),
-            organizacion_id=request.organizacion_id,
-        )
+        async with DorksScraper() as scraper:
+            empresas = await scraper.scrape(
+                dork_query=request.dork_query,
+                max_results=min(request.max_results, settings.max_results_per_job),
+                organizacion_id=request.organizacion_id,
+            )
     except Exception as e:
-        logger.error(f"[{request.organizacion_id}] Error en Dorks scraper: {e}")
-        errores.append(str(e))
+        msg = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
+        logger.error(f"[{request.organizacion_id}] Error en Dorks scraper: {msg}", exc_info=True)
+        errores.append(msg)
         empresas = []
-    finally:
-        await scraper.cerrar()
 
     duracion = time.time() - inicio
 

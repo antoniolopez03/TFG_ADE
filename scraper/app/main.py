@@ -4,8 +4,14 @@ FastAPI application factory para el microservicio de scraping.
 Desplegado en Render.com (Free Tier con Docker).
 """
 
+import sys
+import asyncio
 import logging
 from contextlib import asynccontextmanager
+
+# Windows: SelectorEventLoop no soporta subprocesos (necesario para Playwright)
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

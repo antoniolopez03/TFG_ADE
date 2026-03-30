@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -9,21 +10,20 @@ import {
   Users,
   Settings,
   LogOut,
-  Zap,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/prospecting", label: "Prospección", icon: Search },
-  { href: "/leads", label: "Leads", icon: Users },
-  { href: "/settings", label: "Configuración", icon: Settings },
+  { href: "/dashboard",    label: "Dashboard",      icon: LayoutDashboard },
+  { href: "/prospecting",  label: "Prospección",    icon: Search },
+  { href: "/leads",        label: "Leads",          icon: Users },
+  { href: "/settings",     label: "Configuración",  icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const router   = useRouter();
   const supabase = createClient();
 
   async function handleSignOut() {
@@ -33,19 +33,33 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-60 min-h-screen bg-gray-900 flex flex-col">
-      {/* Logo */}
-      <div className="px-6 py-5 border-b border-gray-800">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-blue-500 rounded-md flex items-center justify-center">
-            <Zap className="w-4 h-4 text-white" />
+    <aside className="w-60 min-h-screen bg-gray-950 flex flex-col border-r border-gray-800/60">
+
+      {/* ── Logo ── */}
+      <div className="px-5 py-5 border-b border-gray-800/60">
+        <Link href="/dashboard" className="flex items-center gap-3 group">
+          <div className="relative w-8 h-8 flex-shrink-0">
+            <Image
+              src="/LEADBY-Logo.png"
+              alt="LeadBy"
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
-          <span className="font-semibold text-white text-sm">ProspectAI</span>
+          <div className="leading-none">
+            <span className="block font-bold text-white text-sm tracking-wide">
+              LEADBY
+            </span>
+            <span className="block text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-0.5">
+              Optimización de Procesos
+            </span>
+          </div>
         </Link>
       </div>
 
-      {/* Navegación principal */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      {/* ── Navegación ── */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(`${href}/`);
           return (
@@ -53,24 +67,32 @@ export function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
                 isActive
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800"
+                  ? "bg-leadby-500/15 text-leadby-400 border border-leadby-500/20"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800/60 border border-transparent"
               )}
             >
-              <Icon className="w-4 h-4 flex-shrink-0" />
+              <Icon
+                className={cn(
+                  "w-4 h-4 flex-shrink-0 transition-colors",
+                  isActive ? "text-leadby-400" : "text-gray-500"
+                )}
+              />
               {label}
+              {isActive && (
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-leadby-500" />
+              )}
             </Link>
           );
         })}
       </nav>
 
-      {/* Sign out */}
-      <div className="px-3 py-4 border-t border-gray-800">
+      {/* ── Cerrar sesión ── */}
+      <div className="px-3 py-4 border-t border-gray-800/60">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 w-full transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-white hover:bg-gray-800/60 w-full transition-all duration-150 border border-transparent"
         >
           <LogOut className="w-4 h-4" />
           Cerrar sesión

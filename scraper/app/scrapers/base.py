@@ -92,6 +92,16 @@ class BaseScraper(ABC):
         """Navega a una URL con reintentos y manejo de errores."""
         return await navegar_con_retry(page, url, timeout_ms=settings.browser_timeout_ms)
 
+    async def __aenter__(self):
+        """Permite usar el scraper como async context manager."""
+        await self.iniciar()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Cierra el navegador al salir del context manager."""
+        await self.cerrar()
+        return False
+
     @abstractmethod
     async def scrape(self, **kwargs) -> list[EmpresaResult]:
         """

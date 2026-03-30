@@ -84,8 +84,22 @@ class MapsScraper(BaseScraper):
                 logger.error(f"[{organizacion_id}] No se pudo acceder a Google Maps")
                 return empresas
 
+            # Manejar diálogo de consentimiento de cookies si aparece
+            await self._aceptar_cookies(page)
+
+            # Verificar CAPTCHA
+            if await self._detectar_captcha(page):
+                logger.error(f"[{organizacion_id}] CAPTCHA detectado en Google Maps. Deteniendo.")
+                return empresas
+
             # Esperar que cargue el feed de resultados
-            await page.wait_for_selector('div[role="feed"]', timeout=15000)
+            try:
+                await page.wait_for_selector('div[role="feed"]', timeout=15000)
+            except Exception:
+                # Sin resultados o estructura diferente
+                logger.warning(f"[{organizacion_id}] No se encontró feed de resultados. Sin resultados para esta búsqueda.")
+                return empresas
+
             await delay_humano(1000, 2500)
             await mover_mouse_aleatorio(page)
 
@@ -204,6 +218,40 @@ class MapsScraper(BaseScraper):
         except Exception as e:
             logger.warning(f"Error extrayendo panel de detalle: {e}")
             return None
+
+    async def _aceptar_cookies(self, page) -> None:
+        """Acepta el diálogo de consentimiento de cookies de Google si aparece."""
+        try:
+            # Selectores comunes del banner de cookies de Google
+            selectores_aceptar = [
+                'button[aria-label*="Accept"]',
+                'button[aria-label*="Aceptar"]',
+                'button[aria-label*="Rechazar"]',
+                'form[action*="consent"] button',
+                'button#L2AGLb',  # botón "Acepto" en consent de Google
+            ]
+            for selector in selectores_aceptar:
+                btn = await page.query_selector(selector)
+                if btn:
+                    await btn.click()
+                    await delay_humano(1000, 2000)
+                    logger.debug("Diálogo de cookies aceptado.")
+                    return
+        except Exception as e:
+            logger.debug(f"No se pudo manejar cookies consent: {e}")
+
+    async def _detectar_captcha(self, page) -> bool:
+        """Detecta si Google ha mostrado un CAPTCHA."""
+        contenido = await page.content()
+        indicadores = [
+            "recaptcha",
+            "unusual traffic",
+            "tráfico inusual",
+            "detected unusual traffic",
+            'id="captcha"',
+            'src="https://www.google.com/recaptcha',
+        ]
+        return any(ind in contenido.lower() for ind in indicadores)
 
     def _extraer_place_id(self, url: str) -> str | None:
         """Extrae el Google Place ID de la URL de Maps."""

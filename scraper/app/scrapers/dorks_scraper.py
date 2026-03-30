@@ -85,6 +85,10 @@ class DorksScraper(BaseScraper):
                     logger.warning(f"[{organizacion_id}] No se pudo acceder a Google Search")
                     break
 
+                # Manejar diálogo de consentimiento de cookies (solo primera página)
+                if num_pagina == 0:
+                    await self._aceptar_cookies(page)
+
                 # Verificar si Google ha mostrado CAPTCHA
                 if await self._detectar_captcha(page):
                     logger.error(f"[{organizacion_id}] CAPTCHA detectado. Deteniendo.")
@@ -249,6 +253,25 @@ class DorksScraper(BaseScraper):
             and all(p[0].isupper() for p in palabras if p)
             and len(texto) < 60
         )
+
+    async def _aceptar_cookies(self, page) -> None:
+        """Acepta el diálogo de consentimiento de cookies de Google si aparece."""
+        try:
+            selectores_aceptar = [
+                'button[aria-label*="Accept"]',
+                'button[aria-label*="Aceptar"]',
+                'button#L2AGLb',
+                'form[action*="consent"] button',
+            ]
+            for selector in selectores_aceptar:
+                btn = await page.query_selector(selector)
+                if btn:
+                    await btn.click()
+                    await delay_humano(1000, 2000)
+                    logger.debug("Diálogo de cookies aceptado.")
+                    return
+        except Exception as e:
+            logger.debug(f"No se pudo manejar cookies consent: {e}")
 
     async def _detectar_captcha(self, page) -> bool:
         """Detecta si Google ha mostrado un CAPTCHA."""

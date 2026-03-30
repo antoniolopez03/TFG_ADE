@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # Cold start: Render Free suspende la instancia; este flag
     # indica si el navegador ya fue inicializado (warm)
-    debug: bool = False
+    debug: bool = True
 
 
 settings = Settings()

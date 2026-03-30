@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: tfg-scraper
+    runtime: docker
+    dockerfilePath: ./scraper/Dockerfile
+    dockerContext: ./scraper
+    region: frankfurt
+    plan: free
+    envVars:
+      - key: API_KEY
+        sync: false
+      - key: HEADLESS
+        value: "true"
+      - key: DEBUG
+        value: "false"
+      - key: MAX_RESULTS_PER_JOB
+        value: "50"
+      - key: BROWSER_TIMEOUT_MS
+        value: "30000"
+    healthCheckPath: /health
