@@ -12,6 +12,32 @@ export type LeadEstado =
   | "enviado"
   | "descartado";
 
+export interface EmpresaResumen {
+  nombre: string | null;
+  dominio: string | null;
+  ciudad: string | null;
+  sector: string | null;
+}
+
+export interface ContactoResumen {
+  nombre: string | null;
+  apellidos: string | null;
+  cargo: string | null;
+  email: string | null;
+  linkedin_url: string | null;
+}
+
+export interface LeadListado {
+  id: string;
+  estado: LeadEstado;
+  email_borrador: string | null;
+  email_enviado_at: string | null;
+  created_at: string;
+  asignado_a: string | null;
+  global_empresas: EmpresaResumen | null;
+  global_contactos: ContactoResumen | null;
+}
+
 export type UserRol = "admin" | "miembro";
 
 export type PlanSuscripcion = "free" | "starter" | "pro";

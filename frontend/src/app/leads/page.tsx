@@ -1,6 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { LeadsTable } from "@/components/leads/LeadsTable";
+import type { ContactoResumen, EmpresaResumen, LeadListado } from "@/lib/types/app.types";
+
+type MaybeArray<T> = T | T[] | null | undefined;
+
+function normalizeOne<T>(value: MaybeArray<T>): T | null {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+  return value ?? null;
+}
 
 export default async function LeadsPage({
   searchParams,
@@ -44,6 +54,11 @@ export default async function LeadsPage({
   }
 
   const { data: leads } = await query;
+  const leadsNormalized: LeadListado[] = (leads ?? []).map((lead) => ({
+    ...lead,
+    global_empresas: normalizeOne(lead.global_empresas as MaybeArray<EmpresaResumen>),
+    global_contactos: normalizeOne(lead.global_contactos as MaybeArray<ContactoResumen>),
+  }));
 
   return (
     <div className="p-8">
@@ -57,7 +72,7 @@ export default async function LeadsPage({
       </div>
 
       <LeadsTable
-        leadsIniciales={leads ?? []}
+        leadsIniciales={leadsNormalized}
         organizacionId={membresia.organizacion_id}
         estadoInicial={estadoFiltro}
       />

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
-import { ExternalLink, Sparkles, CheckCircle, XCircle, Mail } from "lucide-react";
-import type { LeadEstado } from "@/lib/types/app.types";
+import { ExternalLink, Sparkles, Mail } from "lucide-react";
+import type { LeadEstado, LeadListado } from "@/lib/types/app.types";
 
 const ESTADO_LABELS: Record<LeadEstado, { label: string; color: string }> = {
   nuevo: { label: "Nuevo", color: "bg-black/5 text-black/60 dark:bg-white/10 dark:text-white/60" },
@@ -23,18 +23,8 @@ const FILTROS: { label: string; valor: string | undefined }[] = [
   { label: "Descartados", valor: "descartado" },
 ];
 
-type Lead = {
-  id: string;
-  estado: string;
-  email_borrador: string | null;
-  email_enviado_at: string | null;
-  created_at: string;
-  global_empresas: { nombre: string; dominio: string | null; ciudad: string | null; sector: string | null } | null;
-  global_contactos: { nombre: string | null; apellidos: string | null; cargo: string | null; email: string | null; linkedin_url: string | null } | null;
-};
-
 interface LeadsTableProps {
-  leadsIniciales: Lead[];
+  leadsIniciales: LeadListado[];
   organizacionId: string;
   estadoInicial?: string;
 }

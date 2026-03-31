@@ -4,6 +4,37 @@ import Link from "next/link";
 import { ExternalLink, Building2, User, Globe, MapPin } from "lucide-react";
 import { EmailApprovalPanel } from "@/components/leads/EmailApprovalPanel";
 
+type Empresa = {
+  id: string | null;
+  nombre: string | null;
+  dominio: string | null;
+  ciudad: string | null;
+  provincia: string | null;
+  sector: string | null;
+  telefono: string | null;
+  direccion: string | null;
+  google_maps_url: string | null;
+};
+
+type Contacto = {
+  id: string | null;
+  nombre: string | null;
+  apellidos: string | null;
+  cargo: string | null;
+  email: string | null;
+  linkedin_url: string | null;
+  telefono: string | null;
+};
+
+type MaybeArray<T> = T | T[] | null | undefined;
+
+function normalizeOne<T>(value: MaybeArray<T>): T | null {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+  return value ?? null;
+}
+
 export default async function LeadDetailPage({
   params,
 }: {
@@ -37,8 +68,8 @@ export default async function LeadDetailPage({
 
   if (!lead) notFound();
 
-  const empresa = lead.global_empresas as Record<string, string | null> | null;
-  const contacto = lead.global_contactos as Record<string, string | null> | null;
+  const empresa = normalizeOne<Empresa>(lead.global_empresas as MaybeArray<Empresa>);
+  const contacto = normalizeOne<Contacto>(lead.global_contactos as MaybeArray<Contacto>);
 
   return (
     <div className="p-8 max-w-5xl">
