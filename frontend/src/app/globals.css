@@ -112,4 +112,20 @@ body {
   .animation-delay-200 { animation-delay: 200ms; }
   .animation-delay-300 { animation-delay: 300ms; }
   .animation-delay-400 { animation-delay: 400ms; }
+
+  /* Prose with LeadBy brand colors */
+  .prose-leadby {
+    --tw-prose-links: #ff751f;
+    --tw-prose-counters: #ff751f;
+    --tw-prose-bullets: #ff914d;
+  }
+
+  /* Card hover interaction */
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(255, 117, 31, 0.1);
+  }
 }

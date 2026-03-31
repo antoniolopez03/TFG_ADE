@@ -50,16 +50,58 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Dashboard mockup */}
           <div className="rounded-2xl bg-white/70 p-2 shadow-lg shadow-black/5 backdrop-blur dark:bg-white/5">
-            {/* TODO: Actualizar este vídeo con la versión final. Asegurar que el archivo video-corpoartivo-leadby.mp4 esté en la carpeta /public */}
-            <video
-              src="/video-corpoartivo-leadby.mp4"
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full rounded-xl border border-gray-200 object-cover shadow-lg dark:border-gray-800"
-            />
+            <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white dark:border-gray-800 dark:from-gray-900 dark:to-gray-950">
+              {/* Window bar */}
+              <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+                <div className="h-2.5 w-2.5 rounded-full bg-leadby-500" />
+                <div className="h-2.5 w-2.5 rounded-full bg-leadby-300" />
+                <div className="h-2.5 w-2.5 rounded-full bg-leadby-200" />
+                <div className="ml-4 h-3 w-32 rounded bg-gray-200 dark:bg-gray-700" />
+              </div>
+
+              {/* Metric cards */}
+              <div className="grid grid-cols-3 gap-3 p-4">
+                {[
+                  { label: "w-14", value: "w-8", accent: true },
+                  { label: "w-16", value: "w-6", accent: false },
+                  { label: "w-12", value: "w-10", accent: true },
+                ].map((card, i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg border border-gray-100 bg-white p-3 dark:border-gray-800 dark:bg-gray-900"
+                  >
+                    <div className={`h-2 ${card.label} rounded bg-gray-200 dark:bg-gray-700`} />
+                    <div
+                      className={`mt-2 h-5 ${card.value} rounded ${
+                        card.accent ? "bg-leadby-500/20" : "bg-gray-200 dark:bg-gray-700"
+                      }`}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Table rows */}
+              <div className="space-y-2.5 px-4 pb-4">
+                {[
+                  { w: "flex-1", tag: "w-20" },
+                  { w: "w-3/4", tag: "w-16" },
+                  { w: "w-5/6", tag: "w-24" },
+                  { w: "w-2/3", tag: "w-14" },
+                  { w: "flex-1", tag: "w-18" },
+                ].map((row, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="h-3 w-3 rounded-full bg-leadby-500/30" />
+                    <div className={`h-2 ${row.w} rounded bg-gray-100 dark:bg-gray-800`} />
+                    <div className={`h-2 ${row.tag} rounded bg-leadby-500/15`} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Orange glow */}
+              <div className="absolute inset-0 bg-gradient-to-t from-leadby-500/5 to-transparent pointer-events-none" />
+            </div>
           </div>
         </div>
       </section>
@@ -82,7 +124,7 @@ export default function HomePage() {
             {BENEFITS.map(({ icon: Icon, title, description }) => (
               <article
                 key={title}
-                className="rounded-2xl border border-black/5 bg-white/80 p-6 shadow-sm shadow-black/5 backdrop-blur dark:border-white/10 dark:bg-white/5"
+                className="rounded-2xl border border-black/5 bg-white/80 p-6 shadow-sm shadow-black/5 backdrop-blur transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-leadby-500/20 dark:border-white/10 dark:bg-white/5"
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-leadby-500/15 text-leadby-500">
                   <Icon className="h-5 w-5" />
@@ -106,6 +148,35 @@ export default function HomePage() {
             específicas de los fabricantes y distribuidores de maquinaria, adaptándonos a ciclos de venta largos y
             negociaciones de alto valor.
           </p>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="rounded-3xl border border-leadby-500/20 bg-leadby-400/10 px-8 py-12 text-center shadow-sm shadow-black/5 dark:bg-leadby-400/15">
+            <h2 className="text-balance text-3xl font-semibold md:text-4xl">
+              ¿Listo para transformar tu operativa comercial?
+            </h2>
+            <p className="mt-6 text-base leading-relaxed text-black/70 dark:text-white/70">
+              Agenda una demostración personalizada y descubre cómo LeadBy puede multiplicar la productividad de tu
+              equipo de ventas desde el primer mes.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <Link
+                href="/contact"
+                className="inline-flex items-center justify-center rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-foreground shadow-leadby transition-colors hover:bg-leadby-600"
+              >
+                Agenda una demostración
+              </Link>
+              <Link
+                href="/precios"
+                className="inline-flex items-center justify-center rounded-full border border-leadby-500/40 px-6 py-3 text-sm font-semibold text-leadby-500 transition-colors hover:border-leadby-500 hover:bg-leadby-50/60 dark:hover:bg-white/5"
+              >
+                Ver precios
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
     </>

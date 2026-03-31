@@ -38,7 +38,7 @@ export function Sidebar() {
       {/* ── Logo ── */}
       <div className="px-5 py-5 border-b border-gray-800/60">
         <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="relative w-8 h-8 flex-shrink-0">
+          <div className="relative w-10 h-10 flex-shrink-0">
             <Image
               src="/LEADBY-Logo.png"
               alt="LeadBy"

@@ -1,43 +1,19 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-
-const CATEGORIES = [
-  { id: "all", label: "Todos" },
-  { id: "cases", label: "Casos de Éxito" },
-  { id: "guides", label: "Guías de Ventas B2B" },
-  { id: "ai", label: "Inteligencia Artificial" },
-];
-
-const ARTICLES = [
-  {
-    slug: "reduccion-tiempo-prospeccion-maquinaria",
-    category: "Casos de Éxito",
-    dateLabel: "18 marzo 2026",
-    dateTime: "2026-03-18",
-    title: "Cómo reducir un 80% el tiempo de prospección en la venta de maquinaria.",
-    excerpt:
-      "Análisis de rentabilidad sobre cómo la automatización de la búsqueda de clientes libera a los comerciales para centrarse en la negociación presencial.",
-  },
-  {
-    slug: "hiperpersonalizacion-correo-b2b",
-    category: "Guías de Ventas B2B",
-    dateLabel: "09 marzo 2026",
-    dateTime: "2026-03-09",
-    title: "El fin del correo en frío masivo: Por qué la hiperpersonalización es el único camino.",
-    excerpt:
-      "Aprende cómo utilizar modelos de lenguaje generativo para analizar el contexto de cada prospecto y redactar mensajes únicos a gran escala.",
-  },
-  {
-    slug: "automatizacion-crm-post-reunion",
-    category: "Inteligencia Artificial",
-    dateLabel: "27 febrero 2026",
-    dateTime: "2026-02-27",
-    title: "Automatización del CRM: El fin de las ineficiencias tras las reuniones comerciales.",
-    excerpt:
-      "Evita la pérdida de información clave. Descubre sistemas capaces de volcar los datos de tus reuniones directamente a tu CRM sin carga administrativa.",
-  },
-];
+import { ARTICLES, CATEGORIES } from "@/lib/data/articles";
 
 export default function BlogPage() {
+  const [activeCategory, setActiveCategory] = useState("all");
+
+  const filteredArticles =
+    activeCategory === "all"
+      ? ARTICLES
+      : ARTICLES.filter(
+          (a) => a.category === CATEGORIES.find((c) => c.id === activeCategory)?.label
+        );
+
   return (
     <>
       <section className="relative overflow-hidden">
@@ -64,12 +40,13 @@ export default function BlogPage() {
       <section className="border-y border-black/5 py-10 dark:border-white/10">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-6">
           {CATEGORIES.map((category) => {
-            const isActive = category.id === "all";
+            const isActive = category.id === activeCategory;
             return (
               <button
                 key={category.id}
                 type="button"
                 aria-pressed={isActive}
+                onClick={() => setActiveCategory(category.id)}
                 className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] transition-colors ${
                   isActive
                     ? "bg-leadby-500 text-white shadow-leadby-sm"
@@ -86,12 +63,14 @@ export default function BlogPage() {
       <section className="py-16 md:py-20">
         <div className="mx-auto max-w-6xl px-6">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {ARTICLES.map((article) => (
+            {filteredArticles.map((article) => (
               <article
                 key={article.slug}
-                className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white/80 p-6 shadow-sm shadow-black/5 backdrop-blur dark:border-white/10 dark:bg-white/5"
+                className="flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white/80 p-6 shadow-sm shadow-black/5 backdrop-blur transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-leadby-500/20 dark:border-white/10 dark:bg-white/5"
               >
-                <div className="relative aspect-[16/9] overflow-hidden rounded-xl border border-leadby-500/20 bg-gradient-to-br from-leadby-500/20 via-leadby-400/10 to-white/70 dark:from-leadby-500/20 dark:via-leadby-400/10 dark:to-black/30">
+                <div
+                  className={`relative aspect-[16/9] overflow-hidden rounded-xl border border-leadby-500/20 bg-gradient-to-br ${article.gradient} dark:from-leadby-500/20 dark:via-leadby-400/10 dark:to-black/30`}
+                >
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,117,31,0.35),_transparent_60%)]" />
                   <div className="absolute bottom-4 left-4 rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-leadby-600 backdrop-blur dark:bg-black/40 dark:text-leadby-200">
                     LeadBy Insight
@@ -103,13 +82,15 @@ export default function BlogPage() {
                     {article.category}
                   </span>
                   <time dateTime={article.dateTime}>{article.dateLabel}</time>
+                  <span className="text-black/30 dark:text-white/30">·</span>
+                  <span>{article.readingTime}</span>
                 </div>
 
                 <h3 className="mt-4 text-lg font-semibold leading-snug md:text-xl">{article.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-black/70 dark:text-white/70">{article.excerpt}</p>
 
                 <Link
-                  href={`/blog?articulo=${article.slug}`}
+                  href={`/blog/${article.slug}`}
                   className="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-semibold text-leadby-600 transition-colors hover:text-leadby-500"
                 >
                   Leer artículo

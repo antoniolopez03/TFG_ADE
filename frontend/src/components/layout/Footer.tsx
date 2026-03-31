@@ -8,7 +8,7 @@ export function Footer() {
     <footer className="border-t border-black/5 py-10 dark:border-white/10">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6 px-6">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="relative h-7 w-7 flex-shrink-0">
+          <div className="relative h-9 w-9 flex-shrink-0">
             <Image src="/LEADBY-Logo.png" alt="LeadBy" fill className="object-contain" />
           </div>
           <span className="text-xs font-semibold uppercase tracking-[0.2em]">LeadBy</span>

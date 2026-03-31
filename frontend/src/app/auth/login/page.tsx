@@ -107,8 +107,8 @@ function LoginPageContent() {
 
       <div className="relative w-full max-w-md rounded-2xl border border-black/5 bg-white/80 p-8 shadow-sm shadow-black/10 backdrop-blur dark:border-white/10 dark:bg-white/5">
         <div className="mb-6 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-black/5 bg-white shadow-sm dark:border-white/10 dark:bg-white/10">
-            <Image src="/LEADBY-Logo.png" alt="LeadBy" width={36} height={36} className="h-9 w-9" priority />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-black/5 bg-white shadow-sm dark:border-white/10 dark:bg-white/10">
+            <Image src="/LEADBY-Logo.png" alt="LeadBy" width={48} height={48} className="h-12 w-12" priority />
           </div>
           <h1 className="mt-4 text-2xl font-semibold text-foreground">Acceso a la plataforma</h1>
           <p className="mt-2 text-sm text-black/70 dark:text-white/70">
