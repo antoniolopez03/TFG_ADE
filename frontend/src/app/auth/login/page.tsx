@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import Image from "next/image";
+import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -12,6 +13,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,16 +62,35 @@ export default function LoginPage() {
 
   if (magicLinkSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      <div className="relative flex flex-1 items-center justify-center px-6 py-12">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-leadby-500/15 blur-3xl" />
+          <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-leadby-400/20 blur-3xl" />
+          <div className="absolute left-6 top-16 h-32 w-32 rounded-full border border-leadby-500/20" />
+        </div>
+
+        <div className="relative w-full max-w-md rounded-2xl border border-black/5 bg-white/80 p-8 text-center shadow-sm shadow-black/10 backdrop-blur dark:border-white/10 dark:bg-white/5">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-leadby-500/30 bg-leadby-500/10">
+            <svg className="h-7 w-7 text-leadby-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.8}
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Revisa tu email</h2>
-          <p className="text-gray-500 text-sm">
-            Hemos enviado un enlace de acceso a <strong>{email}</strong>. Haz clic en él para entrar.
+          <h2 className="text-2xl font-semibold text-foreground">Revisa tu email</h2>
+          <p className="mt-2 text-sm text-black/70 dark:text-white/70">
+            Hemos enviado un enlace de acceso a <span className="font-semibold text-foreground">{email}</span>. Haz
+            clic en él para entrar.
+          </p>
+          <p className="mt-6 text-xs text-black/60 dark:text-white/60">
+            ¿Problemas para acceder? Contacta con tu consultor técnico asignado o escribe a{" "}
+            <a className="font-semibold text-leadby-500 hover:text-leadby-600" href="mailto:soporte@leadby.edu">
+              soporte@leadby.edu
+            </a>
+            .
           </p>
         </div>
       </div>
@@ -77,79 +98,108 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Accede a tu cuenta</h1>
-          <p className="text-gray-500 mt-1 text-sm">
-            ¿No tienes cuenta?{" "}
-            <Link href="/auth/register" className="text-blue-600 hover:underline font-medium">
-              Regístrate gratis
-            </Link>
+    <div className="relative flex flex-1 items-center justify-center px-6 py-12">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-leadby-500/15 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-leadby-400/20 blur-3xl" />
+        <div className="absolute left-6 top-16 h-32 w-32 rounded-full border border-leadby-500/20" />
+      </div>
+
+      <div className="relative w-full max-w-md rounded-2xl border border-black/5 bg-white/80 p-8 shadow-sm shadow-black/10 backdrop-blur dark:border-white/10 dark:bg-white/5">
+        <div className="mb-6 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-black/5 bg-white shadow-sm dark:border-white/10 dark:bg-white/10">
+            <Image src="/LEADBY-Logo.png" alt="LeadBy" width={36} height={36} className="h-9 w-9" priority />
+          </div>
+          <h1 className="mt-4 text-2xl font-semibold text-foreground">Acceso a la plataforma</h1>
+          <p className="mt-2 text-sm text-black/70 dark:text-white/70">
+            Introduce tus credenciales corporativas para gestionar tu operativa de ventas.
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
             {error}
           </div>
         )}
 
         <form onSubmit={handlePasswordLogin} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email corporativo
+            <label htmlFor="email" className="mb-1 block text-sm font-medium text-black/80 dark:text-white/80">
+              Correo electrónico profesional
             </label>
             <input
               id="email"
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="tu@empresa.com"
+              className="w-full rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black/90 shadow-sm transition focus:border-leadby-500 focus:outline-none focus:ring-2 focus:ring-leadby-500/30 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              placeholder="nombre@empresa.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="mb-1 block text-sm font-medium text-black/80 dark:text-white/80">
               Contraseña
             </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-lg border border-black/10 bg-white/90 px-3 py-2 pr-11 text-sm text-black/90 shadow-sm transition focus:border-leadby-500 focus:outline-none focus:ring-2 focus:ring-leadby-500/30 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                placeholder="********"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-pressed={showPassword}
+                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-black/60 transition hover:text-leadby-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leadby-500/40 dark:text-white/60"
+              >
+                <span className="sr-only">{showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}</span>
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg text-sm transition-colors"
+            className="w-full rounded-lg bg-leadby-500 px-4 py-2.5 text-sm font-semibold text-white shadow-leadby-sm transition hover:bg-leadby-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Entrando..." : "Entrar con contraseña"}
+            {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
+            <div className="w-full border-t border-black/10 dark:border-white/10" />
           </div>
-          <div className="relative flex justify-center text-xs text-gray-400 bg-white px-2">
+          <div className="relative flex justify-center bg-white px-2 text-xs text-black/40 dark:bg-transparent dark:text-white/40">
             o
           </div>
         </div>
 
         <button
+          type="button"
           onClick={handleMagicLink}
           disabled={loading}
-          className="w-full py-2.5 px-4 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-gray-700 font-medium rounded-lg text-sm transition-colors"
+          className="w-full rounded-lg border border-leadby-500/40 px-4 py-2.5 text-sm font-semibold text-leadby-500 transition hover:border-leadby-500 hover:bg-leadby-50/60 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-white/5"
         >
-          Recibir enlace de acceso por email
+          Acceder con Magic Link
         </button>
+
+        <p className="mt-6 text-xs text-black/60 dark:text-white/60">
+          ¿Problemas para acceder? Contacta con tu consultor técnico asignado o escribe a{" "}
+          <a className="font-semibold text-leadby-500 hover:text-leadby-600" href="mailto:soporte@leadby.edu">
+            soporte@leadby.edu
+          </a>
+          .
+        </p>
       </div>
     </div>
   );

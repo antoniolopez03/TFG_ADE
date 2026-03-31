@@ -1,19 +1,21 @@
 import Link from "next/link";
 
-export const metadata = { title: "Términos de Servicio · ProspectAI" };
+export const metadata = { title: "Términos de Servicio · LeadBy" };
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-white px-6 py-16">
-      <div className="max-w-3xl mx-auto">
-        <Link href="/" className="text-sm text-blue-600 hover:underline">← Volver</Link>
-        <article className="prose prose-gray mt-8">
+    <section className="px-6 py-16 md:py-20">
+      <div className="mx-auto max-w-3xl">
+        <Link href="/" className="text-sm text-leadby-500 transition-colors hover:text-leadby-600">
+          ← Volver
+        </Link>
+        <article className="prose prose-neutral mt-8 max-w-none leading-relaxed dark:prose-invert prose-headings:text-foreground prose-p:text-black/70 dark:prose-p:text-white/70 prose-li:text-black/70 dark:prose-li:text-white/70 prose-a:text-leadby-500 dark:prose-a:text-leadby-400">
           <h1>Términos de Servicio</h1>
-          <p className="text-sm text-gray-400">Última actualización: Enero 2025</p>
+          <p className="text-sm text-black/60 dark:text-white/60">Última actualización: Enero 2025</p>
 
           <h2>1. Objeto</h2>
           <p>
-            Los presentes Términos regulan el acceso y uso de la plataforma SaaS ProspectAI,
+            Los presentes Términos regulan el acceso y uso de la plataforma LeadBy,
             desarrollada como Trabajo de Fin de Grado en la Universidad Complutense de Madrid.
           </p>
 
@@ -52,6 +54,6 @@ export default function TermsPage() {
           </p>
         </article>
       </div>
-    </div>
+    </section>
   );
 }

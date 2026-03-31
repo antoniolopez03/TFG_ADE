@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
+import { Footer } from "@/components/layout/Footer";
+import { Header } from "@/components/layout/Header";
 import "./globals.css";
 
 const geistMono = localFont({
@@ -7,6 +10,23 @@ const geistMono = localFont({
   variable: "--font-geist-mono",
   weight: "100 900",
 });
+
+const themeScript = `(() => {
+  try {
+    const stored = localStorage.getItem("theme");
+    const theme = stored === "dark" ? "dark" : "light";
+    const root = document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+      root.style.colorScheme = "dark";
+    } else {
+      root.classList.remove("dark");
+      root.style.colorScheme = "light";
+    }
+  } catch (_) {
+    /* no-op */
+  }
+})();`;
 
 export const metadata: Metadata = {
   title: {
@@ -30,9 +50,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body className={`${geistMono.variable} antialiased`}>
-        {children}
+        <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <div className="flex min-h-screen flex-col bg-background text-foreground font-sans">
+          <div id="global-banner" />
+          <Header />
+          <main className="flex flex-1 flex-col">{children}</main>
+          <Footer />
+        </div>
       </body>
     </html>
   );

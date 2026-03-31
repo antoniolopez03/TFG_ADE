@@ -33,7 +33,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-60 min-h-screen bg-gray-950 flex flex-col border-r border-gray-800/60">
+    <aside className="w-60 min-h-full bg-gray-950 flex flex-col border-r border-gray-800/60">
 
       {/* ── Logo ── */}
       <div className="px-5 py-5 border-b border-gray-800/60">

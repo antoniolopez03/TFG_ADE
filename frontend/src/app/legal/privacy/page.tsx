@@ -1,63 +1,64 @@
-import Link from "next/link";
-
-export const metadata = { title: "Política de Privacidad · ProspectAI" };
+export const metadata = { title: "Aviso Legal y Política de Privacidad · LeadBy" };
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-white px-6 py-16">
-      <div className="max-w-3xl mx-auto">
-        <Link href="/" className="text-sm text-blue-600 hover:underline">← Volver</Link>
-        <article className="prose prose-gray mt-8">
-          <h1>Política de Privacidad</h1>
-          <p className="text-sm text-gray-400">Última actualización: Enero 2025</p>
+    <>
+      <section className="px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <h1 className="text-balance text-3xl font-semibold leading-tight md:text-4xl">
+            Aviso Legal y Política de Privacidad
+          </h1>
+          <p className="mt-5 text-base leading-relaxed text-black/70 dark:text-white/70">
+            Transparencia, seguridad y cumplimiento normativo en el tratamiento de datos B2B.
+          </p>
+          <div className="mx-auto mt-8 h-px w-16 bg-leadby-500/70" aria-hidden />
+        </div>
+      </section>
 
-          <h2>1. Responsable del tratamiento</h2>
-          <p>
-            El responsable del tratamiento de los datos personales recogidos en esta plataforma es
-            el titular del TFG descrito en este proyecto, con dirección en la Universidad Complutense de Madrid.
-          </p>
+      <section className="px-6 pb-20">
+        <div className="mx-auto max-w-3xl">
+          <article className="prose prose-neutral max-w-none leading-relaxed dark:prose-invert prose-headings:text-foreground prose-p:text-black/70 dark:prose-p:text-white/70 prose-li:text-black/70 dark:prose-li:text-white/70 prose-a:text-leadby-500 dark:prose-a:text-leadby-400">
+            <p className="text-sm text-black/60 dark:text-white/60">Última actualización: 31 de marzo de 2026</p>
 
-          <h2>2. Datos recogidos y finalidad</h2>
-          <p>
-            Recogemos exclusivamente el email corporativo y los datos de perfil profesional que el
-            usuario proporciona al registrarse. Estos datos se utilizan únicamente para la prestación
-            del servicio SaaS descrito en esta plataforma.
-          </p>
-          <p>
-            Los datos de prospectos extraídos del motor de scraping corresponden a información
-            corporativa pública (nombre de empresa, web, teléfono genérico). No se almacenan datos
-            de personas físicas no identificadas con carácter masivo.
-          </p>
+            <h2>Naturaleza del Proyecto (TFG)</h2>
+            <p>
+              El presente sitio web, operando bajo la denominación &quot;LeadBy&quot;, constituye la plataforma práctica de un
+              Trabajo de Fin de Grado (TFG) desarrollado en la Universidad Complutense de Madrid (UCM). Los servicios
+              descritos tienen una finalidad exclusivamente académica y de investigación.
+            </p>
 
-          <h2>3. Base jurídica</h2>
-          <p>
-            El tratamiento se basa en el interés legítimo (Art. 6.1.f RGPD) para las comunicaciones
-            B2B entre profesionales, y en el consentimiento explícito del usuario para el acceso
-            a la plataforma (Art. 6.1.a RGPD).
-          </p>
+            <h2>Cumplimiento del RGPD y LSSI-CE</h2>
+            <p>
+              La operativa técnica simulada en esta plataforma se fundamenta en la excepción B2B contemplada en la normativa
+              vigente. El tratamiento de la información se ampara en el Interés Legítimo, limitándose exclusivamente a
+              información corporativa y de contacto profesional, cumpliendo con los requisitos de la LSSI-CE para las
+              comunicaciones comerciales entre empresas.
+            </p>
 
-          <h2>4. Comunicaciones comerciales (Cold Email)</h2>
-          <p>
-            Las comunicaciones de prospección enviadas a través de la plataforma se amparan en el
-            Art. 21.2 LSSI-CE, que permite el envío de comunicaciones comerciales no solicitadas
-            cuando se dirigen a personas jurídicas o profesionales, siempre que el mensaje esté
-            relacionado con su actividad. Todos los emails incluyen un enlace de baja (opt-out).
-          </p>
+            <h2>Transparencia de la IA y Decisiones Automatizadas</h2>
+            <p>
+              En cumplimiento del Artículo 22 del RGPD, LeadBy garantiza el principio de supervisión humana
+              (Human-in-the-Loop). La Inteligencia Artificial actúa exclusivamente como un asistente cognitivo
+              (&quot;copiloto&quot;). Toda generación de contenido comercial se almacena en una &quot;Zona de Cuarentena&quot; y requiere
+              de revisión, modificación y aprobación manual explícita antes de cualquier ejecución técnica.
+            </p>
 
-          <h2>5. Derechos del interesado</h2>
-          <p>
-            Puedes ejercer tus derechos de acceso, rectificación, supresión, portabilidad y oposición
-            contactando con nosotros. Los datos se eliminan automáticamente al darse de baja del servicio
-            (ON DELETE CASCADE en la base de datos).
-          </p>
+            <h2>Mecanismos de Opt-Out (Baja)</h2>
+            <p>
+              Para garantizar el derecho de oposición, la arquitectura del sistema exige técnicamente que todas las
+              comunicaciones simuladas o reales generadas incluyan un enlace visible y funcional para cancelar la
+              suscripción de forma automática.
+            </p>
 
-          <h2>6. Transferencias internacionales</h2>
-          <p>
-            Los datos se alojan en servidores de Supabase (AWS, región EU-West) con certificación
-            ISO 27001. No se realizan transferencias a terceros países sin garantías adecuadas.
-          </p>
-        </article>
-      </div>
-    </div>
+            <h2>Seguridad y Aislamiento de Datos</h2>
+            <p>
+              La plataforma implementa aislamiento criptográfico mediante Políticas de Seguridad a Nivel de Fila (RLS).
+              Los datos corporativos de los clientes se encuentran aislados, cifrados en tránsito (TLS 1.3) y en reposo,
+              garantizando el máximo nivel de confidencialidad.
+            </p>
+          </article>
+        </div>
+      </section>
+    </>
   );
 }

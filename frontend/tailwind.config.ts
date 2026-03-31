@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -11,22 +12,25 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        primary: "var(--leadby-primary)",
+        secondary: "var(--leadby-secondary)",
         leadby: {
-          50:  "#FFF4ED",
-          100: "#FFE4CC",
-          200: "#FFC799",
-          300: "#FFA366",
-          400: "#FF8C3A",
-          500: "#FF6600",
-          600: "#E55A00",
-          700: "#CC5200",
-          800: "#993D00",
-          900: "#662900",
+          50: "#fff4ee",
+          100: "#ffe6d6",
+          200: "#ffd1b5",
+          300: "#ffb88f",
+          400: "#ff914d",
+          500: "#ff751f",
+          600: "#e66617",
+          700: "#cc5b14",
+          800: "#99440f",
+          900: "#66300a",
         },
       },
       fontFamily: {
-        sans: ["var(--font-outfit)", "system-ui", "sans-serif"],
-        display: ["var(--font-outfit)", "system-ui", "sans-serif"],
+        sans: ["var(--font-hk-modular)", "system-ui", "sans-serif"],
+        display: ["var(--font-hk-modular)", "system-ui", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       animation: {
         "fade-up": "fade-up 0.5s ease-out forwards",
