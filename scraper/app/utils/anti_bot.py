@@ -6,8 +6,14 @@ El objetivo es simular comportamiento humano, no sobrecargar servidores.
 
 import asyncio
 import random
+import logging
 from typing import Optional
 from playwright.async_api import BrowserContext, Page
+
+from app.config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 # Pool de User-Agents reales (actualizar periódicamente)
@@ -78,9 +84,13 @@ def get_random_viewport() -> dict:
     return random.choice(VIEWPORTS)
 
 
-async def delay_humano(min_ms: int = 1500, max_ms: int = 4000) -> None:
+async def delay_humano(min_ms: Optional[int] = None, max_ms: Optional[int] = None) -> None:
     """Pausa aleatoria para simular lectura/procesamiento humano."""
-    segundos = random.uniform(min_ms / 1000, max_ms / 1000)
+    min_val = settings.min_delay_ms if min_ms is None else min_ms
+    max_val = settings.max_delay_ms if max_ms is None else max_ms
+    if max_val < min_val:
+        min_val, max_val = max_val, min_val
+    segundos = random.uniform(min_val / 1000, max_val / 1000)
     await asyncio.sleep(segundos)
 
 
@@ -114,6 +124,25 @@ async def configurar_contexto(browser, config) -> BrowserContext:
     await context.add_init_script(STEALTH_SCRIPT)
 
     return context
+
+
+async def delay_scroll(min_ms: int = 300, max_ms: int = 600) -> None:
+    """Pausa corta entre acciones de scroll — humano pero eficiente."""
+    segundos = random.uniform(min_ms / 1000, max_ms / 1000)
+    await asyncio.sleep(segundos)
+
+
+async def bloquear_recursos_pesados(page: Page) -> None:
+    """Bloquea imágenes, fonts y media para acelerar la carga de páginas."""
+    BLOCKED = {"image", "media", "font"}
+
+    async def _handle(route):
+        if route.request.resource_type in BLOCKED:
+            await route.abort()
+        else:
+            await route.continue_()
+
+    await page.route("**/*", _handle)
 
 
 async def simular_scroll_humano(page: Page, pasos: int = 5) -> None:
@@ -155,14 +184,28 @@ async def navegar_con_retry(
         try:
             response = await page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
 
-            if response and response.status == 429:
+            if not response:
+                logger.warning("Navegacion sin response para %s (intento %s/%s)", url, intento + 1, max_reintentos)
+                if intento < max_reintentos - 1:
+                    await asyncio.sleep(2 ** intento)
+                    continue
+                return False
+
+            if response.status == 429:
                 # Rate limited: esperar más tiempo antes del siguiente intento
                 espera = (intento + 1) * 10  # 10s, 20s, 30s
                 await asyncio.sleep(espera)
                 continue
 
-            if response and response.status in (403, 401):
+            if response.status in (403, 401):
                 return False  # Bloqueado permanentemente, no reintentar
+
+            if response.status >= 400:
+                logger.warning("Navegacion devolvio HTTP %s para %s", response.status, url)
+                if intento < max_reintentos - 1:
+                    await asyncio.sleep(2 ** intento)
+                    continue
+                return False
 
             return True
 

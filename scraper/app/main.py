@@ -16,7 +16,7 @@ if sys.platform == "win32":
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import health, maps, dorks
+from app.routers import health, maps
 from app.config import settings
 
 # Configuración de logging
@@ -41,7 +41,7 @@ app = FastAPI(
     title="TFG Scraper Microservice",
     description=(
         "Microservicio de extracción de datos B2B para la plataforma SaaS. "
-        "Busca empresas en Google Maps y contactos via Google Dorks. "
+        "Busca empresas en Google Maps. "
         "Llamado por n8n durante el Workflow de Descubrimiento."
     ),
     version="1.0.0",
@@ -64,4 +64,3 @@ app.add_middleware(
 # Registrar routers
 app.include_router(health.router)
 app.include_router(maps.router)
-app.include_router(dorks.router)

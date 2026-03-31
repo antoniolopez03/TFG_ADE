@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from app.config import settings
 from app.dependencies import verificar_api_key
 from app.models import MapsSearchRequest, ScrapeResponse
-from app.scrapers.maps_scraper import MapsScraper
+from app.scrapers.maps_scraper import MapsScraper, construir_termino_busqueda_maps
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -54,10 +54,11 @@ async def scrape_google_maps(request: MapsSearchRequest):
         empresas = []
 
     duracion = time.time() - inicio
+    query_original = construir_termino_busqueda_maps(request.query, request.location)
 
     return ScrapeResponse(
         organizacion_id=request.organizacion_id,
-        query_original=f"{request.query} {request.location}",
+        query_original=query_original,
         total_encontrados=len(empresas),
         empresas=empresas,
         errores=errores,

@@ -103,7 +103,7 @@ class BaseScraper(ABC):
         return False
 
     @abstractmethod
-    async def scrape(self, **kwargs) -> list[EmpresaResult]:
+    async def scrape(self, *args, **kwargs) -> list[EmpresaResult]:
         """
         Implementar en subclases.
         Debe retornar una lista de EmpresaResult.

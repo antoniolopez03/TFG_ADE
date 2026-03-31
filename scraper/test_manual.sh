@@ -24,7 +24,7 @@ echo "=========================================="
 echo ""
 
 # ---- Test 1: Health Check ----
-echo -e "${YELLOW}[1/5] Health Check${NC}"
+echo -e "${YELLOW}[1/4] Health Check${NC}"
 echo "GET $BASE_URL/health"
 echo "---"
 curl -s "$BASE_URL/health" | python -m json.tool 2>/dev/null || curl -s "$BASE_URL/health"
@@ -32,7 +32,7 @@ echo ""
 echo ""
 
 # ---- Test 2: Auth sin API key (debe dar 401) ----
-echo -e "${YELLOW}[2/5] Auth sin API key (esperado: 401)${NC}"
+echo -e "${YELLOW}[2/4] Auth sin API key (esperado: 401)${NC}"
 echo "POST $BASE_URL/scrape/maps (sin X-API-Key)"
 echo "---"
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -47,7 +47,7 @@ fi
 echo ""
 
 # ---- Test 3: Auth con API key incorrecta (debe dar 401) ----
-echo -e "${YELLOW}[3/5] Auth con API key incorrecta (esperado: 401)${NC}"
+echo -e "${YELLOW}[3/4] Auth con API key incorrecta (esperado: 401)${NC}"
 echo "POST $BASE_URL/scrape/maps (X-API-Key: wrong-key)"
 echo "---"
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -63,7 +63,7 @@ fi
 echo ""
 
 # ---- Test 4: Scrape Google Maps (real) ----
-echo -e "${YELLOW}[4/5] Scrape Google Maps (real - max_results=3)${NC}"
+echo -e "${YELLOW}[4/4] Scrape Google Maps (real - max_results=3)${NC}"
 echo "POST $BASE_URL/scrape/maps"
 echo "Esto puede tardar 30-60 segundos..."
 echo "---"
@@ -77,21 +77,6 @@ curl -s -X POST "$BASE_URL/scrape/maps" \
     "organizacion_id": "test-manual"
   }' | python -m json.tool 2>/dev/null || echo "(respuesta no es JSON válido)"
 echo ""
-echo ""
-
-# ---- Test 5: Scrape Google Dorks (real) ----
-echo -e "${YELLOW}[5/5] Scrape Google Dorks (real - max_results=3)${NC}"
-echo "POST $BASE_URL/scrape/dorks"
-echo "Esto puede tardar 30-60 segundos..."
-echo "---"
-curl -s -X POST "$BASE_URL/scrape/dorks" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: $API_KEY" \
-  -d '{
-    "dork_query": "site:es.linkedin.com/in \"CEO\" \"Madrid\"",
-    "max_results": 3,
-    "organizacion_id": "test-manual"
-  }' | python -m json.tool 2>/dev/null || echo "(respuesta no es JSON válido)"
 echo ""
 
 echo "=========================================="

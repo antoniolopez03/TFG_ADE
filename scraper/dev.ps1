@@ -33,11 +33,11 @@ switch ($Command) {
         Write-Host "==========================================" -ForegroundColor Yellow
 
         # Test 1: Health
-        Write-Host "`n[1/5] Health Check" -ForegroundColor Yellow
+        Write-Host "`n[1/4] Health Check" -ForegroundColor Yellow
         Invoke-RestMethod -Uri "$baseUrl/health" | ConvertTo-Json
 
         # Test 2: Sin API key (401)
-        Write-Host "`n[2/5] Sin API key (esperado: 401)" -ForegroundColor Yellow
+        Write-Host "`n[2/4] Sin API key (esperado: 401)" -ForegroundColor Yellow
         try {
             Invoke-RestMethod -Uri "$baseUrl/scrape/maps" -Method Post `
                 -ContentType "application/json" `
@@ -51,7 +51,7 @@ switch ($Command) {
         }
 
         # Test 3: API key incorrecta (401)
-        Write-Host "`n[3/5] API key incorrecta (esperado: 401)" -ForegroundColor Yellow
+        Write-Host "`n[3/4] API key incorrecta (esperado: 401)" -ForegroundColor Yellow
         try {
             Invoke-RestMethod -Uri "$baseUrl/scrape/maps" -Method Post `
                 -ContentType "application/json" `
@@ -66,7 +66,7 @@ switch ($Command) {
         }
 
         # Test 4: Maps real
-        Write-Host "`n[4/5] Scrape Google Maps (max_results=3, espera 30-60s...)" -ForegroundColor Yellow
+        Write-Host "`n[4/4] Scrape Google Maps (max_results=3, espera 30-60s...)" -ForegroundColor Yellow
         $body = @{
             query = "restaurantes"
             location = "Valencia, Espana"
@@ -74,18 +74,6 @@ switch ($Command) {
             organizacion_id = "test-manual"
         } | ConvertTo-Json
         Invoke-RestMethod -Uri "$baseUrl/scrape/maps" -Method Post `
-            -ContentType "application/json" `
-            -Headers @{"X-API-Key" = $apiKey} `
-            -Body $body | ConvertTo-Json -Depth 10
-
-        # Test 5: Dorks real
-        Write-Host "`n[5/5] Scrape Google Dorks (max_results=3, espera 30-60s...)" -ForegroundColor Yellow
-        $body = @{
-            dork_query = 'site:es.linkedin.com/in "CEO" "Madrid"'
-            max_results = 3
-            organizacion_id = "test-manual"
-        } | ConvertTo-Json
-        Invoke-RestMethod -Uri "$baseUrl/scrape/dorks" -Method Post `
             -ContentType "application/json" `
             -Headers @{"X-API-Key" = $apiKey} `
             -Body $body | ConvertTo-Json -Depth 10

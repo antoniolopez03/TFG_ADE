@@ -1,43 +1,18 @@
-from pydantic import BaseModel, field_validator
-from typing import Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, Literal
 
 
 class MapsSearchRequest(BaseModel):
     """Petición de scraping en Google Maps."""
     query: str                          # ej: "fábricas de automoción"
     location: str                       # ej: "Valencia, España"
-    max_results: int = 20
+    max_results: int = Field(default=20, ge=1)
     organizacion_id: str                # para correlación con la BD
-
-    @field_validator("max_results")
-    @classmethod
-    def limitar_resultados(cls, v: int) -> int:
-        return min(v, 50)  # hardcap de seguridad
 
     @field_validator("query")
     @classmethod
     def sanitizar_query(cls, v: str) -> str:
         return v.strip()[:200]
-
-
-class DorksSearchRequest(BaseModel):
-    """Petición de scraping con Google Dorks."""
-    dork_query: str     # ej: 'site:linkedin.com/in "Director de Compras" "Madrid"'
-    max_results: int = 20
-    organizacion_id: str
-
-    @field_validator("max_results")
-    @classmethod
-    def limitar_resultados(cls, v: int) -> int:
-        return min(v, 50)
-
-
-class ContactoResult(BaseModel):
-    """Contacto extraído de Google Dorks (snippet de LinkedIn)."""
-    nombre: Optional[str] = None
-    cargo: Optional[str] = None
-    empresa: Optional[str] = None
-    linkedin_url: Optional[str] = None
 
 
 class EmpresaResult(BaseModel):
@@ -52,9 +27,8 @@ class EmpresaResult(BaseModel):
     sector: Optional[str] = None
     google_maps_url: Optional[str] = None
     google_place_id: Optional[str] = None
-    fuente: str = "google_maps"         # google_maps | google_dorks
-    contactos: list[ContactoResult] = []
-    datos_adicionales: dict = {}
+    fuente: Literal["google_maps"] = "google_maps"
+    datos_adicionales: dict = Field(default_factory=dict)
 
 
 class ScrapeResponse(BaseModel):
@@ -63,5 +37,5 @@ class ScrapeResponse(BaseModel):
     query_original: str
     total_encontrados: int
     empresas: list[EmpresaResult]
-    errores: list[str] = []
+    errores: list[str] = Field(default_factory=list)
     tiempo_ejecucion_segundos: float
