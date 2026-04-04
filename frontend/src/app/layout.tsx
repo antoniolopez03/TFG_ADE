@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
-import { Footer } from "@/components/layout/Footer";
-import { Header } from "@/components/layout/Header";
 import "./globals.css";
 
 const geistMono = localFont({
@@ -55,9 +53,7 @@ export default function RootLayout({
         <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
         <div className="flex min-h-screen flex-col bg-background text-foreground font-sans">
           <div id="global-banner" />
-          <Header />
-          <main className="flex flex-1 flex-col">{children}</main>
-          <Footer />
+          {children}
         </div>
       </body>
     </html>

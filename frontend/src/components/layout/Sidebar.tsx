@@ -10,6 +10,7 @@ import {
   Users,
   Settings,
   LogOut,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -21,7 +22,11 @@ const NAV_ITEMS = [
   { href: "/settings",     label: "Configuración",  icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const supabase = createClient();
@@ -37,25 +42,37 @@ export function Sidebar() {
 
       {/* ── Logo ── */}
       <div className="px-5 py-5 border-b border-gray-800/60">
-        <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="relative w-10 h-10 flex-shrink-0">
-            <Image
-              src="/LEADBY-Logo.png"
-              alt="LeadBy"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-          <div className="leading-none">
-            <span className="block font-bold text-white text-sm tracking-wide">
-              LEADBY
-            </span>
-            <span className="block text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-0.5">
-              Optimización de Procesos
-            </span>
-          </div>
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
+            <div className="relative w-10 h-10 flex-shrink-0">
+              <Image
+                src="/LEADBY-Logo.png"
+                alt="LeadBy"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div className="leading-none">
+              <span className="block font-bold text-white text-sm tracking-wide">
+                LEADBY
+              </span>
+              <span className="block text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-0.5">
+                Optimización de Procesos
+              </span>
+            </div>
+          </Link>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar menú"
+              className="p-1.5 rounded-md text-gray-500 hover:text-white hover:bg-gray-800/60 transition-colors md:hidden"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Navegación ── */}
@@ -66,6 +83,7 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={onClose}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
                 isActive
