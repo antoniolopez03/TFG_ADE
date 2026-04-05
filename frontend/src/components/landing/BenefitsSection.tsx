@@ -58,37 +58,37 @@ export function BenefitsSection() {
           gsap.from(".benefits-label", {
             x: -20,
             autoAlpha: 0,
-            duration: 0.5,
+            duration: 0.4,
             ease: "power2.out",
             scrollTrigger: {
               trigger: ".benefits-label",
-              start: "top 85%",
+              start: "top 95%",
               toggleActions: "play none none none",
             },
           });
 
           // Set cards invisible before batch trigger
-          gsap.set(".benefit-card", { autoAlpha: 0, y: 36 });
+          gsap.set(".benefit-card", { autoAlpha: 0, y: 28 });
 
           ScrollTrigger.batch(".benefit-card", {
-            start: "top 82%",
+            start: "top 96%",
             once: true,
             onEnter: (elements) => {
               gsap.to(elements, {
                 autoAlpha: 1,
                 y: 0,
-                duration: 0.65,
-                stagger: 0.14,
+                duration: 0.5,
+                stagger: 0.1,
                 ease: "power3.out",
                 overwrite: true,
               });
             },
           });
 
-          // Hover: icon bounce (contextSafe required for event handlers)
+          // Hover: icon bounce + 3D card tilt (contextSafe required for event handlers)
           if (contextSafe) {
             const cards =
-              containerRef.current?.querySelectorAll(".benefit-card") ?? [];
+              containerRef.current?.querySelectorAll<HTMLElement>(".benefit-card") ?? [];
 
             const onMouseEnter = contextSafe((e: Event) => {
               const icon = (e.currentTarget as HTMLElement).querySelector(
@@ -109,14 +109,45 @@ export function BenefitsSection() {
               );
             });
 
-            cards.forEach((card) =>
-              card.addEventListener("mouseenter", onMouseEnter)
-            );
+            const onMouseMove = contextSafe((e: Event) => {
+              const me = e as MouseEvent;
+              const card = e.currentTarget as HTMLElement;
+              const rect = card.getBoundingClientRect();
+              const nx = (me.clientX - rect.left - rect.width / 2) / (rect.width / 2);
+              const ny = (me.clientY - rect.top - rect.height / 2) / (rect.height / 2);
+              gsap.to(card, {
+                rotationY: nx * 5,
+                rotationX: -ny * 5,
+                transformPerspective: 800,
+                duration: 0.4,
+                ease: "power2.out",
+                overwrite: "auto",
+              });
+            });
+
+            const onMouseLeave = contextSafe((e: Event) => {
+              const card = e.currentTarget as HTMLElement;
+              gsap.to(card, {
+                rotationY: 0,
+                rotationX: 0,
+                duration: 0.5,
+                ease: "power2.out",
+                overwrite: "auto",
+              });
+            });
+
+            cards.forEach((card) => {
+              card.addEventListener("mouseenter", onMouseEnter);
+              card.addEventListener("mousemove", onMouseMove);
+              card.addEventListener("mouseleave", onMouseLeave);
+            });
 
             return () => {
-              cards.forEach((card) =>
-                card.removeEventListener("mouseenter", onMouseEnter)
-              );
+              cards.forEach((card) => {
+                card.removeEventListener("mouseenter", onMouseEnter);
+                card.removeEventListener("mousemove", onMouseMove);
+                card.removeEventListener("mouseleave", onMouseLeave);
+              });
             };
           }
         }

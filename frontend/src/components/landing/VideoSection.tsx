@@ -43,36 +43,36 @@ export function VideoSection() {
           const tl = gsap.timeline({
             scrollTrigger: {
               trigger: containerRef.current,
-              start: "top 72%",
+              start: "top 92%",
               toggleActions: "play none none none",
             },
             defaults: { ease: "power3.out" },
           });
 
           // Text stagger
-          tl.from(".video-label", { x: -16, autoAlpha: 0, duration: 0.45 });
+          tl.from(".video-label", { x: -14, autoAlpha: 0, duration: 0.35 });
           tl.from(
             ".video-headline",
-            { y: 28, autoAlpha: 0, duration: 0.6 },
-            "-=0.2"
+            { y: 22, autoAlpha: 0, duration: 0.45 },
+            "-=0.15"
           );
           tl.from(
             ".video-sub",
-            { y: 18, autoAlpha: 0, duration: 0.5 },
-            "-=0.3"
+            { y: 14, autoAlpha: 0, duration: 0.4 },
+            "-=0.25"
           );
 
           // Video frame slides up
           tl.from(
             ".video-wrapper",
             {
-              y: 56,
+              y: 40,
               autoAlpha: 0,
-              scale: 0.96,
-              duration: 0.75,
+              scale: 0.97,
+              duration: 0.55,
               ease: "power2.out",
             },
-            "-=0.2"
+            "-=0.15"
           );
 
           // Progress bar fills left to right

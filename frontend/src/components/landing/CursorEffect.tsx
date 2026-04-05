@@ -4,215 +4,201 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 
 export function CursorEffect() {
-  const dotRef = useRef<HTMLDivElement>(null);
-  const ringRef = useRef<HTMLDivElement>(null);
+  const arrowRef = useRef<HTMLDivElement>(null);
+  const haloRef  = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Only on pointer:fine devices (desktops with mouse)
     if (!window.matchMedia("(pointer: fine)").matches) return;
 
-    const dot = dotRef.current;
-    const ring = ringRef.current;
-    if (!dot || !ring) return;
+    const arrow = arrowRef.current;
+    const halo  = haloRef.current;
+    if (!arrow || !halo) return;
 
-    const DOT_R = 4;  // half of 8px dot
-    const RING_R = 20; // half of 40px ring
+    const TIP_X   = 2;
+    const TIP_Y   = 2;
+    const HALO_R  = 30; // half of 60px halo
 
-    // Show the cursor elements
-    gsap.set([dot, ring], { autoAlpha: 1 });
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // Inject cursor:none globally
+    gsap.set([arrow, halo], { autoAlpha: 1 });
+
     const style = document.createElement("style");
     style.id = "custom-cursor-style";
     style.textContent = "html, html * { cursor: none !important; }";
     document.head.appendChild(style);
 
-    // quickTo for the lagging ring
-    const xTo = gsap.quickTo(ring, "x", { duration: 0.13, ease: "power2.out" });
-    const yTo = gsap.quickTo(ring, "y", { duration: 0.13, ease: "power2.out" });
+    // Halo follows with a slight lag so it feels organic
+    const xHalo = gsap.quickTo(halo, "x", { duration: 0.18, ease: "power2.out" });
+    const yHalo = gsap.quickTo(halo, "y", { duration: 0.18, ease: "power2.out" });
 
-    let lastTrailX = -9999;
-    let lastTrailY = -9999;
-    let lastTrailMs = 0;
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
+    let mouseX = 0;
+    let mouseY = 0;
+    let isMagnetic  = false;
+    let magneticRAF = 0;
 
-    // ── Trail particle ─────────────────────────────────────────────────────
-    function spawnTrail(x: number, y: number) {
+    // ── Magnetic ──────────────────────────────────────────────────────────
+    function tickMagnetic() {
+      if (!isMagnetic) return;
+      const magnets = document.querySelectorAll<HTMLElement>(".cursor-magnetic");
+      let nearestDist = Infinity;
+      let nearestEl: HTMLElement | null = null;
+      magnets.forEach((el) => {
+        const r  = el.getBoundingClientRect();
+        const cx = r.left + r.width  / 2;
+        const cy = r.top  + r.height / 2;
+        const d  = Math.hypot(mouseX - cx, mouseY - cy);
+        if (d < nearestDist) { nearestDist = d; nearestEl = el; }
+      });
+      if (nearestEl && nearestDist < 110) {
+        const r    = (nearestEl as HTMLElement).getBoundingClientRect();
+        const cx   = r.left + r.width  / 2;
+        const cy   = r.top  + r.height / 2;
+        const pull = Math.max(0, 1 - nearestDist / 110);
+        xHalo(mouseX - HALO_R + (cx - mouseX) * pull * 0.4);
+        yHalo(mouseY - HALO_R + (cy - mouseY) * pull * 0.4);
+      }
+      magneticRAF = requestAnimationFrame(tickMagnetic);
+    }
+
+    // ── Click ripple ──────────────────────────────────────────────────────
+    function spawnRipple(x: number, y: number) {
       if (reducedMotion) return;
-      const size = Math.random() * 5 + 3;
-      const p = document.createElement("div");
-      p.style.cssText = `
+      const r = document.createElement("div");
+      r.style.cssText = `
         position:fixed;top:${y}px;left:${x}px;
-        width:${size}px;height:${size}px;border-radius:50%;
-        background:rgba(255,117,31,0.65);
-        pointer-events:none;z-index:9997;
-        transform:translate(-50%,-50%);will-change:transform,opacity;
+        width:8px;height:8px;border-radius:50%;
+        border:1.5px solid rgba(255,117,31,0.5);
+        pointer-events:none;z-index:9996;
+        transform:translate(-50%,-50%) scale(1);
+        will-change:transform,opacity;
       `;
-      document.body.appendChild(p);
-      gsap.to(p, {
-        scale: 0,
-        opacity: 0,
-        x: (Math.random() - 0.5) * 14,
-        y: (Math.random() - 0.5) * 14,
-        duration: 0.42,
-        ease: "power2.out",
-        onComplete: () => p.remove(),
+      document.body.appendChild(r);
+      gsap.to(r, {
+        scale: 5, opacity: 0, duration: 0.5, ease: "power2.out",
+        onComplete: () => r.remove(),
       });
     }
 
-    // ── Click burst ────────────────────────────────────────────────────────
-    function spawnBurst(x: number, y: number) {
-      if (reducedMotion) return;
-      const count = 8;
-      for (let i = 0; i < count; i++) {
-        const angle = (i / count) * Math.PI * 2;
-        const dist = 28 + Math.random() * 18;
-        const size = Math.random() * 5 + 3;
-        const p = document.createElement("div");
-        p.style.cssText = `
-          position:fixed;top:${y}px;left:${x}px;
-          width:${size}px;height:${size}px;border-radius:50%;
-          background:rgba(255,117,31,${0.5 + Math.random() * 0.5});
-          pointer-events:none;z-index:9998;
-          transform:translate(-50%,-50%);will-change:transform,opacity;
-        `;
-        document.body.appendChild(p);
-        gsap.to(p, {
-          x: Math.cos(angle) * dist,
-          y: Math.sin(angle) * dist,
-          scale: 0,
-          opacity: 0,
-          duration: 0.55 + Math.random() * 0.2,
-          ease: "power2.out",
-          onComplete: () => p.remove(),
-        });
-      }
-    }
-
-    // ── Event handlers ─────────────────────────────────────────────────────
+    // ── Mouse move ────────────────────────────────────────────────────────
     function onMouseMove(e: MouseEvent) {
-      const { clientX: x, clientY: y } = e;
-
-      // Dot snaps instantly
-      gsap.set(dot, { x: x - DOT_R, y: y - DOT_R });
-
-      // Ring lags behind
-      xTo(x - RING_R);
-      yTo(y - RING_R);
-
-      // Trail: throttle by distance + time
-      const dx = x - lastTrailX;
-      const dy = y - lastTrailY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const now = Date.now();
-      if (dist > 14 && now - lastTrailMs > 32) {
-        lastTrailX = x;
-        lastTrailY = y;
-        lastTrailMs = now;
-        spawnTrail(x, y);
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      gsap.set(arrow, { x: mouseX - TIP_X, y: mouseY - TIP_Y });
+      if (!isMagnetic) {
+        xHalo(mouseX - HALO_R);
+        yHalo(mouseY - HALO_R);
       }
     }
 
+    // ── Click ─────────────────────────────────────────────────────────────
     function onClick(e: MouseEvent) {
-      const { clientX: x, clientY: y } = e;
-
-      // Ring pulse outward then reset
+      if (reducedMotion) return;
       gsap.timeline()
-        .to(ring, { scale: 2.6, opacity: 0, duration: 0.33, ease: "power2.out" })
-        .set(ring, { scale: 1, opacity: 1 });
-
-      spawnBurst(x, y);
+        .to(arrow, { scale: 0.72, rotation: -5, duration: 0.1,  ease: "power2.in" })
+        .to(arrow, { scale: 1.15, rotation: 0,  duration: 0.2,  ease: "back.out(2.5)" })
+        .to(arrow, { scale: 1,                  duration: 0.15, ease: "power2.out" });
+      // Halo pulses slightly on click
+      gsap.timeline()
+        .to(halo, { scale: 1.5, opacity: 0.18, duration: 0.18, ease: "power2.out" })
+        .to(halo, { scale: 1,   opacity: 1,    duration: 0.3,  ease: "power2.out" });
+      spawnRipple(e.clientX, e.clientY);
     }
 
+    // ── Hover ─────────────────────────────────────────────────────────────
     function onMouseOver(e: MouseEvent) {
-      if ((e.target as HTMLElement).closest("a, button, [role='button']")) {
-        gsap.to(ring, {
-          scale: 2,
-          borderColor: "rgba(255,117,31,0.9)",
-          duration: 0.25,
-          ease: "power2.out",
-        });
-        gsap.to(dot, { scale: 0, duration: 0.25 });
+      const target = (e.target as HTMLElement).closest("a, button, [role='button']");
+      if (!target || reducedMotion) return;
+      gsap.to(arrow, { scale: 1.12, rotation: -10, duration: 0.22, ease: "back.out(2)" });
+      gsap.to(halo,  { scale: 1.3, duration: 0.25, ease: "power2.out" });
+      if ((target as HTMLElement).closest(".cursor-magnetic")) {
+        isMagnetic = true;
+        cancelAnimationFrame(magneticRAF);
+        magneticRAF = requestAnimationFrame(tickMagnetic);
       }
     }
 
     function onMouseOut(e: MouseEvent) {
-      if ((e.target as HTMLElement).closest("a, button, [role='button']")) {
-        gsap.to(ring, {
-          scale: 1,
-          borderColor: "rgba(255,117,31,0.5)",
-          duration: 0.3,
-          ease: "power2.out",
-        });
-        gsap.to(dot, { scale: 1, duration: 0.3 });
+      const target = (e.target as HTMLElement).closest("a, button, [role='button']");
+      if (!target || reducedMotion) return;
+      gsap.to(arrow, { scale: 1, rotation: 0, duration: 0.25, ease: "power2.out" });
+      gsap.to(halo,  { scale: 1, duration: 0.25, ease: "power2.out" });
+      if ((target as HTMLElement).closest(".cursor-magnetic")) {
+        isMagnetic = false;
+        cancelAnimationFrame(magneticRAF);
+        xHalo(mouseX - HALO_R);
+        yHalo(mouseY - HALO_R);
       }
     }
 
-    function onDocLeave() {
-      gsap.to([dot, ring], { autoAlpha: 0, duration: 0.25 });
-    }
-    function onDocEnter() {
-      gsap.to([dot, ring], { autoAlpha: 1, duration: 0.25 });
-    }
+    function onDocLeave() { gsap.to([arrow, halo], { autoAlpha: 0, duration: 0.2 }); }
+    function onDocEnter() { gsap.to([arrow, halo], { autoAlpha: 1, duration: 0.2 }); }
 
     window.addEventListener("mousemove", onMouseMove, { passive: true });
-    window.addEventListener("click", onClick);
+    window.addEventListener("click",     onClick);
     window.addEventListener("mouseover", onMouseOver, { passive: true });
-    window.addEventListener("mouseout", onMouseOut, { passive: true });
+    window.addEventListener("mouseout",  onMouseOut,  { passive: true });
     document.addEventListener("mouseleave", onDocLeave);
     document.addEventListener("mouseenter", onDocEnter);
 
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("click", onClick);
+      window.removeEventListener("click",     onClick);
       window.removeEventListener("mouseover", onMouseOver);
-      window.removeEventListener("mouseout", onMouseOut);
+      window.removeEventListener("mouseout",  onMouseOut);
       document.removeEventListener("mouseleave", onDocLeave);
       document.removeEventListener("mouseenter", onDocEnter);
       document.getElementById("custom-cursor-style")?.remove();
+      cancelAnimationFrame(magneticRAF);
     };
   }, []);
 
   return (
     <>
-      {/* Cursor dot — snaps to mouse */}
+      {/* Tenue halo naranja — siempre visible alrededor del cursor */}
       <div
-        ref={dotRef}
+        ref={haloRef}
         aria-hidden
         style={{
           position: "fixed",
           top: 0,
           left: 0,
-          width: 8,
-          height: 8,
+          width: 60,
+          height: 60,
           borderRadius: "50%",
-          background: "#ff751f",
+          background: "radial-gradient(circle, rgba(255,117,31,0.13) 0%, rgba(255,117,31,0.05) 50%, rgba(255,117,31,0) 75%)",
+          filter: "blur(6px)",
+          pointerEvents: "none",
+          zIndex: 9997,
+          visibility: "hidden",
+          willChange: "transform",
+        }}
+      />
+
+      {/* Arrow cursor */}
+      <div
+        ref={arrowRef}
+        aria-hidden
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
           pointerEvents: "none",
           zIndex: 9999,
           visibility: "hidden",
           willChange: "transform",
+          transformOrigin: "2px 2px",
         }}
-      />
-      {/* Cursor ring — lags behind */}
-      <div
-        ref={ringRef}
-        aria-hidden
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: 40,
-          height: 40,
-          borderRadius: "50%",
-          border: "1.5px solid rgba(255,117,31,0.5)",
-          pointerEvents: "none",
-          zIndex: 9998,
-          visibility: "hidden",
-          willChange: "transform",
-        }}
-      />
+      >
+        <svg viewBox="0 0 14 22" width="18" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M2 2 L2 17.5 L5.5 14 L7.5 20.5 L10 19.5 L8 13.5 L12.5 13.5 Z"
+            fill="#ff751f"
+            stroke="#c25510"
+            strokeWidth="0.7"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
     </>
   );
 }

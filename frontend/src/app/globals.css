@@ -61,13 +61,24 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #f8f8f6;
 }
 ::-webkit-scrollbar-thumb {
   background: #d1d5db;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
+  background: #FF6600;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #374151;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #FF6600;
 }
 
@@ -127,5 +138,20 @@ body {
   .card-hover:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 30px rgba(255, 117, 31, 0.1);
+  }
+
+  /* Light mode landing page — warm tint at the top */
+  .light-hero-bg {
+    background: linear-gradient(180deg, #fff9f5 0%, #ffffff 40%);
+  }
+  .dark .light-hero-bg,
+  .light-hero-bg.dark {
+    background: transparent;
+  }
+
+  /* Light mode card — more visible border + shadow */
+  .card-light {
+    border-color: #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
   }
 }

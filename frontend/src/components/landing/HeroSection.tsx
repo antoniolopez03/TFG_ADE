@@ -44,21 +44,21 @@ export function HeroSection() {
 
           // ── Entrance timeline ────────────────────────────────────────────
           const tl = gsap.timeline({
-            defaults: { ease: "power3.out", duration: 0.7 },
+            defaults: { ease: "power3.out", duration: 0.55 },
           });
 
-          tl.from(".hero-badge", { x: -24, autoAlpha: 0, duration: 0.5 });
+          tl.from(".hero-badge", { x: -20, autoAlpha: 0, duration: 0.4 });
 
           tl.from(
             ".hero-word",
-            { y: 40, autoAlpha: 0, stagger: 0.07, duration: 0.65 },
-            "-=0.2"
+            { y: 30, autoAlpha: 0, stagger: 0.06, duration: 0.5 },
+            "-=0.15"
           );
 
           tl.from(
             ".hero-desc",
-            { y: 20, autoAlpha: 0, duration: 0.55 },
-            "-=0.3"
+            { y: 16, autoAlpha: 0, duration: 0.45 },
+            "-=0.25"
           );
 
           tl.from(
@@ -67,15 +67,15 @@ export function HeroSection() {
               scale: 0.88,
               autoAlpha: 0,
               ease: "back.out(1.7)",
-              duration: 0.5,
+              duration: 0.4,
             },
-            "-=0.2"
+            "-=0.15"
           );
 
           tl.from(
             ".hero-mockup",
-            { x: 48, autoAlpha: 0, duration: 0.85, ease: "power2.out" },
-            "-=0.65"
+            { x: 36, autoAlpha: 0, duration: 0.65, ease: "power2.out" },
+            "-=0.5"
           );
 
           tl.from(
@@ -83,11 +83,11 @@ export function HeroSection() {
             {
               scale: 0.5,
               autoAlpha: 0,
-              duration: 1.2,
-              stagger: 0.2,
+              duration: 0.9,
+              stagger: 0.15,
               ease: "power1.out",
             },
-            "<0.3"
+            "<0.2"
           );
 
           tl.from(
@@ -95,11 +95,11 @@ export function HeroSection() {
             {
               scaleX: 0,
               transformOrigin: "left center",
-              stagger: 0.07,
-              duration: 0.4,
+              stagger: 0.06,
+              duration: 0.32,
               ease: "power2.out",
             },
-            "-=0.6"
+            "-=0.5"
           );
 
           // ── Scroll parallax on glow orbs ─────────────────────────────────
@@ -271,7 +271,7 @@ export function HeroSection() {
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link
               href="/sobre-nosotros"
-              className="hero-cta inline-flex items-center gap-2 rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-foreground shadow-leadby transition-colors hover:bg-leadby-600"
+              className="hero-cta cursor-magnetic inline-flex items-center gap-2 rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-foreground shadow-leadby transition-colors hover:bg-leadby-600"
               style={{ visibility: "hidden" }}
             >
               Descubre cómo funciona

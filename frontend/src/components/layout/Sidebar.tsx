@@ -38,10 +38,10 @@ export function Sidebar({ onClose }: SidebarProps) {
   }
 
   return (
-    <aside className="w-60 min-h-full bg-gray-950 flex flex-col border-r border-gray-800/60">
+    <aside className="w-60 min-h-full bg-white dark:bg-gray-950 flex flex-col border-r border-gray-200 dark:border-gray-800/60">
 
       {/* ── Logo ── */}
-      <div className="px-5 py-5 border-b border-gray-800/60">
+      <div className="px-5 py-5 border-b border-gray-200 dark:border-gray-800/60">
         <div className="flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
             <div className="relative w-10 h-10 flex-shrink-0">
@@ -54,10 +54,10 @@ export function Sidebar({ onClose }: SidebarProps) {
               />
             </div>
             <div className="leading-none">
-              <span className="block font-bold text-white text-sm tracking-wide">
+              <span className="block font-bold text-gray-900 dark:text-white text-sm tracking-wide">
                 LEADBY
               </span>
-              <span className="block text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-0.5">
+              <span className="block text-[10px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-widest mt-0.5">
                 Optimización de Procesos
               </span>
             </div>
@@ -67,7 +67,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               type="button"
               onClick={onClose}
               aria-label="Cerrar menú"
-              className="p-1.5 rounded-md text-gray-500 hover:text-white hover:bg-gray-800/60 transition-colors md:hidden"
+              className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors md:hidden"
             >
               <X className="w-4 h-4" />
             </button>
@@ -87,14 +87,14 @@ export function Sidebar({ onClose }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
                 isActive
-                  ? "bg-leadby-500/15 text-leadby-400 border border-leadby-500/20"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800/60 border border-transparent"
+                  ? "bg-leadby-50 dark:bg-leadby-500/15 text-leadby-600 dark:text-leadby-400 border border-leadby-200 dark:border-leadby-500/20"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/60 border border-transparent"
               )}
             >
               <Icon
                 className={cn(
                   "w-4 h-4 flex-shrink-0 transition-colors",
-                  isActive ? "text-leadby-400" : "text-gray-500"
+                  isActive ? "text-leadby-500 dark:text-leadby-400" : "text-gray-400 dark:text-gray-500"
                 )}
               />
               {label}
@@ -107,10 +107,10 @@ export function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* ── Cerrar sesión ── */}
-      <div className="px-3 py-4 border-t border-gray-800/60">
+      <div className="px-3 py-4 border-t border-gray-200 dark:border-gray-800/60">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-white hover:bg-gray-800/60 w-full transition-all duration-150 border border-transparent"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/60 w-full transition-all duration-150 border border-transparent"
         >
           <LogOut className="w-4 h-4" />
           Cerrar sesión

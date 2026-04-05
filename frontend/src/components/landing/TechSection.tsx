@@ -35,7 +35,7 @@ export function TechSection() {
           const tl = gsap.timeline({
             scrollTrigger: {
               trigger: containerRef.current,
-              start: "top 78%",
+              start: "top 95%",
               toggleActions: "play none none none",
             },
             defaults: { ease: "power3.out" },
@@ -45,23 +45,23 @@ export function TechSection() {
           tl.from(".tech-border-line", {
             scaleX: 0,
             transformOrigin: "center center",
-            duration: 0.8,
-            stagger: 0.1,
+            duration: 0.6,
+            stagger: 0.08,
             ease: "expo.out",
           });
 
           // Headline words wipe up from below overflow:hidden clip
           tl.from(
             ".tech-word-inner",
-            { y: "110%", duration: 0.65, stagger: 0.06 },
-            "-=0.4"
+            { y: "110%", duration: 0.5, stagger: 0.05 },
+            "-=0.35"
           );
 
           // Description fades up
           tl.from(
             ".tech-desc",
-            { y: 24, autoAlpha: 0, duration: 0.6 },
-            "-=0.2"
+            { y: 20, autoAlpha: 0, duration: 0.45 },
+            "-=0.15"
           );
         }
       );

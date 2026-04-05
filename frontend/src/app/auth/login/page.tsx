@@ -67,7 +67,6 @@ function LoginPageContent() {
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-leadby-500/15 blur-3xl" />
           <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-leadby-400/20 blur-3xl" />
-          <div className="absolute left-6 top-16 h-32 w-32 rounded-full border border-leadby-500/20" />
         </div>
 
         <div className="relative w-full max-w-md rounded-2xl border border-black/5 bg-white/80 p-8 text-center shadow-sm shadow-black/10 backdrop-blur dark:border-white/10 dark:bg-white/5">

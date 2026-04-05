@@ -85,7 +85,6 @@ function RegisterPageContent() {
     <div aria-hidden className="pointer-events-none absolute inset-0">
       <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-leadby-500/15 blur-3xl" />
       <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-leadby-400/20 blur-3xl" />
-      <div className="absolute left-6 top-16 h-32 w-32 rounded-full border border-leadby-500/20" />
     </div>
   );
 

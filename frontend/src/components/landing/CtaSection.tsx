@@ -36,7 +36,7 @@ export function CtaSection() {
           const tl = gsap.timeline({
             scrollTrigger: {
               trigger: containerRef.current,
-              start: "top 80%",
+              start: "top 92%",
               toggleActions: "play none none none",
             },
             defaults: { ease: "power3.out" },
@@ -44,38 +44,38 @@ export function CtaSection() {
 
           // Card bounces into view
           tl.from(".cta-card", {
-            y: 48,
-            scale: 0.97,
+            y: 32,
+            scale: 0.98,
             autoAlpha: 0,
-            duration: 0.7,
+            duration: 0.5,
           });
 
           // Headline
           tl.from(
             ".cta-headline",
-            { y: 20, autoAlpha: 0, duration: 0.55, ease: "power2.out" },
-            "-=0.35"
+            { y: 16, autoAlpha: 0, duration: 0.4, ease: "power2.out" },
+            "-=0.25"
           );
 
           // Description
           tl.from(
             ".cta-desc",
-            { y: 16, autoAlpha: 0, duration: 0.5, ease: "power2.out" },
-            "-=0.3"
+            { y: 12, autoAlpha: 0, duration: 0.4, ease: "power2.out" },
+            "-=0.25"
           );
 
           // Buttons stagger in with back ease
           tl.from(
             ".cta-btn",
             {
-              y: 12,
+              y: 10,
               scale: 0.9,
               autoAlpha: 0,
-              stagger: 0.12,
-              duration: 0.45,
+              stagger: 0.1,
+              duration: 0.38,
               ease: "back.out(1.7)",
             },
-            "-=0.2"
+            "-=0.15"
           );
 
           // Subtle breathing glow on the card — infinite
@@ -120,7 +120,7 @@ export function CtaSection() {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/contact"
-              className="cta-btn inline-flex items-center justify-center rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-foreground shadow-leadby transition-colors hover:bg-leadby-600"
+              className="cta-btn cursor-magnetic inline-flex items-center justify-center rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-foreground shadow-leadby transition-colors hover:bg-leadby-600"
               style={{ visibility: "hidden" }}
             >
               Agenda una demostración

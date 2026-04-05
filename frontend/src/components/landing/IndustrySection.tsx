@@ -35,7 +35,7 @@ export function IndustrySection() {
           const tl = gsap.timeline({
             scrollTrigger: {
               trigger: containerRef.current,
-              start: "top 75%",
+              start: "top 95%",
               toggleActions: "play none none none",
             },
             defaults: { ease: "power3.out" },
@@ -45,7 +45,7 @@ export function IndustrySection() {
           tl.from(".industry-blob", {
             scale: 0,
             autoAlpha: 0,
-            duration: 1.4,
+            duration: 0.9,
             ease: "power1.out",
           });
 
@@ -55,24 +55,24 @@ export function IndustrySection() {
             {
               scaleY: 0,
               transformOrigin: "top center",
-              duration: 0.7,
+              duration: 0.5,
               ease: "expo.out",
             },
-            "<0.3"
+            "<0.2"
           );
 
           // Headline lines reveal
           tl.from(
             ".industry-line",
-            { y: 36, autoAlpha: 0, stagger: 0.1, duration: 0.65 },
-            "-=0.5"
+            { y: 28, autoAlpha: 0, stagger: 0.08, duration: 0.5 },
+            "-=0.35"
           );
 
           // Description fades up
           tl.from(
             ".industry-desc",
-            { y: 20, autoAlpha: 0, duration: 0.55 },
-            "-=0.2"
+            { y: 16, autoAlpha: 0, duration: 0.4 },
+            "-=0.15"
           );
         }
       );

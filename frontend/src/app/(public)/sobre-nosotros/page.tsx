@@ -16,7 +16,6 @@ export default function AboutPage() {
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-leadby-500/20 blur-3xl" />
           <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-leadby-400/20 blur-3xl" />
-          <div className="absolute left-0 top-12 h-36 w-36 rounded-full border border-leadby-500/20" />
         </div>
 
         <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-28">
@@ -79,7 +78,6 @@ export default function AboutPage() {
       <section className="relative overflow-hidden py-20">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute left-0 top-0 h-64 w-64 rounded-full bg-leadby-500/10 blur-3xl" />
-          <div className="absolute right-12 top-10 h-24 w-24 rounded-full border border-leadby-500/20" />
         </div>
         <div className="relative mx-auto max-w-4xl px-6">
           <h3 className="text-balance text-2xl font-semibold md:text-3xl">Tratamiento de Datos y Cumplimiento</h3>
