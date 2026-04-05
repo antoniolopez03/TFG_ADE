@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Check } from "lucide-react";
 
 const PRICING_CARDS = [
@@ -124,12 +125,12 @@ export default function PricingPage() {
         <div className="mx-auto max-w-4xl px-6 text-center">
           <h2 className="text-balance text-3xl font-semibold md:text-4xl">Transforma tu departamento de ventas hoy.</h2>
           <div className="mt-8 flex justify-center">
-            <button
-              type="button"
+            <Link
+              href="/contact"
               className="inline-flex items-center justify-center rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-foreground shadow-leadby transition-colors hover:bg-leadby-600"
             >
               Solicitar auditoría técnica
-            </button>
+            </Link>
           </div>
         </div>
       </section>

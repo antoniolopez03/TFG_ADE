@@ -16,7 +16,6 @@ function LoginPageContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const supabase = createClient();
@@ -38,71 +37,11 @@ function LoginPageContent() {
     router.refresh();
   }
 
-  async function handleMagicLink() {
-    if (!email) {
-      setError("Introduce tu email para recibir el enlace de acceso.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${redirectTo}`,
-      },
-    });
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setMagicLinkSent(true);
-    }
-    setLoading(false);
-  }
-
-  if (magicLinkSent) {
-    return (
-      <div className="relative flex flex-1 items-center justify-center px-6 py-12">
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-leadby-500/15 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-leadby-400/20 blur-3xl" />
-        </div>
-
-        <div className="relative w-full max-w-md rounded-2xl border border-black/5 bg-white/80 p-8 text-center shadow-sm shadow-black/10 backdrop-blur dark:border-white/10 dark:bg-white/5">
-          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-leadby-500/30 bg-leadby-500/10">
-            <svg className="h-7 w-7 text-leadby-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.8}
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-semibold text-foreground">Revisa tu email</h2>
-          <p className="mt-2 text-sm text-black/70 dark:text-white/70">
-            Hemos enviado un enlace de acceso a <span className="font-semibold text-foreground">{email}</span>. Haz
-            clic en él para entrar.
-          </p>
-          <p className="mt-6 text-xs text-black/60 dark:text-white/60">
-            ¿Problemas para acceder? Contacta con tu consultor técnico asignado o escribe a{" "}
-            <a className="font-semibold text-leadby-500 hover:text-leadby-600" href="mailto:soporte@leadby.edu">
-              soporte@leadby.edu
-            </a>
-            .
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative flex flex-1 items-center justify-center px-6 py-12">
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-leadby-500/15 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-leadby-400/20 blur-3xl" />
-        <div className="absolute left-6 top-16 h-32 w-32 rounded-full border border-leadby-500/20" />
       </div>
 
       <div className="relative w-full max-w-md rounded-2xl border border-black/5 bg-white/80 p-8 shadow-sm shadow-black/10 backdrop-blur dark:border-white/10 dark:bg-white/5">
@@ -174,24 +113,6 @@ function LoginPageContent() {
             {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-black/10 dark:border-white/10" />
-          </div>
-          <div className="relative flex justify-center bg-white px-2 text-xs text-black/40 dark:bg-transparent dark:text-white/40">
-            o
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleMagicLink}
-          disabled={loading}
-          className="w-full rounded-lg border border-leadby-500/40 px-4 py-2.5 text-sm font-semibold text-leadby-500 transition hover:border-leadby-500 hover:bg-leadby-50/60 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-white/5"
-        >
-          Acceder con Magic Link
-        </button>
 
         <p className="mt-4 text-center text-sm text-black/60 dark:text-white/60">
           ¿No tienes cuenta?{" "}

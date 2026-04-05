@@ -16,7 +16,7 @@ export function CursorEffect() {
 
     const TIP_X   = 2;
     const TIP_Y   = 2;
-    const HALO_R  = 30; // half of 60px halo
+    const HALO_R  = 45; // half of 90px halo
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -97,10 +97,10 @@ export function CursorEffect() {
         .to(arrow, { scale: 0.72, rotation: -5, duration: 0.1,  ease: "power2.in" })
         .to(arrow, { scale: 1.15, rotation: 0,  duration: 0.2,  ease: "back.out(2.5)" })
         .to(arrow, { scale: 1,                  duration: 0.15, ease: "power2.out" });
-      // Halo pulses slightly on click
+      // Halo pulses slightly on click (scale only — don't touch opacity/autoAlpha)
       gsap.timeline()
-        .to(halo, { scale: 1.5, opacity: 0.18, duration: 0.18, ease: "power2.out" })
-        .to(halo, { scale: 1,   opacity: 1,    duration: 0.3,  ease: "power2.out" });
+        .to(halo, { scale: 1.5, duration: 0.18, ease: "power2.out" })
+        .to(halo, { scale: 1,   duration: 0.3,  ease: "power2.out" });
       spawnRipple(e.clientX, e.clientY);
     }
 
@@ -131,7 +131,12 @@ export function CursorEffect() {
     }
 
     function onDocLeave() { gsap.to([arrow, halo], { autoAlpha: 0, duration: 0.2 }); }
-    function onDocEnter() { gsap.to([arrow, halo], { autoAlpha: 1, duration: 0.2 }); }
+    function onDocEnter() {
+      // Snap to last known position before fading in so it never shows at (0,0)
+      gsap.set(arrow, { x: mouseX - TIP_X,  y: mouseY - TIP_Y });
+      gsap.set(halo,  { x: mouseX - HALO_R, y: mouseY - HALO_R });
+      gsap.to([arrow, halo], { autoAlpha: 1, duration: 0.2 });
+    }
 
     window.addEventListener("mousemove", onMouseMove, { passive: true });
     window.addEventListener("click",     onClick);
@@ -162,11 +167,11 @@ export function CursorEffect() {
           position: "fixed",
           top: 0,
           left: 0,
-          width: 60,
-          height: 60,
+          width: 90,
+          height: 90,
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(255,117,31,0.13) 0%, rgba(255,117,31,0.05) 50%, rgba(255,117,31,0) 75%)",
-          filter: "blur(6px)",
+          background: "radial-gradient(circle, rgba(255,117,31,0.28) 0%, rgba(255,117,31,0.12) 45%, rgba(255,117,31,0) 75%)",
+          filter: "blur(10px)",
           pointerEvents: "none",
           zIndex: 9997,
           visibility: "hidden",
