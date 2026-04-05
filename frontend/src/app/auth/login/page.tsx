@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -193,7 +194,14 @@ function LoginPageContent() {
           Acceder con Magic Link
         </button>
 
-        <p className="mt-6 text-xs text-black/60 dark:text-white/60">
+        <p className="mt-4 text-center text-sm text-black/60 dark:text-white/60">
+          ¿No tienes cuenta?{" "}
+          <Link href="/auth/register" className="font-semibold text-leadby-500 hover:text-leadby-600 transition-colors">
+            Crear cuenta gratis
+          </Link>
+        </p>
+
+        <p className="mt-3 text-xs text-black/60 dark:text-white/60">
           ¿Problemas para acceder? Contacta con tu consultor técnico asignado o escribe a{" "}
           <a className="font-semibold text-leadby-500 hover:text-leadby-600" href="mailto:soporte@leadby.edu">
             soporte@leadby.edu
