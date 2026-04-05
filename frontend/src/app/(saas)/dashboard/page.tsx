@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Search, Users, Send, TrendingUp } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const supabase = createClient();
   const {
@@ -36,22 +38,22 @@ export default async function DashboardPage() {
       label: "Total leads",
       valor: totalLeads ?? 0,
       icon: Users,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      color: "text-blue-600 dark:text-blue-400",
+      bg: "bg-blue-50 dark:bg-blue-950/40",
     },
     {
       label: "Correos enviados",
       valor: leadsEnviados ?? 0,
       icon: Send,
-      color: "text-green-600",
-      bg: "bg-green-50",
+      color: "text-green-600 dark:text-green-400",
+      bg: "bg-green-50 dark:bg-green-950/40",
     },
     {
       label: "Pendientes de aprobación",
       valor: leadsPendientes ?? 0,
       icon: TrendingUp,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
+      color: "text-amber-600 dark:text-amber-400",
+      bg: "bg-amber-50 dark:bg-amber-950/40",
     },
   ];
 
@@ -59,10 +61,10 @@ export default async function DashboardPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           Bienvenido de nuevo{org ? `, ${org.nombre}` : ""}
         </h1>
-        <p className="text-gray-500 mt-1 text-sm">
+        <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
           Plan: <span className="capitalize font-medium">{org?.plan ?? "Free"}</span>
         </p>
       </div>
@@ -70,45 +72,45 @@ export default async function DashboardPage() {
       {/* Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {METRICAS.map(({ label, valor, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-100 p-6">
+          <div key={label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-6">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-gray-500">{label}</span>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</span>
               <div className={`w-9 h-9 ${bg} rounded-lg flex items-center justify-center`}>
                 <Icon className={`w-5 h-5 ${color}`} />
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900">{valor}</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{valor}</p>
           </div>
         ))}
       </div>
 
       {/* Acciones rápidas */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">Acciones rápidas</h2>
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-6">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Acciones rápidas</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link
             href="/prospecting"
-            className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+            className="flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors group"
           >
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-              <Search className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-950/50 rounded-lg flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+              <Search className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="font-medium text-gray-900 text-sm">Nueva búsqueda</p>
-              <p className="text-xs text-gray-500">Encuentra nuevos leads B2B</p>
+              <p className="font-medium text-gray-900 dark:text-white text-sm">Nueva búsqueda</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Encuentra nuevos leads B2B</p>
             </div>
           </Link>
 
           <Link
-            href="/leads?estado=pendiente_aprobacion"
-            className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition-colors group"
+            href="/leads?tab=pendientes"
+            className="flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-amber-300 dark:hover:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors group"
           >
-            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center group-hover:bg-amber-200 transition-colors">
-              <Users className="w-5 h-5 text-amber-600" />
+            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-950/50 rounded-lg flex items-center justify-center group-hover:bg-amber-200 dark:group-hover:bg-amber-900/50 transition-colors">
+              <Users className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <p className="font-medium text-gray-900 text-sm">Revisar borradores</p>
-              <p className="text-xs text-gray-500">
+              <p className="font-medium text-gray-900 dark:text-white text-sm">Revisar borradores</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 {leadsPendientes ?? 0} correos esperando tu aprobación
               </p>
             </div>

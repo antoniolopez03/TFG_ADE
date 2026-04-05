@@ -29,6 +29,7 @@ export interface ContactoResumen {
 
 export interface LeadListado {
   id: string;
+  organizacion_id: string;
   estado: LeadEstado;
   email_borrador: string | null;
   email_enviado_at: string | null;
@@ -36,6 +37,25 @@ export interface LeadListado {
   asignado_a: string | null;
   global_empresas: EmpresaResumen | null;
   global_contactos: ContactoResumen | null;
+}
+
+export interface LeadConRelaciones {
+  id: string;
+  organizacion_id: string;
+  estado: LeadEstado;
+  email_borrador: string | null;
+  email_aprobado: string | null;
+  email_asunto: string | null;
+  email_enviado_at: string | null;
+  created_at: string;
+  global_empresas: { nombre: string | null; sector: string | null } | null;
+  global_contactos: {
+    nombre: string | null;
+    apellidos: string | null;
+    cargo: string | null;
+    email: string | null;
+    linkedin_url: string | null;
+  } | null;
 }
 
 export type UserRol = "admin" | "miembro";

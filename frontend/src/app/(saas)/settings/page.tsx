@@ -1,10 +1,32 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Settings, Key, Brain, Users } from "lucide-react";
 
-export default async function SettingsPage() {
+export const dynamic = "force-dynamic";
+import { AlertTriangle } from "lucide-react";
+import { SettingsTabs } from "@/components/settings/SettingsTabs";
+import type { SettingsTab } from "@/components/settings/SettingsTabs";
+import { OrgForm } from "@/components/settings/OrgForm";
+import { CrmIntegrationForm } from "@/components/settings/CrmIntegrationForm";
+import { AiToneForm } from "@/components/settings/AiToneForm";
+import { TeamManager } from "@/components/settings/TeamManager";
+
+type MaybeArray<T> = T | T[] | null | undefined;
+function normalizeOne<T>(v: MaybeArray<T>): T | null {
+  if (Array.isArray(v)) return v[0] ?? null;
+  return v ?? null;
+}
+
+const VALID_TABS: SettingsTab[] = ["organizacion", "crm", "ia", "equipo"];
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string };
+}) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
 
   const { data: membresia } = await supabase
@@ -14,121 +36,138 @@ export default async function SettingsPage() {
     .eq("activo", true)
     .single();
 
-  if (!membresia) redirect("/auth/login");
+  const esAdmin = membresia?.rol === "admin";
+  const orgRaw = normalizeOne(membresia?.organizaciones ?? null);
+  const org = orgRaw as { nombre: string; plan: string } | null;
 
-  const { data: config } = await supabase
-    .from("configuracion_tenant")
-    .select("crm_proveedor, preferencias_ia, scraper_config")
-    .eq("organizacion_id", membresia.organizacion_id)
-    .single();
+  const tab = (
+    VALID_TABS.includes(searchParams.tab as SettingsTab)
+      ? searchParams.tab
+      : "organizacion"
+  ) as SettingsTab;
 
-  const orgRaw = membresia.organizaciones;
-  const org = (Array.isArray(orgRaw) ? orgRaw[0] : orgRaw) as { nombre: string; plan: string } | null;
-  const esAdmin = membresia.rol === "admin";
+  // If no org membership, show setup message
+  if (!membresia) {
+    return (
+      <div className="p-8 max-w-3xl">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuración</h1>
+        </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-8 text-center">
+          <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-3" />
+          <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+            Sin organización activa
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Tu cuenta no está asociada a ninguna organización activa. Contacta con un administrador para que te invite al equipo.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Fetch datos adicionales en paralelo
+  const [configResult, equipoResult] = await Promise.all([
+    supabase
+      .from("configuracion_tenant")
+      .select("crm_proveedor, crm_api_key_secret_id, preferencias_ia")
+      .eq("organizacion_id", membresia.organizacion_id)
+      .single(),
+    supabase
+      .from("miembros_equipo")
+      .select("id, user_id, nombre_completo, cargo, rol, activo, created_at")
+      .eq("organizacion_id", membresia.organizacion_id)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  const config = configResult.data;
+  const equipo = equipoResult.data ?? [];
+
+  const preferenciasIa = config?.preferencias_ia as
+    | { tono_voz?: string; idioma?: string }
+    | null
+    | undefined;
 
   return (
-    <div className="p-8 max-w-2xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
-        <p className="text-gray-500 mt-1 text-sm">{org?.nombre}</p>
+    <div className="p-8 max-w-3xl">
+      {/* Header */}
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuración</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{org?.nombre}</p>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        {/* Info de organización */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Settings className="w-4 h-4 text-gray-400" />
-            <h2 className="font-semibold text-gray-900 text-sm">Organización</h2>
-          </div>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Nombre</span>
-              <span className="font-medium text-gray-900">{org?.nombre}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Plan</span>
-              <span className="font-medium text-gray-900 capitalize">{org?.plan}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Tu rol</span>
-              <span className="font-medium text-gray-900 capitalize">{membresia.rol}</span>
-            </div>
-          </div>
+      {/* Banner no admin */}
+      {!esAdmin && (
+        <div className="mb-6 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            Solo los administradores pueden modificar la configuración. Estás
+            viendo los datos en modo lectura.
+          </p>
         </div>
+      )}
 
-        {/* CRM */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Key className="w-4 h-4 text-gray-400" />
-            <h2 className="font-semibold text-gray-900 text-sm">Integración CRM</h2>
-          </div>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Proveedor</span>
-              <span className="font-medium text-gray-900 capitalize">
-                {config?.crm_proveedor ?? "No configurado"}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500">Token API (HubSpot)</span>
-              <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded font-mono">
-                ••••••••••••{esAdmin ? " (configurar)" : ""}
-              </span>
-            </div>
-          </div>
-          {esAdmin && (
-            <p className="mt-4 text-xs text-amber-600 bg-amber-50 p-3 rounded-lg">
-              Para configurar el token de HubSpot, contacta con el equipo técnico durante el onboarding.
-              El token se almacena cifrado en Supabase Vault.
-            </p>
-          )}
-        </div>
+      {/* Tabs */}
+      <SettingsTabs activeTab={tab} />
 
-        {/* Preferencias de IA */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Brain className="w-4 h-4 text-gray-400" />
-            <h2 className="font-semibold text-gray-900 text-sm">Preferencias de IA</h2>
-          </div>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Tono de voz</span>
-              <span className="font-medium text-gray-900 capitalize">
-                {(config?.preferencias_ia as { tono_voz?: string } | null)?.tono_voz ?? "Formal"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Propuesta de valor</span>
-              <span className="font-medium text-gray-900 text-xs max-w-xs text-right">
-                {(config?.preferencias_ia as { propuesta_valor?: string } | null)?.propuesta_valor ?? "No configurada"}
-              </span>
-            </div>
-          </div>
-          {esAdmin && (
-            <p className="mt-4 text-xs text-blue-600 bg-blue-50 p-3 rounded-lg">
-              El tono de voz y la propuesta de valor se usan para personalizar todos los correos generados por Gemini.
-              Configúralos durante el onboarding.
-            </p>
-          )}
-        </div>
+      {/* Contenido del tab */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-6">
+        {tab === "organizacion" && (
+          <>
+            <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5">
+              Información de la organización
+            </h2>
+            <OrgForm
+              organizacionId={membresia.organizacion_id}
+              nombre={org?.nombre ?? ""}
+              plan={org?.plan ?? "free"}
+              isAdmin={esAdmin}
+            />
+          </>
+        )}
 
-        {/* Miembros del equipo */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="w-4 h-4 text-gray-400" />
-            <h2 className="font-semibold text-gray-900 text-sm">Tu cuenta</h2>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Email</span>
-              <span className="font-medium text-gray-900">{user.email}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">ID de usuario</span>
-              <span className="font-mono text-xs text-gray-400">{user.id.slice(0, 8)}...</span>
-            </div>
-          </div>
-        </div>
+        {tab === "crm" && (
+          <>
+            <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5">
+              Integración CRM
+            </h2>
+            <CrmIntegrationForm
+              organizacionId={membresia.organizacion_id}
+              crmProveedor={config?.crm_proveedor ?? null}
+              hasToken={!!config?.crm_api_key_secret_id}
+              isAdmin={esAdmin}
+            />
+          </>
+        )}
+
+        {tab === "ia" && (
+          <>
+            <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5">
+              Preferencias de IA
+            </h2>
+            <AiToneForm
+              organizacionId={membresia.organizacion_id}
+              tonoVoz={preferenciasIa?.tono_voz ?? ""}
+              idioma={preferenciasIa?.idioma ?? "es"}
+              isAdmin={esAdmin}
+            />
+          </>
+        )}
+
+        {tab === "equipo" && (
+          <>
+            <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5">
+              Gestión del equipo
+            </h2>
+            <TeamManager
+              organizacionId={membresia.organizacion_id}
+              miembros={equipo}
+              isAdmin={esAdmin}
+            />
+          </>
+        )}
       </div>
     </div>
   );

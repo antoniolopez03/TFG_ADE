@@ -33,7 +33,7 @@ export function Sidebar({ onClose }: SidebarProps) {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
-    router.push("/auth/login");
+    router.push("/");
     router.refresh();
   }
 
