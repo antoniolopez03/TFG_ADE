@@ -16,7 +16,7 @@ interface CrmIntegrationFormProps {
 
 export function CrmIntegrationForm({
   organizacionId,
-  crmProveedor,
+  crmProveedor: _crmProveedor,
   hasToken,
   isAdmin,
 }: CrmIntegrationFormProps) {

@@ -21,7 +21,7 @@ interface TeamManagerProps {
 }
 
 export function TeamManager({
-  organizacionId,
+  organizacionId: _organizacionId,
   miembros: miembrosIniciales,
   isAdmin,
 }: TeamManagerProps) {

@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
  * API Route: Prospección IA Lookalike.
  * Consulta HubSpot, infiere el ICP con Gemini y lanza búsqueda automática.
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   const supabase = createClient();
   const {
     data: { user },

@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
  * Lee el token almacenado en configuracion_tenant y hace una llamada de prueba
  * a la API de HubSpot. Nunca expone el token en la respuesta.
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   const supabase = createClient();
   const {
     data: { user },
