@@ -1,19 +1,21 @@
-import { HeroSection } from "@/components/landing/HeroSection";
-import { TechSection } from "@/components/landing/TechSection";
-import { BenefitsSection } from "@/components/landing/BenefitsSection";
-import { VideoSection } from "@/components/landing/VideoSection";
-import { IndustrySection } from "@/components/landing/IndustrySection";
-import { CtaSection } from "@/components/landing/CtaSection";
+import { HeroSection } from "@/components/home/HeroSection";
+import { VideoDemoSection } from "@/components/home/VideoDemoSection";
+import { HowItWorksSection } from "@/components/home/HowItWorksSection";
+import { MetricsSection } from "@/components/home/MetricsSection";
+import { IntegrationsSection } from "@/components/home/IntegrationsSection";
+import { TestimonialSection } from "@/components/home/TestimonialSection";
+import { CtaFinalSection } from "@/components/home/CtaFinalSection";
 
 export default function HomePage() {
   return (
     <>
       <HeroSection />
-      <TechSection />
-      <BenefitsSection />
-      <VideoSection />
-      <IndustrySection />
-      <CtaSection />
+      <VideoDemoSection />
+      <HowItWorksSection />
+      <MetricsSection />
+      <IntegrationsSection />
+      <TestimonialSection />
+      <CtaFinalSection />
     </>
   );
 }

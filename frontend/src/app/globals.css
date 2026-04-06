@@ -15,6 +15,7 @@
   --leadby-primary-light: #ff914d;
   --leadby-primary-subtle: #fff4ee;
   --leadby-primary-border: #ffd1b5;
+  --bg-gradient-angle: 0deg;
 
   --font-hk-modular: "Chakra Petch", Arial, system-ui, sans-serif;
   color-scheme: light;

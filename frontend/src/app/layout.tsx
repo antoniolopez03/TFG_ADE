@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
+import { AnimatedBackground } from "@/components/ui/AnimatedBackground";
 
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
@@ -51,6 +52,7 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={`${geistMono.variable} antialiased`}>
         <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <AnimatedBackground />
         <div className="flex min-h-screen flex-col bg-background text-foreground font-sans">
           <div id="global-banner" />
           {children}
