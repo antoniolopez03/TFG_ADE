@@ -6,10 +6,21 @@ import {
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+function toTrimmedStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
 /**
  * API Route: Búsqueda manual de prospectos.
- * Recibe sector, ubicación y tamaño, ejecuta prospección síncrona
- * con Apollo + Data Moat y crea leads en estado pendiente_aprobacion.
+ * Recibe cargo(s), sector, ubicación y seniority opcional.
+ * Ejecuta prospección síncrona con Apollo + Data Moat.
  */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -22,62 +33,92 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  let body: { sector: string; ubicacion: string; tamano: string };
+  let body: {
+    organizacion_id?: string;
+    tipo?: string;
+    titles?: unknown;
+    sector?: unknown;
+    location?: unknown;
+    seniorities?: unknown;
+  };
+
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Body JSON inválido" }, { status: 400 });
   }
 
-  const { sector, ubicacion, tamano } = body;
+  const titles = toTrimmedStringArray(body.titles);
+  const seniorities = toTrimmedStringArray(body.seniorities);
+  const sector = typeof body.sector === "string" ? body.sector.trim() : "";
+  const location = typeof body.location === "string" ? body.location.trim() : "";
 
-  if (!sector || !ubicacion || !tamano) {
+  if (titles.length === 0) {
     return NextResponse.json(
-      { error: "Faltan campos: sector, ubicacion, tamano" },
+      { error: "El campo 'titles' debe ser un array no vacío de cargos." },
       { status: 400 }
     );
   }
 
-  const { data: membresia, error: membresiaError } = await supabase
+  if (!sector) {
+    return NextResponse.json(
+      { error: "El campo 'sector' es obligatorio y debe ser un string no vacío." },
+      { status: 400 }
+    );
+  }
+
+  if (!location) {
+    return NextResponse.json(
+      { error: "El campo 'location' es obligatorio y debe ser un string no vacío." },
+      { status: 400 }
+    );
+  }
+
+  const requestedOrgId =
+    typeof body.organizacion_id === "string" && body.organizacion_id.trim().length > 0
+      ? body.organizacion_id.trim()
+      : null;
+
+  const membresiaQuery = supabase
     .from("miembros_equipo")
     .select("organizacion_id")
     .eq("user_id", user.id)
     .eq("activo", true)
-    .single();
+    .limit(1);
+
+  const { data: membresia, error: membresiaError } = requestedOrgId
+    ? await membresiaQuery.eq("organizacion_id", requestedOrgId).single()
+    : await membresiaQuery.single();
 
   if (membresiaError || !membresia) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
+  const organizacionId = String(membresia.organizacion_id);
   const serviceClient = createServiceClient();
 
   try {
     const result = await executeApolloProspectingJob({
       userClient: supabase,
       serviceClient,
-      organizacionId: membresia.organizacion_id,
+      organizacionId,
       createdBy: user.id,
       tipo: "apollo_search",
       parametros: {
+        tipo: body.tipo ?? "apollo_search",
+        titles,
         sector,
-        ubicacion,
-        tamano,
-      },
-      organizationCriteria: {
-        query: sector,
-        location: ubicacion,
-        sector,
-        ubicacion,
-        tamano,
-        perPage: 10,
+        location,
+        seniorities,
       },
     });
 
     return NextResponse.json(
       {
         job_id: result.jobId,
-        organizacion_id: membresia.organizacion_id,
+        organizacion_id: organizacionId,
         total_resultados: result.totalResultados,
+        leads_creados: result.leadsCreados,
         cache_hits: result.cacheHits,
         cache_misses: result.cacheMisses,
       },

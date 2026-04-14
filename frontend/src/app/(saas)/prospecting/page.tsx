@@ -40,11 +40,10 @@ export default async function ProspectingPage() {
               Búsqueda Manual
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Define sector, ubicación y tamaño para encontrar empresas
-              objetivo.
+              Define cargo objetivo, sector y ubicación para encontrar decisores.
             </p>
           </div>
-          <ManualSearchForm />
+          <ManualSearchForm organizacionId={orgId} />
         </div>
 
         {/* Búsqueda IA Lookalike */}

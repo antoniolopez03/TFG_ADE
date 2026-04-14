@@ -3,15 +3,12 @@ import {
   APOLLO_MAX_PER_PAGE,
   ApolloApiError,
   type ApolloOrganization,
-  type ApolloOrganizationSearchCriteria,
   type ApolloPerson,
-  searchOrganizations,
-  searchPeople,
+  searchPeopleWithCompany,
 } from "@/lib/services/apollo";
 import {
   lookupContactoEnCache,
   lookupEmpresaEnCache,
-  lookupPrimerContactoEmpresaEnCache,
   normalizeDomain,
   upsertContactoEnCache,
   upsertEmpresaEnCache,
@@ -42,7 +39,12 @@ export interface ExecuteApolloProspectingInput {
   createdBy: string;
   tipo: "apollo_search" | "apollo_lookalike";
   parametros: Record<string, unknown>;
-  organizationCriteria: ApolloOrganizationSearchCriteria;
+}
+
+export interface LeadCreado {
+  id: string;
+  empresaId: string;
+  contactoId: string | null;
 }
 
 export interface ExecuteApolloProspectingResult {
@@ -51,6 +53,21 @@ export interface ExecuteApolloProspectingResult {
   leadsCreados: number;
   cacheHits: number;
   cacheMisses: number;
+  leads: LeadCreado[];
+}
+
+export interface ExecuteApolloLookalikeJobInput {
+  userClient: SupabaseClient;
+  serviceClient: SupabaseClient;
+  organizacionId: string;
+  createdBy: string;
+  parametros: Record<string, unknown>;
+  searchTerms: string[];
+  maxResults?: number;
+}
+
+export interface ExecuteApolloLookalikeJobResult extends ExecuteApolloProspectingResult {
+  searchTermsUsed: string[];
 }
 
 function normalizePerPage(perPage?: number): number {
@@ -59,6 +76,27 @@ function normalizePerPage(perPage?: number): number {
   }
 
   return Math.min(Math.max(Math.trunc(perPage), 1), APOLLO_MAX_PER_PAGE);
+}
+
+function normalizeSearchTerms(searchTerms: string[]): string[] {
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+
+  for (const term of searchTerms) {
+    const trimmed = toStringOrNull(term)?.toLowerCase();
+    if (!trimmed) {
+      continue;
+    }
+
+    if (seen.has(trimmed)) {
+      continue;
+    }
+
+    seen.add(trimmed);
+    normalized.push(trimmed);
+  }
+
+  return normalized.slice(0, APOLLO_MAX_PER_PAGE);
 }
 
 function toStringOrNull(value: unknown): string | null {
@@ -75,7 +113,44 @@ function toStringArray(value: unknown): string[] {
     return [];
   }
 
-  return value.filter((item): item is string => typeof item === "string" && item.length > 0);
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function splitCommaSeparated(value: string): string[] {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function resolveTitlesFromParametros(parametros: Record<string, unknown>): string[] {
+  const directTitles = toStringArray(parametros.titles);
+  if (directTitles.length > 0) {
+    return directTitles;
+  }
+
+  const cargoAsArray = toStringArray(parametros.cargo);
+  if (cargoAsArray.length > 0) {
+    return cargoAsArray;
+  }
+
+  const cargoAsText = toStringOrNull(parametros.cargo);
+  if (cargoAsText) {
+    return splitCommaSeparated(cargoAsText);
+  }
+
+  return [];
+}
+
+function resolveSenioritiesFromParametros(parametros: Record<string, unknown>): string[] {
+  return toStringArray(parametros.seniorities);
+}
+
+function resolveLocationFromParametros(parametros: Record<string, unknown>): string | null {
+  return toStringOrNull(parametros.ubicacion) ?? toStringOrNull(parametros.location);
 }
 
 function splitFullName(fullName?: string | null): { nombre: string | null; apellidos: string | null } {
@@ -118,11 +193,28 @@ function mapEmpleadosRango(org: ApolloOrganization): string | null {
     return rawRange;
   }
 
-  if (typeof org.estimated_num_employees === "number" && org.estimated_num_employees > 0) {
-    return `${org.estimated_num_employees}`;
+  const size = org.estimated_num_employees;
+  if (typeof size !== "number" || size <= 0) {
+    return null;
   }
 
-  return null;
+  if (size <= 10) {
+    return "1-10";
+  }
+
+  if (size <= 50) {
+    return "11-50";
+  }
+
+  if (size <= 200) {
+    return "51-200";
+  }
+
+  if (size <= 500) {
+    return "201-500";
+  }
+
+  return "500+";
 }
 
 function extractOrganizationName(org: ApolloOrganization): string | null {
@@ -130,14 +222,14 @@ function extractOrganizationName(org: ApolloOrganization): string | null {
 }
 
 function extractOrganizationDomain(org: ApolloOrganization): string | null {
-  const fromDomain = normalizeDomain(toStringOrNull(org.domain));
-  if (fromDomain) {
-    return fromDomain;
-  }
-
   const fromPrimary = normalizeDomain(toStringOrNull(org.primary_domain));
   if (fromPrimary) {
     return fromPrimary;
+  }
+
+  const fromDomain = normalizeDomain(toStringOrNull(org.domain));
+  if (fromDomain) {
+    return fromDomain;
   }
 
   const fromWebsite = normalizeDomain(toStringOrNull(org.website_url));
@@ -190,6 +282,48 @@ function normalizePersonaNombre(person: ApolloPerson): { nombre: string | null; 
   return splitFullName(toStringOrNull(person.name));
 }
 
+function extractOrganizationFromPerson(person: ApolloPerson): ApolloOrganization | null {
+  if (person.organization && typeof person.organization === "object") {
+    return person.organization as ApolloOrganization;
+  }
+
+  const fallbackName = toStringOrNull(person.organization_name);
+  const fallbackId = toStringOrNull(person.organization_id);
+
+  if (!fallbackName && !fallbackId) {
+    return null;
+  }
+
+  return {
+    id: fallbackId ?? undefined,
+    name: fallbackName ?? undefined,
+  };
+}
+
+function buildPersonKey(person: ApolloPerson, organization: ApolloOrganization | null): string {
+  const personId = toStringOrNull(person.id);
+  if (personId) {
+    return `person:${personId}`;
+  }
+
+  const email = toStringOrNull(person.email)?.toLowerCase();
+  if (email) {
+    return `email:${email}`;
+  }
+
+  const linkedin = toStringOrNull(person.linkedin_url)?.toLowerCase();
+  if (linkedin) {
+    return `linkedin:${linkedin}`;
+  }
+
+  const orgId = organization ? toStringOrNull(organization.id) : null;
+  if (orgId) {
+    return `org:${orgId}:${toStringOrNull(person.name) ?? "sin_nombre"}`;
+  }
+
+  return JSON.stringify(person);
+}
+
 function isPostgrestErrorLike(error: unknown): error is PostgrestErrorLike {
   return typeof error === "object" && error !== null;
 }
@@ -202,10 +336,10 @@ async function ensureLead(
     contactoId: string | null;
     trabajoBusquedaId: string;
   }
-): Promise<boolean> {
+): Promise<LeadCreado | null> {
   let query = userClient
     .from("leads_prospectados")
-    .select("id")
+    .select("id, empresa_id, contacto_id")
     .eq("organizacion_id", payload.organizacionId)
     .eq("empresa_id", payload.empresaId)
     .limit(1);
@@ -223,35 +357,42 @@ async function ensureLead(
   }
 
   if (existing) {
-    return false;
+    return null;
   }
 
-  const { error: insertError } = await userClient.from("leads_prospectados").insert({
-    organizacion_id: payload.organizacionId,
-    empresa_id: payload.empresaId,
-    contacto_id: payload.contactoId,
-    trabajo_busqueda_id: payload.trabajoBusquedaId,
-    estado: "pendiente_aprobacion",
-    metadata: {
-      fuente: "apollo",
-      human_in_the_loop: true,
-    },
-  });
+  const { data, error: insertError } = await userClient
+    .from("leads_prospectados")
+    .insert({
+      organizacion_id: payload.organizacionId,
+      empresa_id: payload.empresaId,
+      contacto_id: payload.contactoId,
+      trabajo_busqueda_id: payload.trabajoBusquedaId,
+      estado: "nuevo",
+      metadata: {
+        fuente: "apollo",
+        human_in_the_loop: true,
+      },
+    })
+    .select("id, empresa_id, contacto_id")
+    .single();
 
-  if (!insertError) {
-    return true;
+  if (!insertError && data) {
+    return {
+      id: String(data.id),
+      empresaId: String(data.empresa_id),
+      contactoId: data.contacto_id ? String(data.contacto_id) : null,
+    };
   }
 
   if (isPostgrestErrorLike(insertError) && insertError.code === "23505") {
-    return false;
+    return null;
   }
 
-  throw new Error(`Error insertando lead prospectado: ${insertError.message ?? "desconocido"}`);
+  throw new Error(`Error insertando lead prospectado: ${insertError?.message ?? "desconocido"}`);
 }
 
 async function resolveEmpresa(
   userClient: SupabaseClient,
-  serviceClient: SupabaseClient,
   organization: ApolloOrganization
 ): Promise<{ empresa: EmpresaGlobal; cacheHit: boolean }> {
   const domain = extractOrganizationDomain(organization);
@@ -267,7 +408,7 @@ async function resolveEmpresa(
     return { empresa: cacheLookup.data, cacheHit: true };
   }
 
-  const empresa = await upsertEmpresaEnCache(serviceClient, {
+  const empresa = await upsertEmpresaEnCache({
     nombre: extractOrganizationName(organization),
     dominio: domain,
     apolloOrgId,
@@ -288,56 +429,36 @@ async function resolveEmpresa(
   return { empresa, cacheHit: false };
 }
 
-async function resolveContacto(
+async function resolveContactoDesdePersona(
   userClient: SupabaseClient,
-  serviceClient: SupabaseClient,
-  organization: ApolloOrganization,
-  empresa: EmpresaGlobal
-): Promise<ContactoGlobal | null> {
-  const cachedContacto = await lookupPrimerContactoEmpresaEnCache(userClient, empresa.id);
-  if (cachedContacto) {
-    return cachedContacto;
-  }
-
-  const people = await searchPeople({
-    organizationId: toStringOrNull(organization.id) ?? undefined,
-    organizationDomain: extractOrganizationDomain(organization) ?? undefined,
-    organizationName: extractOrganizationName(organization) ?? undefined,
-    titles: DECISION_MAKER_TITLES,
-    seniorities: DECISION_MAKER_SENIORITIES,
-    perPage: 1,
-  });
-
-  const firstPerson = people[0];
-  if (!firstPerson) {
-    return null;
-  }
-
+  person: ApolloPerson,
+  empresaId: string
+): Promise<ContactoGlobal> {
   const contactoCache = await lookupContactoEnCache(userClient, {
-    empresaId: empresa.id,
-    apolloContactId: toStringOrNull(firstPerson.id),
-    email: toStringOrNull(firstPerson.email),
-    linkedinUrl: toStringOrNull(firstPerson.linkedin_url),
+    empresaId,
+    apolloContactId: toStringOrNull(person.id),
+    email: toStringOrNull(person.email),
+    linkedinUrl: toStringOrNull(person.linkedin_url),
   });
 
   if (contactoCache.hit && contactoCache.data) {
     return contactoCache.data;
   }
 
-  const nombre = normalizePersonaNombre(firstPerson);
+  const nombre = normalizePersonaNombre(person);
 
-  return upsertContactoEnCache(serviceClient, {
-    empresaId: empresa.id,
-    apolloContactId: toStringOrNull(firstPerson.id),
+  return upsertContactoEnCache({
+    empresaId,
+    apolloContactId: toStringOrNull(person.id),
     nombre: nombre.nombre,
     apellidos: nombre.apellidos,
-    cargo: toStringOrNull(firstPerson.title),
-    seniority: toStringOrNull(firstPerson.seniority),
-    departamento: extractDepartamento(firstPerson),
-    email: toStringOrNull(firstPerson.email),
-    emailStatus: toStringOrNull(firstPerson.email_status),
-    linkedinUrl: toStringOrNull(firstPerson.linkedin_url),
+    cargo: toStringOrNull(person.title),
+    email: toStringOrNull(person.email),
+    linkedinUrl: toStringOrNull(person.linkedin_url),
     fuente: "apollo",
+    emailStatus: toStringOrNull(person.email_status),
+    seniority: toStringOrNull(person.seniority),
+    departamento: extractDepartamento(person),
   });
 }
 
@@ -379,13 +500,43 @@ async function updateJobAsError(
   }
 }
 
+async function processApolloPerson(
+  input: {
+    userClient: SupabaseClient;
+    organizacionId: string;
+    trabajoBusquedaId: string;
+    person: ApolloPerson;
+  }
+): Promise<{ lead: LeadCreado | null; cacheHit: boolean; cacheMiss: boolean }> {
+  const organization = extractOrganizationFromPerson(input.person);
+  if (!organization) {
+    return { lead: null, cacheHit: false, cacheMiss: false };
+  }
+
+  const { empresa, cacheHit } = await resolveEmpresa(input.userClient, organization);
+  const contacto = await resolveContactoDesdePersona(input.userClient, input.person, empresa.id);
+
+  const lead = await ensureLead(input.userClient, {
+    organizacionId: input.organizacionId,
+    empresaId: empresa.id,
+    contactoId: contacto.id,
+    trabajoBusquedaId: input.trabajoBusquedaId,
+  });
+
+  return {
+    lead,
+    cacheHit,
+    cacheMiss: !cacheHit,
+  };
+}
+
 /**
  * Ejecuta una prospección síncrona Apollo + Data Moat y crea leads para revisión humana.
  */
 export async function executeApolloProspectingJob(
   input: ExecuteApolloProspectingInput
 ): Promise<ExecuteApolloProspectingResult> {
-  const perPage = normalizePerPage(input.organizationCriteria.perPage);
+  const perPage = APOLLO_MAX_PER_PAGE;
 
   const { data: job, error: jobError } = await input.userClient
     .from("trabajos_busqueda")
@@ -408,68 +559,174 @@ export async function executeApolloProspectingJob(
   }
 
   const jobId = String(job.id);
-  let leadsCreados = 0;
+  const leads: LeadCreado[] = [];
   let cacheHits = 0;
   let cacheMisses = 0;
 
   try {
-    const organizations = await searchOrganizations({
-      ...input.organizationCriteria,
+    const titles = resolveTitlesFromParametros(input.parametros);
+    const seniorities = resolveSenioritiesFromParametros(input.parametros);
+    const sector = toStringOrNull(input.parametros.sector);
+    const location = resolveLocationFromParametros(input.parametros);
+
+    if (titles.length === 0 || !sector || !location) {
+      throw new Error("Parámetros inválidos para Apollo: titles, sector y location son obligatorios");
+    }
+
+    const people = await searchPeopleWithCompany({
+      titles,
+      seniorities,
+      sector,
+      location,
       perPage,
     });
 
-    for (const organization of organizations) {
-      const { empresa, cacheHit } = await resolveEmpresa(
-        input.userClient,
-        input.serviceClient,
-        organization
-      );
+    for (const person of people) {
+      const result = await processApolloPerson({
+        userClient: input.userClient,
+        organizacionId: input.organizacionId,
+        trabajoBusquedaId: jobId,
+        person,
+      });
 
-      if (cacheHit) {
+      if (result.cacheHit) {
         cacheHits += 1;
-      } else {
+      }
+
+      if (result.cacheMiss) {
         cacheMisses += 1;
       }
 
-      let contacto: ContactoGlobal | null = null;
-
-      try {
-        contacto = await resolveContacto(
-          input.userClient,
-          input.serviceClient,
-          organization,
-          empresa
-        );
-      } catch (contactError) {
-        console.warn("No se pudo resolver contacto para empresa", {
-          empresaId: empresa.id,
-          error: contactError,
-        });
-      }
-
-      const leadCreado = await ensureLead(input.userClient, {
-        organizacionId: input.organizacionId,
-        empresaId: empresa.id,
-        contactoId: contacto?.id ?? null,
-        trabajoBusquedaId: jobId,
-      });
-
-      if (leadCreado) {
-        leadsCreados += 1;
+      if (result.lead) {
+        leads.push(result.lead);
       }
     }
 
-    await updateJobAsCompleted(input.serviceClient, jobId, leadsCreados);
+    await updateJobAsCompleted(input.serviceClient, jobId, leads.length);
 
     return {
       jobId,
-      totalResultados: leadsCreados,
-      leadsCreados,
+      totalResultados: leads.length,
+      leadsCreados: leads.length,
       cacheHits,
       cacheMisses,
+      leads,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error inesperado durante prospección";
+    await updateJobAsError(input.serviceClient, jobId, message);
+    throw error;
+  }
+}
+
+/**
+ * Ejecuta una prospección lookalike con varios términos y límite global de resultados.
+ */
+export async function executeApolloLookalikeJob(
+  input: ExecuteApolloLookalikeJobInput
+): Promise<ExecuteApolloLookalikeJobResult> {
+  const normalizedTerms = normalizeSearchTerms(input.searchTerms);
+  const maxResults = normalizePerPage(input.maxResults);
+
+  if (normalizedTerms.length === 0) {
+    throw new Error("No hay términos lookalike válidos para ejecutar la búsqueda");
+  }
+
+  const { data: job, error: jobError } = await input.userClient
+    .from("trabajos_busqueda")
+    .insert({
+      organizacion_id: input.organizacionId,
+      tipo: "apollo_lookalike",
+      parametros: {
+        ...input.parametros,
+        search_terms: normalizedTerms,
+        max_results: maxResults,
+      },
+      estado: "completado",
+      total_resultados: 0,
+      created_by: input.createdBy,
+    })
+    .select("id")
+    .single();
+
+  if (jobError || !job) {
+    throw new Error(`Error creando trabajo lookalike: ${jobError?.message ?? "sin datos"}`);
+  }
+
+  const jobId = String(job.id);
+  const leads: LeadCreado[] = [];
+  let cacheHits = 0;
+  let cacheMisses = 0;
+
+  const titles = resolveTitlesFromParametros(input.parametros);
+  const seniorities = resolveSenioritiesFromParametros(input.parametros);
+  const location = resolveLocationFromParametros(input.parametros) ?? "España";
+  const resolvedTitles = titles.length > 0 ? titles : DECISION_MAKER_TITLES;
+  const resolvedSeniorities = seniorities.length > 0 ? seniorities : DECISION_MAKER_SENIORITIES;
+  const seenPeople = new Set<string>();
+
+  try {
+    for (const term of normalizedTerms) {
+      if (leads.length >= maxResults) {
+        break;
+      }
+
+      const remaining = maxResults - leads.length;
+      const people = await searchPeopleWithCompany({
+        titles: resolvedTitles,
+        seniorities: resolvedSeniorities,
+        sector: term,
+        location,
+        perPage: remaining,
+      });
+
+      for (const person of people) {
+        if (leads.length >= maxResults) {
+          break;
+        }
+
+        const org = extractOrganizationFromPerson(person);
+        const personKey = buildPersonKey(person, org);
+
+        if (seenPeople.has(personKey)) {
+          continue;
+        }
+        seenPeople.add(personKey);
+
+        const result = await processApolloPerson({
+          userClient: input.userClient,
+          organizacionId: input.organizacionId,
+          trabajoBusquedaId: jobId,
+          person,
+        });
+
+        if (result.cacheHit) {
+          cacheHits += 1;
+        }
+
+        if (result.cacheMiss) {
+          cacheMisses += 1;
+        }
+
+        if (result.lead) {
+          leads.push(result.lead);
+        }
+      }
+    }
+
+    await updateJobAsCompleted(input.serviceClient, jobId, leads.length);
+
+    return {
+      jobId,
+      totalResultados: leads.length,
+      leadsCreados: leads.length,
+      cacheHits,
+      cacheMisses,
+      leads,
+      searchTermsUsed: normalizedTerms,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Error inesperado en lookalike";
     await updateJobAsError(input.serviceClient, jobId, message);
     throw error;
   }

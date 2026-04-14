@@ -1,11 +1,13 @@
+import {
+  generateProspectEmailDraft,
+  type TenantIaPreferences,
+} from "@/lib/services/gemini";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * API Route: Trigger de enriquecimiento con IA.
- *
- * Endpoint reservado para el flujo de enriquecimiento con Gemini.
- * La integración real se implementará en la Fase 3.
+ * Genera asunto + borrador con Gemini para un lead en pendiente_aprobacion.
  */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -48,10 +50,42 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
+  const { data: config } = await supabase
+    .from("configuracion_tenant")
+    .select("preferencias_ia")
+    .eq("organizacion_id", organizacion_id)
+    .maybeSingle();
+
+  const preferenciasIa = (config?.preferencias_ia ?? null) as TenantIaPreferences | null;
+
+  function normalizeOne<T>(value: T | T[] | null | undefined): T | null {
+    if (Array.isArray(value)) {
+      return value[0] ?? null;
+    }
+
+    return value ?? null;
+  }
+
+  function toRecord(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+
+    return value as Record<string, unknown>;
+  }
+
   // Verificar que el lead existe y está pendiente de aprobación
   const { data: lead } = await supabase
     .from("leads_prospectados")
-    .select("id, estado")
+    .select(
+      `
+      id,
+      estado,
+      metadata,
+      global_empresas (nombre, sector, ciudad, pais, dominio, linkedin_url, tecnologias, descripcion),
+      global_contactos (nombre, apellidos, cargo, email, linkedin_url, seniority, departamento)
+    `
+    )
     .eq("id", lead_id)
     .eq("organizacion_id", organizacion_id)
     .single();
@@ -67,12 +101,75 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const empresa = normalizeOne(lead.global_empresas);
+  if (!empresa) {
+    return NextResponse.json(
+      { error: "El lead no tiene empresa vinculada para enriquecer el email" },
+      { status: 409 }
+    );
+  }
+
+  const contacto = normalizeOne(lead.global_contactos);
+  const draft = await generateProspectEmailDraft({
+    empresa: {
+      nombre: empresa.nombre ?? "Empresa sin nombre",
+      sector: empresa.sector,
+      ciudad: empresa.ciudad,
+      pais: empresa.pais,
+      dominio: empresa.dominio,
+      linkedinUrl: empresa.linkedin_url,
+      tecnologias: Array.isArray(empresa.tecnologias)
+        ? empresa.tecnologias.filter((item): item is string => typeof item === "string")
+        : null,
+      descripcion: empresa.descripcion,
+    },
+    contacto: contacto
+      ? {
+          nombre: contacto.nombre,
+          apellidos: contacto.apellidos,
+          cargo: contacto.cargo,
+          email: contacto.email,
+          linkedinUrl: contacto.linkedin_url,
+          seniority: contacto.seniority,
+          departamento: contacto.departamento,
+        }
+      : null,
+    preferenciasIa,
+    maxWords: 150,
+  });
+
+  const metadataActual = toRecord(lead.metadata);
+  const { error: updateError } = await supabase
+    .from("leads_prospectados")
+    .update({
+      borrador_email: draft.body,
+      email_asunto: draft.subject,
+      metadata: {
+        ...metadataActual,
+        enrich: {
+          fallback_used: draft.fallbackUsed,
+          word_count: draft.wordCount,
+          generated_at: new Date().toISOString(),
+        },
+      },
+    })
+    .eq("id", lead_id)
+    .eq("organizacion_id", organizacion_id);
+
+  if (updateError) {
+    return NextResponse.json(
+      { error: `No se pudo guardar el borrador generado: ${updateError.message}` },
+      { status: 500 }
+    );
+  }
+
   return NextResponse.json(
     {
-      error:
-        "El enriquecimiento automático aún no está disponible. Se habilitará al integrar Gemini en la Fase 3.",
+      mensaje: "Borrador generado correctamente",
       lead_id,
+      word_count: draft.wordCount,
+      fallback_used: draft.fallbackUsed,
     },
-    { status: 501 }
+    { status: 200 }
   );
 }

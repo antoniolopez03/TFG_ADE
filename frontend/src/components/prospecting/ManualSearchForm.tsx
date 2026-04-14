@@ -2,43 +2,33 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Search } from "lucide-react";
-
-const SECTORES = [
-  "Metalurgia",
-  "Maquinaria Industrial",
-  "Fabricación CNC",
-  "Logística",
-  "Construcción",
-  "Alimentación",
-  "Tecnología B2B",
-  "Distribución Industrial",
-  "Otros",
-];
-
-const TAMAÑOS = [
-  { label: "1-10 empleados", value: "1-10" },
-  { label: "11-50 empleados", value: "11-50" },
-  { label: "51-200 empleados", value: "51-200" },
-  { label: "201-500 empleados", value: "201-500" },
-  { label: "+500 empleados", value: "500+" },
-];
+import { Loader2, Search, UserRound, Building2, MapPin } from "lucide-react";
 
 const INPUT_CLASS =
   "border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white";
 
-export function ManualSearchForm() {
+interface ManualSearchFormProps {
+  organizacionId?: string | null;
+}
+
+export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
   const router = useRouter();
+  const [titlesInput, setTitlesInput] = useState("");
   const [sector, setSector] = useState("");
-  const [ubicacion, setUbicacion] = useState("");
-  const [tamano, setTamano] = useState("");
+  const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!sector || !ubicacion || !tamano) {
-      setError("Completa todos los campos antes de buscar.");
+
+    const titles = titlesInput
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+
+    if (titles.length === 0 || !sector.trim() || !location.trim()) {
+      setError("Completa cargo objetivo, sector y ubicación antes de buscar.");
       return;
     }
 
@@ -49,7 +39,14 @@ export function ManualSearchForm() {
       const res = await fetch("/api/prospecting/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sector, ubicacion, tamano }),
+        body: JSON.stringify({
+          organizacion_id: organizacionId ?? undefined,
+          tipo: "apollo_search",
+          titles,
+          sector: sector.trim(),
+          location: location.trim(),
+          seniorities: [],
+        }),
       });
 
       if (!res.ok) {
@@ -69,56 +66,58 @@ export function ManualSearchForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Sector */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            Cargo objetivo
+          </label>
+          <div className="relative">
+            <UserRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              required
+              value={titlesInput}
+              onChange={(e) => setTitlesInput(e.target.value)}
+              placeholder="Ej: Director de Compras, CEO, Responsable de Producción"
+              className={`${INPUT_CLASS} pl-9`}
+            />
+          </div>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Puedes escribir varios cargos separados por coma.
+          </p>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Sector
           </label>
-          <select
-            value={sector}
-            onChange={(e) => setSector(e.target.value)}
-            className={INPUT_CLASS}
-          >
-            <option value="">Seleccionar sector...</option>
-            {SECTORES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              required
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+              placeholder="Ej: metalurgia, logística, automoción"
+              className={`${INPUT_CLASS} pl-9`}
+            />
+          </div>
         </div>
 
-        {/* Ubicación */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Ubicación
           </label>
-          <input
-            type="text"
-            value={ubicacion}
-            onChange={(e) => setUbicacion(e.target.value)}
-            placeholder="Madrid, 28001, España..."
-            className={INPUT_CLASS}
-          />
-        </div>
-
-        {/* Tamaño */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Tamaño de empresa
-          </label>
-          <select
-            value={tamano}
-            onChange={(e) => setTamano(e.target.value)}
-            className={INPUT_CLASS}
-          >
-            <option value="">Seleccionar tamaño...</option>
-            {TAMAÑOS.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              required
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Ej: Madrid, Barcelona, España"
+              className={`${INPUT_CLASS} pl-9`}
+            />
+          </div>
         </div>
       </div>
 
@@ -128,6 +127,11 @@ export function ManualSearchForm() {
         </p>
       )}
 
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        LeadBy busca directamente a los decisores en la base de datos de Apollo.io. Los
+        resultados aparecen en tu bandeja de leads listos para revisión.
+      </p>
+
       <button
         type="submit"
         disabled={loading}
@@ -136,7 +140,7 @@ export function ManualSearchForm() {
         {loading ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
-            Buscando leads...
+            Buscando decisores...
           </>
         ) : (
           <>

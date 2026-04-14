@@ -1,10 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { getHubSpotTokenFromVault, verifyHubSpotConnection } from "@/lib/services/hubspot";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * API Route: Verificar conexión con HubSpot.
- * Lee el token almacenado en configuracion_tenant y hace una llamada de prueba
- * a la API de HubSpot. Nunca expone el token en la respuesta.
+ * API Route: Verificar conexión con HubSpot usando token guardado en Vault.
  */
 export async function POST(_request: NextRequest) {
   const supabase = createClient();
@@ -36,55 +35,50 @@ export async function POST(_request: NextRequest) {
     );
   }
 
-  // Obtener el token de configuracion_tenant
-  const { data: config } = await supabase
-    .from("configuracion_tenant")
-    .select("crm_api_key_secret_id")
-    .eq("organizacion_id", membresia.organizacion_id)
-    .single();
+  const serviceClient = createServiceClient();
+  let token: string | null = null;
 
-  const token = config?.crm_api_key_secret_id;
+  try {
+    token = await getHubSpotTokenFromVault(serviceClient, String(membresia.organizacion_id));
+  } catch (error) {
+    console.error("Error leyendo token HubSpot desde Vault", error);
+    return NextResponse.json(
+      {
+        ok: false,
+        message: "No se pudo recuperar el token de HubSpot desde Vault.",
+      },
+      { status: 500 }
+    );
+  }
 
   if (!token) {
     return NextResponse.json(
-      { ok: false, message: "No hay token de HubSpot configurado." },
+      { ok: false, message: "No hay token de HubSpot configurado en Vault." },
       { status: 200 }
     );
   }
 
-  // Llamada de prueba a HubSpot
   try {
-    const res = await fetch(
-      "https://api.hubapi.com/crm/v3/objects/contacts?limit=1",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    await verifyHubSpotConnection(token);
 
-    if (res.ok) {
-      return NextResponse.json({
-        ok: true,
-        message: "Conexión con HubSpot verificada correctamente.",
-      });
-    } else if (res.status === 401) {
+    return NextResponse.json({
+      ok: true,
+      message: "Conexión con HubSpot verificada correctamente.",
+    });
+  } catch (error) {
+    const rawMessage = error instanceof Error ? error.message : "Error desconocido";
+
+    if (rawMessage.includes("401")) {
       return NextResponse.json({
         ok: false,
         message: "Token inválido o expirado. Actualiza el token de HubSpot.",
       });
-    } else {
-      return NextResponse.json({
-        ok: false,
-        message: `Error de HubSpot (${res.status}). Verifica los permisos del token.`,
-      });
     }
-  } catch {
+
     return NextResponse.json(
       {
         ok: false,
-        message: "No se pudo conectar con HubSpot. Comprueba tu conexión.",
+        message: "No se pudo conectar con HubSpot. Revisa permisos del token y scopes de la app.",
       },
       { status: 200 }
     );

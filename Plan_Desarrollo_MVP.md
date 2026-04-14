@@ -66,14 +66,14 @@ Límite: máximo 10 resultados por búsqueda (una sola llamada síncrona a Apoll
 
 | # | Tarea |
 |---|-------|
-| 3.1 | **(USUARIO)** Crear proyecto en Google Cloud Console, activar Gemini API y obtener API Key |
-| 3.2 | **(USUARIO)** Añadir `GEMINI_API_KEY` al archivo `.env.local` |
-| 3.3 | Crear `lib/services/gemini.ts`: cliente tipado para Google Gemini 2.0 Flash (15 RPM free tier) |
-| 3.4 | Implementar prompt de Lookalike: recibir historial CRM, generar 5 términos de búsqueda en JSON |
-| 3.5 | Reescribir `api/prospecting/lookalike/route.ts`: extraer clientes ganados de HubSpot → Gemini → Apollo → leads |
-| 3.6 | Implementar prompt de hiperpersonalización de emails: contexto prospecto + web empresa + tono tenant → correo máx. 150 palabras |
-| 3.7 | Reescribir `api/webhooks/enrich/route.ts`: eliminar n8n, implementar flujo Gemini directo con contexto completo |
-| 3.8 | Integrar preferencias de IA del tenant (`configuracion_tenant.preferencias_ia`) en los prompts |
+| 3.1 | [x] **(USUARIO)** Crear proyecto en Google Cloud Console, activar Gemini API y obtener API Key |
+| 3.2 | [x] **(USUARIO)** Añadir `GEMINI_API_KEY` al archivo `.env.local` |
+| 3.3 | [x] Crear `lib/services/gemini.ts`: cliente tipado para Google Gemini 2.0 Flash (15 RPM free tier) |
+| 3.4 | [x] Implementar prompt de Lookalike: recibir historial CRM, generar 5 términos de búsqueda en JSON |
+| 3.5 | [x] Reescribir `api/prospecting/lookalike/route.ts`: extraer clientes ganados de HubSpot → Gemini → Apollo → leads |
+| 3.6 | [x] Implementar prompt de hiperpersonalización de emails: contexto prospecto + web empresa + tono tenant → correo máx. 150 palabras |
+| 3.7 | [x] Reescribir `api/webhooks/enrich/route.ts`: eliminar n8n, implementar flujo Gemini directo con contexto completo |
+| 3.8 | [x] Integrar preferencias de IA del tenant (`configuracion_tenant.preferencias_ia`) en los prompts |
 
 **Tareas: 8** · Usuario: 2 · Agente: 6
 

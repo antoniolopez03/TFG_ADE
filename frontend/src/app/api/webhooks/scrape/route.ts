@@ -97,8 +97,21 @@ export async function POST(request: NextRequest) {
 
   const parametros =
     tipoBusqueda === "apollo_search"
-      ? { query, location, max_results: maxResults }
-      : { dork_query, max_results: maxResults };
+      ? {
+          titles: query ? [query] : [],
+          sector: query ?? "",
+          location: location ?? "",
+          seniorities: [],
+          max_results: maxResults,
+        }
+      : {
+          titles: ["Director de Compras"],
+          sector: dork_query ?? "",
+          location: location ?? "España",
+          seniorities: [],
+          dork_query,
+          max_results: maxResults,
+        };
 
   try {
     const result = await executeApolloProspectingJob({
@@ -108,19 +121,6 @@ export async function POST(request: NextRequest) {
       createdBy: user.id,
       tipo: tipoBusqueda,
       parametros,
-      organizationCriteria:
-        tipoBusqueda === "apollo_search"
-          ? {
-              query,
-              location,
-              sector: query,
-              ubicacion: location,
-              perPage: maxResults,
-            }
-          : {
-              query: dork_query,
-              perPage: maxResults,
-            },
     });
 
     return NextResponse.json(

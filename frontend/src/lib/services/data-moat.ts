@@ -1,3 +1,4 @@
+import { createServiceClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const EMPRESA_SELECT =
@@ -333,9 +334,9 @@ export async function lookupPrimerContactoEmpresaEnCache(
  * Inserta o actualiza una empresa en el Data Moat global.
  */
 export async function upsertEmpresaEnCache(
-  serviceClient: SupabaseClient,
   input: UpsertEmpresaInput
 ): Promise<EmpresaGlobal> {
+  const serviceClient = createServiceClient();
   const dominio = normalizeDomain(input.dominio);
   const apolloOrgId = normalizeText(input.apolloOrgId);
 
@@ -410,9 +411,9 @@ export async function upsertEmpresaEnCache(
  * Inserta o actualiza un contacto en el Data Moat global.
  */
 export async function upsertContactoEnCache(
-  serviceClient: SupabaseClient,
   input: UpsertContactoInput
 ): Promise<ContactoGlobal> {
+  const serviceClient = createServiceClient();
   const existing = await lookupContactoEnCache(serviceClient, {
     empresaId: input.empresaId,
     apolloContactId: input.apolloContactId,

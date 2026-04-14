@@ -54,37 +54,21 @@ export interface ApolloPerson {
   linkedin_url?: string;
   organization_id?: string;
   organization_name?: string;
+  organization?: ApolloOrganization;
   [key: string]: unknown;
 }
 
-export interface ApolloOrganizationSearchCriteria {
-  query?: string;
-  location?: string;
-  sector?: string;
-  ubicacion?: string;
-  tamano?: string;
-  perPage?: number;
-}
-
-export interface ApolloPeopleSearchCriteria {
-  organizationId?: string;
-  organizationDomain?: string;
-  organizationName?: string;
-  titles?: string[];
+export interface ApolloPeopleWithCompanySearchCriteria {
+  titles: string[];
   seniorities?: string[];
+  sector: string;
+  location: string;
   perPage?: number;
 }
 
 export interface ApolloOrganizationEnrichCriteria {
   domain?: string;
   organizationId?: string;
-}
-
-interface ApolloOrganizationsResponse {
-  organizations?: ApolloOrganization[];
-  accounts?: ApolloOrganization[];
-  results?: ApolloOrganization[] | { organizations?: ApolloOrganization[] };
-  [key: string]: unknown;
 }
 
 interface ApolloPeopleResponse {
@@ -142,30 +126,6 @@ function normalizePerPage(perPage?: number): number {
   return Math.min(Math.max(Math.trunc(perPage), 1), APOLLO_MAX_PER_PAGE);
 }
 
-function extractOrganizations(payload: ApolloOrganizationsResponse): ApolloOrganization[] {
-  if (Array.isArray(payload.organizations)) {
-    return payload.organizations;
-  }
-
-  if (Array.isArray(payload.accounts)) {
-    return payload.accounts;
-  }
-
-  if (Array.isArray(payload.results)) {
-    return payload.results;
-  }
-
-  if (
-    payload.results &&
-    typeof payload.results === "object" &&
-    Array.isArray(payload.results.organizations)
-  ) {
-    return payload.results.organizations;
-  }
-
-  return [];
-}
-
 function extractPeople(payload: ApolloPeopleResponse): ApolloPerson[] {
   if (Array.isArray(payload.people)) {
     return payload.people;
@@ -191,83 +151,44 @@ function extractPeople(payload: ApolloPeopleResponse): ApolloPerson[] {
 }
 
 /**
- * Busca organizaciones en Apollo con límite estricto de 10 resultados para el MVP.
+ * Busca personas en Apollo con empresa anidada en una única llamada.
+ * Los parámetros van en query string, no en body (requisito de mixed_people/api_search).
  */
-export async function searchOrganizations(
-  criteria: ApolloOrganizationSearchCriteria
-): Promise<ApolloOrganization[]> {
-  const perPage = normalizePerPage(criteria.perPage);
-
-  const body: Record<string, unknown> = {
-    q_organization_name: criteria.query,
-    q_organization_keyword_tags: criteria.sector ? [criteria.sector] : undefined,
-    organization_locations: criteria.location
-      ? [criteria.location]
-      : criteria.ubicacion
-      ? [criteria.ubicacion]
-      : undefined,
-    organization_num_employees_ranges: criteria.tamano ? [criteria.tamano] : undefined,
-    per_page: perPage,
-    page: 1,
-  };
-
-  try {
-    const payload = await apolloRequest<ApolloOrganizationsResponse>({
-      path: "/mixed_companies/search",
-      body,
-    });
-    return extractOrganizations(payload).slice(0, APOLLO_MAX_PER_PAGE);
-  } catch (error) {
-    if (!(error instanceof ApolloApiError) || error.status !== 404) {
-      throw error;
-    }
-
-    const fallbackPayload = await apolloRequest<ApolloOrganizationsResponse>({
-      path: "/organizations/search",
-      body,
-    });
-
-    return extractOrganizations(fallbackPayload).slice(0, APOLLO_MAX_PER_PAGE);
-  }
-}
-
-/**
- * Busca contactos decisores en Apollo para una organización concreta.
- */
-export async function searchPeople(
-  criteria: ApolloPeopleSearchCriteria
+export async function searchPeopleWithCompany(
+  criteria: ApolloPeopleWithCompanySearchCriteria
 ): Promise<ApolloPerson[]> {
   const perPage = normalizePerPage(criteria.perPage);
 
-  const body: Record<string, unknown> = {
-    q_organization_ids: criteria.organizationId ? [criteria.organizationId] : undefined,
-    q_organization_domains: criteria.organizationDomain
-      ? [criteria.organizationDomain]
-      : undefined,
-    q_organization_name: criteria.organizationName,
-    person_titles: criteria.titles,
-    person_seniorities: criteria.seniorities,
-    per_page: perPage,
-    page: 1,
-  };
+  const params = new URLSearchParams();
 
-  try {
-    const payload = await apolloRequest<ApolloPeopleResponse>({
-      path: "/mixed_people/search",
-      body,
-    });
-    return extractPeople(payload).slice(0, APOLLO_MAX_PER_PAGE);
-  } catch (error) {
-    if (!(error instanceof ApolloApiError) || error.status !== 404) {
-      throw error;
+  criteria.titles.forEach(t => params.append("person_titles[]", t));
+  (criteria.seniorities ?? []).forEach(s => params.append("person_seniorities[]", s));
+  params.append("person_locations[]", criteria.location);
+  params.append("q_organization_keyword_tags[]", criteria.sector);
+  params.append("per_page", String(perPage));
+  params.append("page", "1");
+
+  const response = await fetch(
+    `${APOLLO_BASE_URL}/mixed_people/api_search?${params.toString()}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": getApolloApiKey(),
+        "Cache-Control": "no-cache",
+        "accept": "application/json",
+      },
+      cache: "no-store",
     }
+  );
 
-    const fallbackPayload = await apolloRequest<ApolloPeopleResponse>({
-      path: "/people/search",
-      body,
-    });
-    return extractPeople(fallbackPayload).slice(0, APOLLO_MAX_PER_PAGE);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new ApolloApiError(response.status, errorText);
   }
+
+  const payload = (await response.json()) as ApolloPeopleResponse;
+  return extractPeople(payload).slice(0, APOLLO_MAX_PER_PAGE);
 }
 
 /**
