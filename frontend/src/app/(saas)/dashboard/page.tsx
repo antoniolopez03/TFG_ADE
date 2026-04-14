@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/request-client";
 import { redirect } from "next/navigation";
 import { DashboardClient } from "@/components/saas/DashboardClient";
 
@@ -12,7 +12,7 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/auth/login");
 
-  // Obtener organización del usuario
+  // Obtener organizaciÃ³n del usuario
   const { data: membresia } = await supabase
     .from("miembros_equipo")
     .select("organizacion_id, rol, organizaciones(nombre, plan)")
@@ -20,7 +20,7 @@ export default async function DashboardPage() {
     .eq("activo", true)
     .single();
 
-  // Métricas rápidas desde Supabase
+  // MÃ©tricas rÃ¡pidas desde Supabase
   const orgId = membresia?.organizacion_id;
   const [{ count: totalLeads }, { count: leadsEnviados }, { count: leadsPendientes }] =
     await Promise.all([
@@ -42,3 +42,4 @@ export default async function DashboardPage() {
     />
   );
 }
+

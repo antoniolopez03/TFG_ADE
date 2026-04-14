@@ -330,7 +330,7 @@ async function ensureLead(
       empresa_id: payload.empresaId,
       contacto_id: payload.contactoId,
       trabajo_busqueda_id: payload.trabajoBusquedaId,
-      estado: "nuevo",
+      estado: "pendiente_aprobacion",
       metadata: {
         fuente: "apollo",
         human_in_the_loop: true,

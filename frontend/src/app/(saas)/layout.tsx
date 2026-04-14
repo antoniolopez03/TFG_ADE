@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+﻿import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/request-client";
 import { SaaSLayout } from "@/components/layout/SaaSLayout";
 
 export default async function SaaSRootLayout({
@@ -9,7 +9,7 @@ export default async function SaaSRootLayout({
 }) {
   const supabase = createClient();
 
-  // 1. Auth check — valida JWT contra Supabase
+  // 1. Auth check â€” valida JWT contra Supabase
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -18,7 +18,7 @@ export default async function SaaSRootLayout({
     redirect("/auth/login");
   }
 
-  // 2. Verificar que el usuario tiene membresía activa en una organización activa
+  // 2. Verificar que el usuario tiene membresÃ­a activa en una organizaciÃ³n activa
   const { data: membresia } = await supabase
     .from("miembros_equipo")
     .select("activo, organizaciones(id, activa)")
@@ -40,3 +40,4 @@ export default async function SaaSRootLayout({
 
   return <SaaSLayout>{children}</SaaSLayout>;
 }
+

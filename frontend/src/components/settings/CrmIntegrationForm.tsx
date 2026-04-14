@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Loader2, Check, X, Eye, EyeOff } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 const INPUT_CLASS =
   "border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white";
@@ -20,7 +19,6 @@ export function CrmIntegrationForm({
   hasToken,
   isAdmin,
 }: CrmIntegrationFormProps) {
-  const supabase = createClient();
   const [showTokenInput, setShowTokenInput] = useState(!hasToken);
   const [token, setToken] = useState("");
   const [showToken, setShowToken] = useState(false);
@@ -44,17 +42,33 @@ export function CrmIntegrationForm({
     setSavingToken(true);
     setTokenError(null);
 
-    const { error } = await supabase
-      .from("configuracion_tenant")
-      .upsert(
-        { organizacion_id: organizacionId, crm_api_key_secret_id: token.trim(), crm_proveedor: "HubSpot" },
-        { onConflict: "organizacion_id" }
-      );
+    let responseOk = false;
+    let errorMessage = "Error al guardar el token. Inténtalo de nuevo.";
+
+    try {
+      const res = await fetch("/api/crm/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizacion_id: organizacionId,
+          token: token.trim(),
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      responseOk = res.ok && data?.ok === true;
+      if (!responseOk) {
+        errorMessage = data?.error ?? data?.message ?? errorMessage;
+      }
+    } catch {
+      errorMessage = "Error de conexión al guardar el token.";
+    }
 
     setSavingToken(false);
 
-    if (error) {
-      setTokenError("Error al guardar el token. Inténtalo de nuevo.");
+    if (!responseOk) {
+      setTokenError(errorMessage);
     } else {
       setTokenSaved(true);
       setShowTokenInput(false);

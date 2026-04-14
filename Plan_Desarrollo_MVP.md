@@ -88,16 +88,16 @@ HubSpot parte vacío, instancia nueva desde cero.
 
 | # | Tarea |
 |---|-------|
-| 4.1 | **(USUARIO)** Crear cuenta gratuita en HubSpot y crear una Private App con scopes: crm.objects.contacts, crm.objects.companies, crm.objects.deals, timeline |
-| 4.2 | **(USUARIO)** Copiar el Access Token de la Private App de HubSpot |
-| 4.3 | **(USUARIO)** Almacenar el token en Supabase Vault ejecutando la función `guardar_hubspot_token()` desde el SQL Editor de Supabase |
-| 4.4 | Crear `lib/services/hubspot.ts`: cliente tipado para HubSpot API v3 (Companies, Contacts, Deals, Engagements) |
-| 4.5 | Implementar mapeo de campos: global_empresas → HubSpot Company, global_contactos → HubSpot Contact |
-| 4.6 | Implementar creación de Company + Contact al aprobar lead |
-| 4.7 | Implementar creación de Deal en etapa inicial del pipeline al aprobar lead |
-| 4.8 | Implementar registro de email en Timeline del contacto (Engagements API) tras envío |
-| 4.9 | Reescribir `api/crm/verify/route.ts`: verificar token HubSpot via Vault y testear conexión |
-| 4.10 | Implementar descifrado seguro de tokens desde Supabase Vault en las API Routes |
+| 4.1 | [x] **(USUARIO)** Crear cuenta gratuita en HubSpot y crear una Private App con scopes: crm.objects.contacts, crm.objects.companies, crm.objects.deals, timeline |
+| 4.2 | [x] **(USUARIO)** Copiar el Access Token de la Private App de HubSpot |
+| 4.3 | [x] **(USUARIO)** Almacenar el token en Supabase Vault ejecutando la función `guardar_hubspot_token()` desde el SQL Editor de Supabase |
+| 4.4 | [x] Crear `lib/services/hubspot.ts`: cliente tipado para HubSpot API v3 (Companies, Contacts, Deals, Engagements) |
+| 4.5 | [x] Implementar mapeo de campos: global_empresas → HubSpot Company, global_contactos → HubSpot Contact |
+| 4.6 | [x] Implementar creación de Company + Contact al aprobar lead |
+| 4.7 | [x] Implementar creación de Deal en etapa inicial del pipeline al aprobar lead |
+| 4.8 | [x] Implementar registro de email en Timeline del contacto (Engagements API) tras envío |
+| 4.9 | [x] Reescribir `api/crm/verify/route.ts`: verificar token HubSpot via Vault y testear conexión |
+| 4.10 | [x] Implementar descifrado seguro de tokens desde Supabase Vault en las API Routes |
 
 **Tareas: 10** · Usuario: 3 · Agente: 7
 
@@ -110,10 +110,10 @@ HubSpot parte vacío, instancia nueva desde cero.
 | 5.1 | **(USUARIO)** Crear cuenta en Resend y obtener API Key |
 | 5.2 | **(USUARIO)** Configurar dominio de envío en Resend: añadir registros DNS (SPF, DKIM, DMARC) en el proveedor de dominio |
 | 5.3 | **(USUARIO)** Añadir `RESEND_API_KEY` al archivo `.env.local` |
-| 5.4 | Crear `lib/services/resend.ts`: cliente tipado para Resend API |
-| 5.5 | Reescribir `api/webhooks/send-email/route.ts`: eliminar n8n, implementar flujo Resend + HubSpot directo |
+| 5.4 | [x] Crear `lib/services/resend.ts`: cliente tipado para Resend API |
+| 5.5 | [x] Reescribir `api/webhooks/send-email/route.ts`: eliminar n8n, implementar flujo Resend + HubSpot directo |
 | 5.6 | Implementar plantilla HTML base para los correos (responsive, con enlace opt-out RGPD) |
-| 5.7 | Implementar lógica: enviar vía Resend → registrar en HubSpot → actualizar estado a 'enviado' |
+| 5.7 | [x] Implementar lógica: enviar vía Resend → registrar en HubSpot → actualizar estado a 'enviado' |
 
 **Tareas: 7** · Usuario: 3 · Agente: 4
 

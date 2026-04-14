@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/request-client";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -51,15 +51,15 @@ export default async function SettingsPage({
     return (
       <div className="p-8 max-w-3xl">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuración</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ConfiguraciÃ³n</h1>
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-8 text-center">
           <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-3" />
           <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-            Sin organización activa
+            Sin organizaciÃ³n activa
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Tu cuenta no está asociada a ninguna organización activa. Contacta con un administrador para que te invite al equipo.
+            Tu cuenta no estÃ¡ asociada a ninguna organizaciÃ³n activa. Contacta con un administrador para que te invite al equipo.
           </p>
         </div>
       </div>
@@ -70,7 +70,7 @@ export default async function SettingsPage({
   const [configResult, equipoResult] = await Promise.all([
     supabase
       .from("configuracion_tenant")
-      .select("crm_proveedor, crm_api_key_secret_id, preferencias_ia")
+      .select("crm_proveedor, hubspot_token_vault_id, preferencias_ia")
       .eq("organizacion_id", membresia.organizacion_id)
       .single(),
     supabase
@@ -93,7 +93,7 @@ export default async function SettingsPage({
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuración</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ConfiguraciÃ³n</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{org?.nombre}</p>
         </div>
       </div>
@@ -103,7 +103,7 @@ export default async function SettingsPage({
         <div className="mb-6 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl px-4 py-3">
           <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-amber-700 dark:text-amber-300">
-            Solo los administradores pueden modificar la configuración. Estás
+            Solo los administradores pueden modificar la configuraciÃ³n. EstÃ¡s
             viendo los datos en modo lectura.
           </p>
         </div>
@@ -117,7 +117,7 @@ export default async function SettingsPage({
         {tab === "organizacion" && (
           <>
             <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5">
-              Información de la organización
+              InformaciÃ³n de la organizaciÃ³n
             </h2>
             <OrgForm
               organizacionId={membresia.organizacion_id}
@@ -131,12 +131,12 @@ export default async function SettingsPage({
         {tab === "crm" && (
           <>
             <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5">
-              Integración CRM
+              IntegraciÃ³n CRM
             </h2>
             <CrmIntegrationForm
               organizacionId={membresia.organizacion_id}
               crmProveedor={config?.crm_proveedor ?? null}
-              hasToken={!!config?.crm_api_key_secret_id}
+              hasToken={!!config?.hubspot_token_vault_id}
               isAdmin={esAdmin}
             />
           </>
@@ -159,7 +159,7 @@ export default async function SettingsPage({
         {tab === "equipo" && (
           <>
             <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5">
-              Gestión del equipo
+              GestiÃ³n del equipo
             </h2>
             <TeamManager
               organizacionId={membresia.organizacion_id}
@@ -172,3 +172,4 @@ export default async function SettingsPage({
     </div>
   );
 }
+

@@ -1,8 +1,32 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import {
+  createHubSpotDeal,
+  createOrUpdateHubSpotCompany,
+  createOrUpdateHubSpotContact,
+  getHubSpotTokenFromVault,
+} from "@/lib/services/hubspot";
+import { createClient, createServiceClient } from "@/lib/supabase/request-client";
 import { NextRequest, NextResponse } from "next/server";
 
+type MaybeArray<T> = T | T[] | null | undefined;
+
+function normalizeOne<T>(value: MaybeArray<T>): T | null {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value ?? null;
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
 /**
- * API Route: Aprobar lead para envío.
+ * API Route: Aprobar lead para envÃ­o.
  *
  * Transiciona el lead de 'pendiente_aprobacion' a 'aprobado'.
  */
@@ -22,7 +46,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Body JSON inválido" }, { status: 400 });
+    return NextResponse.json({ error: "Body JSON invÃ¡lido" }, { status: 400 });
   }
 
   const { lead_id, organizacion_id } = body;
@@ -34,7 +58,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Verificar membresía
+  // Verificar membresÃ­a
   const { data: membresia } = await supabase
     .from("miembros_equipo")
     .select("id")
@@ -47,10 +71,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
-  // Verificar que el lead existe y está en estado aprobable
+  // Verificar que el lead existe y estÃ¡ en estado aprobable
   const { data: lead } = await supabase
     .from("leads_prospectados")
-    .select("id, estado")
+    .select(
+      `
+      id,
+      estado,
+      metadata,
+      global_empresas (nombre, dominio, sector, ciudad, pais, telefono, descripcion),
+      global_contactos (nombre, apellidos, email, cargo, telefono, departamento)
+    `
+    )
     .eq("id", lead_id)
     .eq("organizacion_id", organizacion_id)
     .single();
@@ -62,16 +94,132 @@ export async function POST(request: NextRequest) {
   if (lead.estado !== "pendiente_aprobacion") {
     return NextResponse.json(
       {
-        error: `Estado inválido: '${lead.estado}'. Solo se puede aprobar desde 'pendiente_aprobacion'.`,
+        error: `Estado invÃ¡lido: '${lead.estado}'. Solo se puede aprobar desde 'pendiente_aprobacion'.`,
       },
       { status: 409 }
     );
   }
 
+  const empresa = normalizeOne(lead.global_empresas as MaybeArray<Record<string, unknown>>);
+  if (!empresa) {
+    return NextResponse.json(
+      { error: "El lead no tiene empresa vinculada para sincronizar con HubSpot." },
+      { status: 409 }
+    );
+  }
+
+  const contacto = normalizeOne(lead.global_contactos as MaybeArray<Record<string, unknown>>);
+  if (!contacto) {
+    return NextResponse.json(
+      { error: "El lead no tiene contacto vinculado para sincronizar con HubSpot." },
+      { status: 409 }
+    );
+  }
+
+  const serviceClient = createServiceClient();
+
+  let hubSpotToken: string | null = null;
+  try {
+    hubSpotToken = await getHubSpotTokenFromVault(serviceClient, organizacion_id);
+  } catch (error) {
+    console.error("Error recuperando token HubSpot desde Vault", error);
+    return NextResponse.json(
+      { error: "No se pudo recuperar el token de HubSpot desde Vault." },
+      { status: 500 }
+    );
+  }
+
+  if (!hubSpotToken) {
+    return NextResponse.json(
+      { error: "No hay token HubSpot configurado para esta organizaciÃ³n." },
+      { status: 409 }
+    );
+  }
+
+  let hubSpotCompanyId = "";
+  let hubSpotContactId = "";
+  let hubSpotDealId = "";
+
+  try {
+    const company = await createOrUpdateHubSpotCompany({
+      accessToken: hubSpotToken,
+      empresa: {
+        nombre: typeof empresa.nombre === "string" ? empresa.nombre : null,
+        dominio: typeof empresa.dominio === "string" ? empresa.dominio : null,
+        sector: typeof empresa.sector === "string" ? empresa.sector : null,
+        ciudad: typeof empresa.ciudad === "string" ? empresa.ciudad : null,
+        pais: typeof empresa.pais === "string" ? empresa.pais : null,
+        telefono: typeof empresa.telefono === "string" ? empresa.telefono : null,
+        descripcion: typeof empresa.descripcion === "string" ? empresa.descripcion : null,
+      },
+    });
+
+    const contact = await createOrUpdateHubSpotContact({
+      accessToken: hubSpotToken,
+      companyId: company.id,
+      contacto: {
+        nombre: typeof contacto.nombre === "string" ? contacto.nombre : null,
+        apellidos: typeof contacto.apellidos === "string" ? contacto.apellidos : null,
+        email: typeof contacto.email === "string" ? contacto.email : null,
+        cargo: typeof contacto.cargo === "string" ? contacto.cargo : null,
+        telefono: typeof contacto.telefono === "string" ? contacto.telefono : null,
+        departamento:
+          typeof contacto.departamento === "string" ? contacto.departamento : null,
+      },
+    });
+
+    const companyName =
+      (typeof empresa.nombre === "string" && empresa.nombre.trim()) ||
+      (typeof empresa.dominio === "string" && empresa.dominio.trim()) ||
+      "Empresa";
+
+    const contactName =
+      [contacto.nombre, contacto.apellidos]
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        .join(" ") || "Contacto";
+
+    const deal = await createHubSpotDeal({
+      accessToken: hubSpotToken,
+      companyId: company.id,
+      contactId: contact.id,
+      dealName: `LeadBy: ${companyName} - ${contactName}`,
+    });
+
+    hubSpotCompanyId = company.id;
+    hubSpotContactId = contact.id;
+    hubSpotDealId = deal.id;
+  } catch (hubspotError) {
+    console.error("Error sincronizando lead aprobado con HubSpot", hubspotError);
+    return NextResponse.json(
+      {
+        error:
+          "No se pudo sincronizar el lead con HubSpot. Revisa el token, permisos y configuraciÃ³n del CRM.",
+      },
+      { status: 502 }
+    );
+  }
+
   // Actualizar estado a aprobado
+  const metadataActual = toRecord(lead.metadata);
+  const metadataHubSpot = toRecord(metadataActual.hubspot_sync);
+
   const { error: updateError } = await supabase
     .from("leads_prospectados")
-    .update({ estado: "aprobado" })
+    .update({
+      estado: "aprobado",
+      hubspot_contact_id: hubSpotContactId,
+      hubspot_deal_id: hubSpotDealId,
+      metadata: {
+        ...metadataActual,
+        hubspot_sync: {
+          ...metadataHubSpot,
+          company_id: hubSpotCompanyId,
+          contact_id: hubSpotContactId,
+          deal_id: hubSpotDealId,
+          synced_at: new Date().toISOString(),
+        },
+      },
+    })
     .eq("id", lead_id);
 
   if (updateError) {
@@ -89,3 +237,4 @@ export async function POST(request: NextRequest) {
     { status: 202 }
   );
 }
+

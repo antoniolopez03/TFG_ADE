@@ -1,17 +1,17 @@
-import { generateLookalikeTerms, type TenantIaPreferences, type WonDealSignal } from "@/lib/services/gemini";
+﻿import { generateLookalikeTerms, type TenantIaPreferences, type WonDealSignal } from "@/lib/services/gemini";
 import { getHubSpotTokenFromVault, listHubSpotWonDeals } from "@/lib/services/hubspot";
 import {
   executeApolloLookalikeJob,
   resolveProspectingErrorMessage,
   resolveProspectingErrorStatus,
 } from "@/lib/services/prospecting";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/request-client";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * API Route: Prospección IA Lookalike.
+ * API Route: ProspecciÃ³n IA Lookalike.
  * Flujo: HubSpot (deals ganados) -> Gemini (terminos) -> Apollo/Data Moat (leads).
- * Si no hay deals ganados, usa fallback automático con las preferencias del tenant.
+ * Si no hay deals ganados, usa fallback automÃ¡tico con las preferencias del tenant.
  */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
         importe: deal.amount,
       }));
     } else {
-      fallbackReason = "No hay token HubSpot en Vault para esta organización";
+      fallbackReason = "No hay token HubSpot en Vault para esta organizaciÃ³n";
     }
   } catch (hubspotError) {
     console.warn("No fue posible leer deals ganados de HubSpot", hubspotError);
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (wonDealsSignals.length === 0 && !fallbackReason) {
-    fallbackReason = "HubSpot no tiene deals ganados todavía";
+    fallbackReason = "HubSpot no tiene deals ganados todavÃ­a";
   }
 
   const generated = await generateLookalikeTerms({
@@ -141,3 +141,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
