@@ -19,6 +19,7 @@ export function CrmIntegrationForm({
   hasToken,
   isAdmin,
 }: CrmIntegrationFormProps) {
+  const [hasTokenState, setHasTokenState] = useState(hasToken);
   const [showTokenInput, setShowTokenInput] = useState(!hasToken);
   const [token, setToken] = useState("");
   const [showToken, setShowToken] = useState(false);
@@ -70,6 +71,7 @@ export function CrmIntegrationForm({
     if (!responseOk) {
       setTokenError(errorMessage);
     } else {
+      setHasTokenState(true);
       setTokenSaved(true);
       setShowTokenInput(false);
       setToken("");
@@ -128,7 +130,7 @@ export function CrmIntegrationForm({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Token API (HubSpot)
           </label>
-          {isAdmin && hasToken && !showTokenInput && (
+          {isAdmin && hasTokenState && !showTokenInput && (
             <button
               onClick={() => setShowTokenInput(true)}
               className="text-xs text-leadby-500 hover:text-leadby-600 font-medium"
@@ -140,9 +142,15 @@ export function CrmIntegrationForm({
 
         {!showTokenInput ? (
           <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-lg flex-1">
-              ••••••••••••••••••••
-            </span>
+            {hasTokenState ? (
+              <span className="font-mono text-xs text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-lg flex-1">
+                ••••••••••••••••••••
+              </span>
+            ) : (
+              <span className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-800/50 px-3 py-2 rounded-lg flex-1">
+                No hay token configurado en Vault para esta organización.
+              </span>
+            )}
             {tokenSaved && (
               <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                 <Check className="w-3.5 h-3.5" />
@@ -189,7 +197,7 @@ export function CrmIntegrationForm({
               <button
                 type="button"
                 onClick={() => {
-                  setShowTokenInput(false);
+                  setShowTokenInput(!hasTokenState);
                   setToken("");
                   setTokenError(null);
                 }}
@@ -199,7 +207,11 @@ export function CrmIntegrationForm({
               </button>
             </div>
           </form>
-        ) : null}
+        ) : (
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Solo los administradores pueden configurar o rotar el token de HubSpot.
+          </p>
+        )}
       </div>
 
       {/* Verificar conexión */}
@@ -207,7 +219,7 @@ export function CrmIntegrationForm({
         <div className="flex items-center gap-3">
           <button
             onClick={handleVerify}
-            disabled={verifying}
+            disabled={verifying || !hasTokenState}
             className="border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-2 rounded-lg transition-colors text-sm flex items-center gap-2 disabled:opacity-60"
           >
             {verifying ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -25,8 +26,12 @@ export function TeamManager({
   miembros: miembrosIniciales,
   isAdmin,
 }: TeamManagerProps) {
+  const router = useRouter();
   const supabase = createClient();
+
   const [miembros, setMiembros] = useState<Miembro[]>(miembrosIniciales);
+  const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRol, setInviteRol] = useState<"admin" | "miembro">("miembro");
@@ -35,6 +40,9 @@ export function TeamManager({
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
 
   async function handleChangeRol(miembroId: string, nuevoRol: string) {
+    setActionError(null);
+    setUpdatingMemberId(miembroId);
+
     const { error } = await supabase
       .from("miembros_equipo")
       .update({ rol: nuevoRol })
@@ -44,10 +52,17 @@ export function TeamManager({
       setMiembros((prev) =>
         prev.map((m) => (m.id === miembroId ? { ...m, rol: nuevoRol } : m))
       );
+    } else {
+      setActionError("No se pudo actualizar el rol del miembro. Inténtalo de nuevo.");
     }
+
+    setUpdatingMemberId(null);
   }
 
   async function handleToggleActivo(miembroId: string, activo: boolean) {
+    setActionError(null);
+    setUpdatingMemberId(miembroId);
+
     const { error } = await supabase
       .from("miembros_equipo")
       .update({ activo: !activo })
@@ -59,7 +74,11 @@ export function TeamManager({
           m.id === miembroId ? { ...m, activo: !activo } : m
         )
       );
+    } else {
+      setActionError("No se pudo actualizar el estado del miembro. Inténtalo de nuevo.");
     }
+
+    setUpdatingMemberId(null);
   }
 
   async function handleInvite(e: React.FormEvent) {
@@ -83,6 +102,7 @@ export function TeamManager({
       } else {
         setInviteSuccess(`Invitación enviada a ${inviteEmail.trim()}`);
         setInviteEmail("");
+        router.refresh();
       }
     } catch {
       setInviteError("Error de conexión. Inténtalo de nuevo.");
@@ -93,7 +113,6 @@ export function TeamManager({
 
   return (
     <div className="space-y-6">
-      {/* Tabla de miembros */}
       <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-800">
         <table className="w-full text-sm">
           <thead>
@@ -122,7 +141,10 @@ export function TeamManager({
           </thead>
           <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
             {miembros.map((m) => (
-              <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+              <tr
+                key={m.id}
+                className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              >
                 <td className="px-4 py-3">
                   <p className="font-medium text-gray-900 dark:text-white">
                     {m.nombre_completo || "—"}
@@ -162,20 +184,26 @@ export function TeamManager({
                       <select
                         value={m.rol}
                         onChange={(e) => handleChangeRol(m.id, e.target.value)}
-                        className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                        disabled={updatingMemberId === m.id}
+                        className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60"
                       >
                         <option value="miembro">miembro</option>
                         <option value="admin">admin</option>
                       </select>
                       <button
                         onClick={() => handleToggleActivo(m.id, m.activo)}
-                        className={`text-xs px-2.5 py-1 rounded-lg transition-colors ${
+                        disabled={updatingMemberId === m.id}
+                        className={`text-xs px-2.5 py-1 rounded-lg transition-colors disabled:opacity-60 ${
                           m.activo
                             ? "text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
                             : "text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/30"
                         }`}
                       >
-                        {m.activo ? "Desactivar" : "Activar"}
+                        {updatingMemberId === m.id
+                          ? "Actualizando..."
+                          : m.activo
+                          ? "Desactivar"
+                          : "Activar"}
                       </button>
                     </div>
                   </td>
@@ -186,7 +214,12 @@ export function TeamManager({
         </table>
       </div>
 
-      {/* Formulario de invitación */}
+      {actionError && (
+        <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-800/50 rounded-lg px-4 py-2">
+          {actionError}
+        </p>
+      )}
+
       {isAdmin && (
         <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 p-5">
           <div className="flex items-center gap-2 mb-4">
@@ -195,6 +228,7 @@ export function TeamManager({
               Invitar nuevo miembro
             </h3>
           </div>
+
           <form onSubmit={handleInvite} className="flex items-end gap-3">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -209,21 +243,21 @@ export function TeamManager({
                 className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Rol
               </label>
               <select
                 value={inviteRol}
-                onChange={(e) =>
-                  setInviteRol(e.target.value as "admin" | "miembro")
-                }
+                onChange={(e) => setInviteRol(e.target.value as "admin" | "miembro")}
                 className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
                 <option value="miembro">miembro</option>
                 <option value="admin">admin</option>
               </select>
             </div>
+
             <button
               type="submit"
               disabled={inviting}
