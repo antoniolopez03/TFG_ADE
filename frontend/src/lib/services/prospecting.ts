@@ -1,11 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  APOLLO_MAX_PER_PAGE,
-  ApolloApiError,
   type ApolloOrganization,
   type ApolloPerson,
   searchPeopleWithCompany,
-} from "@/lib/services/apollo";
+} from "@/lib/services/apollo-mock";
 import {
   lookupContactoEnCache,
   lookupEmpresaEnCache,
@@ -16,16 +14,7 @@ import {
   type EmpresaGlobal,
 } from "@/lib/services/data-moat";
 
-const DECISION_MAKER_TITLES = [
-  "Director de Compras",
-  "Head of Procurement",
-  "Purchasing Director",
-  "Chief Procurement Officer",
-  "CEO",
-  "Founder",
-];
-
-const DECISION_MAKER_SENIORITIES = ["c_suite", "vp", "director", "owner", "founder"];
+const MAX_PROSPECTS_PER_SEARCH = 10;
 
 interface PostgrestErrorLike {
   code?: string;
@@ -72,10 +61,10 @@ export interface ExecuteApolloLookalikeJobResult extends ExecuteApolloProspectin
 
 function normalizePerPage(perPage?: number): number {
   if (!perPage || Number.isNaN(perPage)) {
-    return APOLLO_MAX_PER_PAGE;
+    return MAX_PROSPECTS_PER_SEARCH;
   }
 
-  return Math.min(Math.max(Math.trunc(perPage), 1), APOLLO_MAX_PER_PAGE);
+  return Math.min(Math.max(Math.trunc(perPage), 1), MAX_PROSPECTS_PER_SEARCH);
 }
 
 function normalizeSearchTerms(searchTerms: string[]): string[] {
@@ -96,7 +85,7 @@ function normalizeSearchTerms(searchTerms: string[]): string[] {
     normalized.push(trimmed);
   }
 
-  return normalized.slice(0, APOLLO_MAX_PER_PAGE);
+  return normalized.slice(0, MAX_PROSPECTS_PER_SEARCH);
 }
 
 function toStringOrNull(value: unknown): string | null {
@@ -119,38 +108,12 @@ function toStringArray(value: unknown): string[] {
     .filter((item) => item.length > 0);
 }
 
-function splitCommaSeparated(value: string): string[] {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-}
-
-function resolveTitlesFromParametros(parametros: Record<string, unknown>): string[] {
-  const directTitles = toStringArray(parametros.titles);
-  if (directTitles.length > 0) {
-    return directTitles;
-  }
-
-  const cargoAsArray = toStringArray(parametros.cargo);
-  if (cargoAsArray.length > 0) {
-    return cargoAsArray;
-  }
-
-  const cargoAsText = toStringOrNull(parametros.cargo);
-  if (cargoAsText) {
-    return splitCommaSeparated(cargoAsText);
-  }
-
-  return [];
-}
-
-function resolveSenioritiesFromParametros(parametros: Record<string, unknown>): string[] {
-  return toStringArray(parametros.seniorities);
-}
-
 function resolveLocationFromParametros(parametros: Record<string, unknown>): string | null {
   return toStringOrNull(parametros.ubicacion) ?? toStringOrNull(parametros.location);
+}
+
+function resolveTamanoFromParametros(parametros: Record<string, unknown>): string | null {
+  return toStringOrNull(parametros.tamano);
 }
 
 function splitFullName(fullName?: string | null): { nombre: string | null; apellidos: string | null } {
@@ -536,7 +499,7 @@ async function processApolloPerson(
 export async function executeApolloProspectingJob(
   input: ExecuteApolloProspectingInput
 ): Promise<ExecuteApolloProspectingResult> {
-  const perPage = APOLLO_MAX_PER_PAGE;
+  const perPage = MAX_PROSPECTS_PER_SEARCH;
 
   const { data: job, error: jobError } = await input.userClient
     .from("trabajos_busqueda")
@@ -564,20 +527,18 @@ export async function executeApolloProspectingJob(
   let cacheMisses = 0;
 
   try {
-    const titles = resolveTitlesFromParametros(input.parametros);
-    const seniorities = resolveSenioritiesFromParametros(input.parametros);
     const sector = toStringOrNull(input.parametros.sector);
-    const location = resolveLocationFromParametros(input.parametros);
+    const ubicacion = resolveLocationFromParametros(input.parametros);
+    const tamano = resolveTamanoFromParametros(input.parametros);
 
-    if (titles.length === 0 || !sector || !location) {
-      throw new Error("Parámetros inválidos para Apollo: titles, sector y location son obligatorios");
+    if (!sector || !ubicacion) {
+      throw new Error("Parámetros inválidos para prospección: sector y ubicación son obligatorios");
     }
 
     const people = await searchPeopleWithCompany({
-      titles,
-      seniorities,
       sector,
-      location,
+      ubicacion,
+      tamano: tamano ?? undefined,
       perPage,
     });
 
@@ -658,11 +619,8 @@ export async function executeApolloLookalikeJob(
   let cacheHits = 0;
   let cacheMisses = 0;
 
-  const titles = resolveTitlesFromParametros(input.parametros);
-  const seniorities = resolveSenioritiesFromParametros(input.parametros);
   const location = resolveLocationFromParametros(input.parametros) ?? "España";
-  const resolvedTitles = titles.length > 0 ? titles : DECISION_MAKER_TITLES;
-  const resolvedSeniorities = seniorities.length > 0 ? seniorities : DECISION_MAKER_SENIORITIES;
+  const tamano = resolveTamanoFromParametros(input.parametros);
   const seenPeople = new Set<string>();
 
   try {
@@ -673,10 +631,9 @@ export async function executeApolloLookalikeJob(
 
       const remaining = maxResults - leads.length;
       const people = await searchPeopleWithCompany({
-        titles: resolvedTitles,
-        seniorities: resolvedSeniorities,
         sector: term,
-        location,
+        ubicacion: location,
+        tamano: tamano ?? undefined,
         perPage: remaining,
       });
 
@@ -733,26 +690,11 @@ export async function executeApolloLookalikeJob(
 }
 
 export function resolveProspectingErrorStatus(error: unknown): number {
-  if (error instanceof ApolloApiError) {
-    return error.status === 429 ? 429 : 502;
-  }
-
+  void error;
   return 500;
 }
 
 export function resolveProspectingErrorMessage(error: unknown): string {
-  if (error instanceof ApolloApiError) {
-    if (error.status === 401 || error.status === 403) {
-      return "Apollo rechazó la autenticación. Revisa APOLLO_API_KEY.";
-    }
-
-    if (error.status === 429) {
-      return "Apollo alcanzó el límite de peticiones. Inténtalo en unos minutos.";
-    }
-
-    return "Apollo devolvió un error al procesar la búsqueda.";
-  }
-
   if (error instanceof Error) {
     return error.message;
   }

@@ -45,20 +45,23 @@
 
 ---
 
-## FASE 2: Integración con Apollo.io (Descubrimiento B2B)
+## FASE 2: Mock inteligente de descubrimiento B2B (Gemini)
 
-Límite: máximo 10 resultados por búsqueda (una sola llamada síncrona a Apollo).
+Apollo.io fue descartado: todos los endpoints de búsqueda requieren plan de pago ($49/mes mínimo).
+Decisión: reemplazar con mock dinámico basado en Gemini que genera datos ficticios pero realistas.
+El flujo de cara al usuario es idéntico. En producción real, se sustituiría apollo-mock.ts por apollo.ts con credenciales de pago.
 
 | # | Tarea |
 |---|-------|
-| 2.1 | [x] **(USUARIO)** Crear cuenta en Apollo.io con email corporativo y obtener API Key |
-| 2.2 | [x] **(USUARIO)** Añadir `APOLLO_API_KEY` al archivo `.env.local` |
-| 2.3 | [x] Crear `lib/services/apollo.ts`: cliente tipado para Apollo.io (Organization Search, People Search, Organization Enrich) con `per_page=10` |
-| 2.4 | [x] Implementar lógica de caché en `lib/services/data-moat.ts`: consulta local → miss → Apollo → insert en global_empresas/global_contactos |
-| 2.5 | [x] Reescribir `api/webhooks/scrape/route.ts`: eliminar n8n, implementar flujo síncrono Apollo + caché + creación de leads |
-| 2.6 | [x] Reescribir `api/prospecting/search/route.ts`: recibir sector/ubicación/tamaño, traducir a parámetros Apollo, ejecutar búsqueda limitada a 10 resultados |
+| 2.1 | [x] ~~(USUARIO) Crear cuenta en Apollo.io~~ — DESCARTADO |
+| 2.2 | [x] ~~(USUARIO) Añadir APOLLO_API_KEY~~ — DESCARTADO |
+| 2.3 | [x] Eliminar apollo.ts y todas sus referencias |
+| 2.4 | [x] Crear apollo-mock.ts: genera personas+empresas via Gemini según sector/ubicación/tamaño |
+| 2.5 | [x] Actualizar prospecting.ts: importar apollo-mock en lugar de apollo |
+| 2.6 | [x] Restaurar SearchForm.tsx: campos sector + ubicación + tamaño (flujo original) |
+| 2.7 | [x] Actualizar route.ts de prospecting/search: nuevos parámetros |
 
-**Tareas: 6** · Usuario: 2 · Agente: 4
+**Tareas: 7** · Usuario: 2 · Agente: 5
 
 ---
 
@@ -167,11 +170,13 @@ HubSpot parte vacío, instancia nueva desde cero.
 | # | Tarea |
 |---|-------|
 | 9.1 | **(USUARIO)** Crear proyecto en Vercel y vincularlo al repositorio GitHub |
-| 9.2 | **(USUARIO)** Configurar variables de entorno en el panel de Vercel (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, APOLLO_API_KEY, GEMINI_API_KEY, RESEND_API_KEY) |
+| 9.2 | **(USUARIO)** Configurar variables de entorno en el panel de Vercel (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY, RESEND_API_KEY) |
 | 9.3 | **(USUARIO)** Verificar que el despliegue automático funciona en cada push a main |
 | 9.4 | **(USUARIO)** Test end-to-end manual en producción: registro → búsqueda → aprobación → envío |
 
 **Tareas: 4** · Usuario: 4 · Agente: 0
+
+Nota: GEMINI_API_KEY ahora se usa tanto para la generación de emails como para el mock de prospección B2B.
 
 ---
 
@@ -181,7 +186,7 @@ HubSpot parte vacío, instancia nueva desde cero.
 |------|-------------|--------|---------|--------|
 | 0 | Limpieza y preparación | 6 | 0 | 6 |
 | 1 | Schema base de datos | 7 | 1 | 6 |
-| 2 | Apollo.io | 6 | 2 | 4 |
+| 2 | Mock Gemini B2B | 7 | 2 | 5 |
 | 3 | Google Gemini | 8 | 2 | 6 |
 | 4 | HubSpot CRM | 10 | 3 | 7 |
 | 5 | Resend Email | 7 | 3 | 4 |
@@ -189,7 +194,7 @@ HubSpot parte vacío, instancia nueva desde cero.
 | 7 | Landing Page | 5 | 0 | 5 |
 | 8 | Seguridad y RGPD | 5 | 0 | 5 |
 | 9 | Despliegue Vercel | 4 | 4 | 0 |
-| **TOTAL** | | **67** | **15** | **52** |
+| **TOTAL** | | **68** | **15** | **53** |
 
 ---
 
@@ -212,7 +217,7 @@ Fase 0 → Fase 1 → [Fase 2, Fase 3, Fase 4, Fase 5] (paralelo)
 El usuario necesitará intervenir en estos momentos clave:
 
 1. **Fase 1** → Ejecutar el schema SQL actualizado en Supabase Dashboard
-2. **Fase 2** → Crear cuenta Apollo.io + pegar API Key en `.env.local`
+2. **Fase 2** → Sin acción de usuario: Apollo fue descartado y sustituido por mock Gemini
 3. **Fase 3** → Crear proyecto Google Cloud + activar Gemini API + pegar API Key en `.env.local`
 4. **Fase 4** → Crear cuenta HubSpot + Private App + guardar token en Vault via SQL Editor
 5. **Fase 5** → Crear cuenta Resend + configurar DNS (SPF/DKIM/DMARC) + pegar API Key en `.env.local`
@@ -222,7 +227,8 @@ El usuario necesitará intervenir en estos momentos clave:
 
 ## Decisiones clave del MVP
 
-- **Sin Edge Functions:** 10 empresas por búsqueda = 1 llamada a Apollo = cabe en 10s de Vercel.
+- **Sin Edge Functions:** 10 empresas por búsqueda = 1 llamada al mock Gemini = cabe en 10s de Vercel.
 - **Sin polling/realtime:** La búsqueda es síncrona. El frontend espera la respuesta directa de la API Route.
 - **Sin anti-duplicados en HubSpot:** La instancia parte vacía.
 - **Sin tests automatizados:** MVP de validación personal.
+- **Apollo.io reemplazado por mock Gemini:** La API de búsqueda de Apollo requiere plan de pago. Para el MVP se usa un mock dinámico (apollo-mock.ts) que llama a Gemini para generar datos B2B realistas. La interfaz de tipos es idéntica, por lo que migrar a Apollo real en producción solo requiere cambiar el import en prospecting.ts.

@@ -123,6 +123,20 @@ export default function JobStatusPage() {
   };
 
   const config = ESTADO_CONFIG[job.estado];
+  const sector =
+    typeof job.parametros.sector === "string" && job.parametros.sector.trim().length > 0
+      ? job.parametros.sector
+      : "sin sector";
+  const ubicacion =
+    typeof job.parametros.ubicacion === "string" && job.parametros.ubicacion.trim().length > 0
+      ? job.parametros.ubicacion
+      : typeof job.parametros.location === "string" && job.parametros.location.trim().length > 0
+      ? job.parametros.location
+      : "sin ubicación";
+  const tamano =
+    typeof job.parametros.tamano === "string" && job.parametros.tamano.trim().length > 0
+      ? job.parametros.tamano
+      : null;
 
   return (
     <div className="p-8 max-w-xl">
@@ -164,7 +178,8 @@ export default function JobStatusPage() {
             <p>
               Búsqueda:{" "}
               <span className="font-medium">
-                {String(job.parametros.query)} en {String(job.parametros.location)}
+                {sector} en {ubicacion}
+                {tamano ? ` · Tamaño ${tamano}` : ""}
               </span>
             </p>
           )}

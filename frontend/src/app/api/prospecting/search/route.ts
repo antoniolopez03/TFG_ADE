@@ -6,21 +6,10 @@ import {
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
-function toTrimmedStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-}
-
 /**
  * API Route: Búsqueda manual de prospectos.
- * Recibe cargo(s), sector, ubicación y seniority opcional.
- * Ejecuta prospección síncrona con Apollo + Data Moat.
+ * Recibe sector, ubicación y tamaño opcional.
+ * Ejecuta prospección síncrona con mock Gemini + Data Moat.
  */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -36,10 +25,9 @@ export async function POST(request: NextRequest) {
   let body: {
     organizacion_id?: string;
     tipo?: string;
-    titles?: unknown;
     sector?: unknown;
-    location?: unknown;
-    seniorities?: unknown;
+    ubicacion?: unknown;
+    tamano?: unknown;
   };
 
   try {
@@ -48,17 +36,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Body JSON inválido" }, { status: 400 });
   }
 
-  const titles = toTrimmedStringArray(body.titles);
-  const seniorities = toTrimmedStringArray(body.seniorities);
   const sector = typeof body.sector === "string" ? body.sector.trim() : "";
-  const location = typeof body.location === "string" ? body.location.trim() : "";
-
-  if (titles.length === 0) {
-    return NextResponse.json(
-      { error: "El campo 'titles' debe ser un array no vacío de cargos." },
-      { status: 400 }
-    );
-  }
+  const ubicacion = typeof body.ubicacion === "string" ? body.ubicacion.trim() : "";
+  const tamano = typeof body.tamano === "string" ? body.tamano.trim() : "";
 
   if (!sector) {
     return NextResponse.json(
@@ -67,9 +47,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!location) {
+  if (!ubicacion) {
     return NextResponse.json(
-      { error: "El campo 'location' es obligatorio y debe ser un string no vacío." },
+      { error: "El campo 'ubicacion' es obligatorio y debe ser un string no vacío." },
       { status: 400 }
     );
   }
@@ -106,10 +86,9 @@ export async function POST(request: NextRequest) {
       tipo: "apollo_search",
       parametros: {
         tipo: body.tipo ?? "apollo_search",
-        titles,
         sector,
-        location,
-        seniorities,
+        ubicacion,
+        tamano: tamano || undefined,
       },
     });
 

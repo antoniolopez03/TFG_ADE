@@ -175,7 +175,7 @@ export default async function LeadDetailPage({
               </div>
             ) : (
               <p className="text-sm text-black/50 dark:text-white/50 italic">
-                Contacto pendiente de enriquecimiento con Apollo.io.
+                Contacto pendiente de enriquecimiento de prospección.
               </p>
             )}
           </div>

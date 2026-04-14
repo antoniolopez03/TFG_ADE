@@ -2,42 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Search, UserRound, MapPin, BadgeCheck } from "lucide-react";
+import { Building2, Search, MapPin } from "lucide-react";
 
 interface SearchFormProps {
   organizacionId: string;
 }
 
-const SENIORITY_OPTIONS = ["senior", "manager", "director", "vp", "c_suite"] as const;
+const TAMANO_OPTIONS = ["1-10", "11-50", "51-200", "201-500", "500+"] as const;
 
 export function SearchForm({ organizacionId }: SearchFormProps) {
   const router = useRouter();
-  const [titlesInput, setTitlesInput] = useState("");
   const [sector, setSector] = useState("");
-  const [location, setLocation] = useState("");
-  const [seniorities, setSeniorities] = useState<string[]>([]);
+  const [ubicacion, setUbicacion] = useState("");
+  const [tamano, setTamano] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function toggleSeniority(option: string) {
-    setSeniorities((prev) =>
-      prev.includes(option) ? prev.filter((item) => item !== option) : [...prev, option]
-    );
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const titles = titlesInput
-      .split(",")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-
-    if (titles.length === 0 || !sector.trim() || !location.trim()) {
+    if (!sector.trim() || !ubicacion.trim()) {
       setLoading(false);
-      setError("Completa cargo objetivo, sector y ubicación antes de continuar.");
+      setError("Completa sector y ubicación antes de continuar.");
       return;
     }
 
@@ -48,10 +36,9 @@ export function SearchForm({ organizacionId }: SearchFormProps) {
         body: JSON.stringify({
           organizacion_id: organizacionId,
           tipo: "apollo_search",
-          titles,
           sector: sector.trim(),
-          location: location.trim(),
-          seniorities,
+          ubicacion: ubicacion.trim(),
+          tamano: tamano || undefined,
         }),
       });
 
@@ -80,23 +67,9 @@ export function SearchForm({ organizacionId }: SearchFormProps) {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Cargo objetivo</label>
-          <div className="relative">
-            <UserRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              required
-              value={titlesInput}
-              onChange={(e) => setTitlesInput(e.target.value)}
-              placeholder="Ej: Director de Compras, CEO, Responsable de Producción"
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <p className="mt-1.5 text-xs text-gray-500">Puedes escribir varios cargos separados por coma.</p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Sector</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Sector / tipo de negocio
+          </label>
           <div className="relative">
             <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -117,8 +90,8 @@ export function SearchForm({ organizacionId }: SearchFormProps) {
             <input
               type="text"
               required
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              value={ubicacion}
+              onChange={(e) => setUbicacion(e.target.value)}
               placeholder="Ej: Madrid, Barcelona, España"
               className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
@@ -126,29 +99,21 @@ export function SearchForm({ organizacionId }: SearchFormProps) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Seniority (opcional)</label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {SENIORITY_OPTIONS.map((option) => {
-              const selected = seniorities.includes(option);
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => toggleSeniority(option)}
-                  className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${
-                    selected
-                      ? "border-blue-300 bg-blue-50 text-blue-700"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
-                  }`}
-                >
-                  <span className="inline-flex items-center gap-1.5">
-                    <BadgeCheck className="w-3.5 h-3.5" />
-                    {option}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tamaño de empresa (opcional)
+          </label>
+          <select
+            value={tamano}
+            onChange={(e) => setTamano(e.target.value)}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          >
+            <option value="">Sin filtro de tamaño</option>
+            {TAMANO_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </div>
 
         <button
@@ -164,8 +129,8 @@ export function SearchForm({ organizacionId }: SearchFormProps) {
       <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg">
         <p className="text-xs text-blue-700 font-medium mb-1">¿Cómo funciona?</p>
         <p className="text-xs text-blue-600">
-          LeadBy busca directamente a los decisores en la base de datos de Apollo.io. Los
-          resultados aparecen en tu bandeja de leads listos para revisión.
+          LeadBy analiza tu sector con IA y genera una lista de empresas y decisores
+          relevantes. Los resultados aparecen en tu bandeja listos para revisión y envío.
         </p>
       </div>
     </div>

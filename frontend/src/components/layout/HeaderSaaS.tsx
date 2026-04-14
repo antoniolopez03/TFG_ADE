@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, UserCircle, LogOut, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -29,7 +29,8 @@ interface HeaderSaaSProps {
 export function HeaderSaaS({ onMenuClick }: HeaderSaaSProps) {
   const title = usePageTitle();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
+  const authClient = supabase.auth;
 
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
@@ -37,10 +38,10 @@ export function HeaderSaaS({ onMenuClick }: HeaderSaaSProps) {
 
   // Fetch user email once on mount
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    authClient.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null);
     });
-  }, []);
+  }, [authClient]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -55,7 +56,7 @@ export function HeaderSaaS({ onMenuClick }: HeaderSaaSProps) {
 
   async function handleSignOut() {
     setOpen(false);
-    await supabase.auth.signOut();
+    await authClient.signOut();
     router.push("/");
     router.refresh();
   }

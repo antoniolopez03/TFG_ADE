@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * API Route: Trigger de busqueda.
  *
- * Ejecuta una búsqueda síncrona (Apollo + Data Moat) y
+ * Ejecuta una búsqueda síncrona (mock Gemini + Data Moat) y
  * registra el trabajo para trazabilidad.
  *
  * Flujo:
@@ -32,11 +32,10 @@ export async function POST(request: NextRequest) {
   // 2. Parsear y validar el body
   let body: {
     organizacion_id: string;
-    tipo: "google_maps" | "google_dorks" | "apollo_search" | "apollo_lookalike";
-    query?: string;
-    location?: string;
-    dork_query?: string;
-    max_results?: number;
+    tipo?: "apollo_search";
+    sector?: string;
+    ubicacion?: string;
+    tamano?: string;
   };
 
   try {
@@ -45,11 +44,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Body JSON inválido" }, { status: 400 });
   }
 
-  const { organizacion_id, tipo, query, location, dork_query, max_results = 20 } = body;
+  const { organizacion_id, tipo, sector, ubicacion, tamano } = body;
 
-  if (!organizacion_id || !tipo) {
+  if (!organizacion_id) {
     return NextResponse.json(
-      { error: "Faltan campos requeridos: organizacion_id, tipo" },
+      { error: "Falta el campo requerido: organizacion_id" },
+      { status: 400 }
+    );
+  }
+
+  if (tipo && tipo !== "apollo_search") {
+    return NextResponse.json(
+      { error: "El campo 'tipo' solo admite 'apollo_search'." },
+      { status: 400 }
+    );
+  }
+
+  const normalizedSector = typeof sector === "string" ? sector.trim() : "";
+  const normalizedUbicacion = typeof ubicacion === "string" ? ubicacion.trim() : "";
+  const normalizedTamano = typeof tamano === "string" ? tamano.trim() : "";
+
+  if (!normalizedSector || !normalizedUbicacion) {
+    return NextResponse.json(
+      {
+        error:
+          "Para búsqueda manual se requieren sector y ubicacion como strings no vacíos.",
+      },
       { status: 400 }
     );
   }
@@ -70,48 +90,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Compatibilidad temporal: mapear modos legacy al esquema actual.
-  const tipoBusqueda =
-    tipo === "google_maps"
-      ? "apollo_search"
-      : tipo === "google_dorks"
-      ? "apollo_lookalike"
-      : tipo;
-
-  const maxResults = Math.min(Math.max(Math.trunc(max_results), 1), 10);
   const serviceClient = createServiceClient();
-
-  if (tipoBusqueda === "apollo_search" && (!query || !location)) {
-    return NextResponse.json(
-      { error: "Para búsqueda manual se requieren query y location" },
-      { status: 400 }
-    );
-  }
-
-  if (tipoBusqueda === "apollo_lookalike" && !dork_query) {
-    return NextResponse.json(
-      { error: "Para búsqueda lookalike se requiere dork_query" },
-      { status: 400 }
-    );
-  }
-
-  const parametros =
-    tipoBusqueda === "apollo_search"
-      ? {
-          titles: query ? [query] : [],
-          sector: query ?? "",
-          location: location ?? "",
-          seniorities: [],
-          max_results: maxResults,
-        }
-      : {
-          titles: ["Director de Compras"],
-          sector: dork_query ?? "",
-          location: location ?? "España",
-          seniorities: [],
-          dork_query,
-          max_results: maxResults,
-        };
 
   try {
     const result = await executeApolloProspectingJob({
@@ -119,8 +98,13 @@ export async function POST(request: NextRequest) {
       serviceClient,
       organizacionId: organizacion_id,
       createdBy: user.id,
-      tipo: tipoBusqueda,
-      parametros,
+      tipo: "apollo_search",
+      parametros: {
+        tipo: "apollo_search",
+        sector: normalizedSector,
+        ubicacion: normalizedUbicacion,
+        tamano: normalizedTamano || undefined,
+      },
     });
 
     return NextResponse.json(

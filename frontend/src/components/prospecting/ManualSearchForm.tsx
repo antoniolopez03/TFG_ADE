@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Search, UserRound, Building2, MapPin } from "lucide-react";
+import { Loader2, Search, Building2, MapPin } from "lucide-react";
 
 const INPUT_CLASS =
   "border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white";
@@ -11,24 +11,21 @@ interface ManualSearchFormProps {
   organizacionId?: string | null;
 }
 
+const TAMANO_OPTIONS = ["1-10", "11-50", "51-200", "201-500", "500+"] as const;
+
 export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
   const router = useRouter();
-  const [titlesInput, setTitlesInput] = useState("");
   const [sector, setSector] = useState("");
-  const [location, setLocation] = useState("");
+  const [ubicacion, setUbicacion] = useState("");
+  const [tamano, setTamano] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const titles = titlesInput
-      .split(",")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-
-    if (titles.length === 0 || !sector.trim() || !location.trim()) {
-      setError("Completa cargo objetivo, sector y ubicación antes de buscar.");
+    if (!sector.trim() || !ubicacion.trim()) {
+      setError("Completa sector y ubicación antes de buscar.");
       return;
     }
 
@@ -42,10 +39,9 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
         body: JSON.stringify({
           organizacion_id: organizacionId ?? undefined,
           tipo: "apollo_search",
-          titles,
           sector: sector.trim(),
-          location: location.trim(),
-          seniorities: [],
+          ubicacion: ubicacion.trim(),
+          tamano: tamano || undefined,
         }),
       });
 
@@ -68,27 +64,7 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Cargo objetivo
-          </label>
-          <div className="relative">
-            <UserRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              required
-              value={titlesInput}
-              onChange={(e) => setTitlesInput(e.target.value)}
-              placeholder="Ej: Director de Compras, CEO, Responsable de Producción"
-              className={`${INPUT_CLASS} pl-9`}
-            />
-          </div>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Puedes escribir varios cargos separados por coma.
-          </p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            Sector
+            Sector / tipo de negocio
           </label>
           <div className="relative">
             <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -112,12 +88,30 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
             <input
               type="text"
               required
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              value={ubicacion}
+              onChange={(e) => setUbicacion(e.target.value)}
               placeholder="Ej: Madrid, Barcelona, España"
               className={`${INPUT_CLASS} pl-9`}
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            Tamaño de empresa (opcional)
+          </label>
+          <select
+            value={tamano}
+            onChange={(e) => setTamano(e.target.value)}
+            className={INPUT_CLASS}
+          >
+            <option value="">Sin filtro de tamaño</option>
+            {TAMANO_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -128,8 +122,8 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
       )}
 
       <p className="text-xs text-gray-500 dark:text-gray-400">
-        LeadBy busca directamente a los decisores en la base de datos de Apollo.io. Los
-        resultados aparecen en tu bandeja de leads listos para revisión.
+        LeadBy analiza tu sector con IA y genera una lista de empresas y decisores
+        relevantes. Los resultados aparecen en tu bandeja listos para revisión y envío.
       </p>
 
       <button
