@@ -7,15 +7,6 @@ const ESTADO_MAP: Record<
   LeadEstado,
   { label: string; className: string; spinner?: boolean }
 > = {
-  nuevo: {
-    label: "Nuevo",
-    className: "bg-gray-100 text-gray-600",
-  },
-  enriqueciendo: {
-    label: "Enriqueciendo",
-    className: "bg-blue-100 text-blue-700",
-    spinner: true,
-  },
   pendiente_aprobacion: {
     label: "Pendiente de revisión",
     className: "bg-amber-100 text-amber-700",
@@ -39,7 +30,7 @@ interface LeadStatusBadgeProps {
 }
 
 export function LeadStatusBadge({ estado }: LeadStatusBadgeProps) {
-  const config = ESTADO_MAP[estado] ?? ESTADO_MAP.nuevo;
+  const config = ESTADO_MAP[estado] ?? ESTADO_MAP.pendiente_aprobacion;
 
   return (
     <span

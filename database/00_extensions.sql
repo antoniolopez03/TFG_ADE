@@ -11,11 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Supabase Vault para gestión de secretos de tenants
--- Disponible en todos los planes de Supabase
 CREATE EXTENSION IF NOT EXISTS "supabase_vault" SCHEMA vault;
 
--- CREAR UN ESQUEMA SEPARADO PARA EXTENSIONES (Best Practice de Seguridad)
+-- Esquema separado para extensiones (best practice de seguridad)
 CREATE SCHEMA IF NOT EXISTS extensions;
-
--- Outbound HTTP calls desde triggers (opcional para notificaciones)
-CREATE EXTENSION IF NOT EXISTS "pg_net" SCHEMA extensions;

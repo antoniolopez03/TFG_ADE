@@ -33,13 +33,13 @@
 
 | # | Tarea |
 |---|-------|
-| 1.1 | Actualizar tabla `global_empresas`: campo `fuente` admitir 'apollo', añadir campos Apollo (apollo_org_id, linkedin_url, tecnologías, ingresos_rango) |
-| 1.2 | Actualizar tabla `global_contactos`: añadir campos Apollo (apollo_contact_id, email_status, seniority, departamentos) |
-| 1.3 | Actualizar tabla `trabajos_scraping`: renombrar a `trabajos_busqueda`, actualizar tipos válidos a 'apollo_search' y 'apollo_lookalike' |
-| 1.4 | Actualizar tabla `leads_prospectados`: eliminar `n8n_job_id`, renombrar `trabajo_scraping_id` a `trabajo_busqueda_id` |
-| 1.5 | Generar archivo de migración SQL con todos los cambios |
-| 1.6 | **(USUARIO)** Ejecutar la migración SQL en el SQL Editor de Supabase Dashboard |
-| 1.7 | Actualizar `frontend/src/lib/types/app.types.ts` con los nuevos tipos TypeScript |
+| 1.1 | [x] Definir `global_empresas` con fuente final (`apollo`/`manual`) y campos Apollo clave (apollo_org_id, linkedin_url, tecnologias, ingresos_rango) |
+| 1.2 | [x] Actualizar tabla `global_contactos`: añadir campos Apollo (apollo_contact_id, email_status, seniority, departamento) |
+| 1.3 | [x] Definir tabla final `trabajos_busqueda` con tipos válidos `apollo_search` y `apollo_lookalike` |
+| 1.4 | [x] Definir `leads_prospectados` con `trabajo_busqueda_id`, `borrador_email` y estados finales del flujo Human-in-the-Loop |
+| 1.5 | [x] Consolidar cambios SQL directamente en los archivos base de `database/` (sin archivo de migración separado) |
+| 1.6 | [x] **(USUARIO)** Ejecutar el schema SQL actualizado en el SQL Editor de Supabase Dashboard |
+| 1.7 | [x] Actualizar `frontend/src/lib/types/app.types.ts` con los nuevos tipos TypeScript |
 
 **Tareas: 7** · Usuario: 1 · Agente: 6
 
@@ -211,7 +211,7 @@ Fase 0 → Fase 1 → [Fase 2, Fase 3, Fase 4, Fase 5] (paralelo)
 
 El usuario necesitará intervenir en estos momentos clave:
 
-1. **Fase 1** → Ejecutar migración SQL en Supabase Dashboard
+1. **Fase 1** → Ejecutar el schema SQL actualizado en Supabase Dashboard
 2. **Fase 2** → Crear cuenta Apollo.io + pegar API Key en `.env.local`
 3. **Fase 3** → Crear proyecto Google Cloud + activar Gemini API + pegar API Key en `.env.local`
 4. **Fase 4** → Crear cuenta HubSpot + Private App + guardar token en Vault via SQL Editor

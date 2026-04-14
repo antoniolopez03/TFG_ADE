@@ -35,7 +35,7 @@ export default async function LeadsPage() {
           id,
           organizacion_id,
           estado,
-          email_borrador,
+          borrador_email,
           email_aprobado,
           email_asunto,
           email_enviado_at,

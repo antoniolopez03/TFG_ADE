@@ -4,8 +4,9 @@
 -- ==============================================
 
 -- ============================================================
--- miembros_equipo - consultas más frecuentes del sistema
--- (usadas en get_user_organizacion_ids() - crítico para RLS)
+-- miembros_equipo
+-- Crítico: usado en get_user_organizacion_ids() que se ejecuta
+-- en CADA política RLS del sistema
 -- ============================================================
 
 CREATE INDEX IF NOT EXISTS idx_miembros_user_id
@@ -17,40 +18,57 @@ CREATE INDEX IF NOT EXISTS idx_miembros_organizacion_id
     WHERE activo = true;
 
 -- ============================================================
--- global_empresas - deduplicación y búsqueda de caché
+-- global_empresas — deduplicación y búsqueda de caché
 -- ============================================================
 
--- Clave principal de caché: dominio (UNIQUE ya crea índice, este es explícito)
+-- Clave principal de caché: buscar por dominio antes de llamar a Apollo
 CREATE INDEX IF NOT EXISTS idx_empresas_dominio
     ON global_empresas(dominio)
     WHERE dominio IS NOT NULL;
 
--- Para deduplicación por Google Place ID
-CREATE INDEX IF NOT EXISTS idx_empresas_place_id
-    ON global_empresas(google_place_id)
-    WHERE google_place_id IS NOT NULL;
+-- Deduplicación por ID de Apollo
+CREATE INDEX IF NOT EXISTS idx_empresas_apollo_org_id
+    ON global_empresas(apollo_org_id)
+    WHERE apollo_org_id IS NOT NULL;
 
--- Búsqueda por ciudad/sector (para estadísticas internas)
+-- Búsqueda por ciudad y sector (para estadísticas y filtros)
 CREATE INDEX IF NOT EXISTS idx_empresas_ciudad_sector
     ON global_empresas(ciudad, sector)
     WHERE ciudad IS NOT NULL;
 
 -- ============================================================
--- global_contactos - lookups por empresa
+-- global_contactos — lookups por empresa y deduplicación
 -- ============================================================
 
 CREATE INDEX IF NOT EXISTS idx_contactos_empresa_id
     ON global_contactos(empresa_id);
+
+-- Deduplicación por ID de Apollo
+CREATE INDEX IF NOT EXISTS idx_contactos_apollo_contact_id
+    ON global_contactos(apollo_contact_id)
+    WHERE apollo_contact_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_contactos_email
     ON global_contactos(email)
     WHERE email IS NOT NULL;
 
 -- ============================================================
--- leads_prospectados - consultas del panel de gestión
+-- trabajos_busqueda — historial y auditoría
 -- ============================================================
 
--- Más importante: filtrar por tenant + estado (vista principal del usuario)
+-- Historial por organización ordenado por fecha
+CREATE INDEX IF NOT EXISTS idx_trabajos_org_created
+    ON trabajos_busqueda(organizacion_id, created_at DESC);
+
+-- Filtro por estado (ver búsquedas con error, etc.)
+CREATE INDEX IF NOT EXISTS idx_trabajos_org_estado
+    ON trabajos_busqueda(organizacion_id, estado);
+
+-- ============================================================
+-- leads_prospectados — consultas del panel principal
+-- ============================================================
+
+-- Más importante: tenant + estado (vista principal del comercial)
 CREATE INDEX IF NOT EXISTS idx_leads_org_estado
     ON leads_prospectados(organizacion_id, estado);
 
@@ -63,26 +81,14 @@ CREATE INDEX IF NOT EXISTS idx_leads_asignado_a
     ON leads_prospectados(asignado_a)
     WHERE asignado_a IS NOT NULL;
 
--- Lookup por empresa (para comprobar si ya existe como lead)
+-- Lookup por empresa (comprobar si ya existe un lead para esa empresa)
 CREATE INDEX IF NOT EXISTS idx_leads_empresa_id
     ON leads_prospectados(empresa_id);
 
--- ============================================================
--- trabajos_scraping - polling del frontend
--- ============================================================
-
--- Vista principal: mis jobs por estado
-CREATE INDEX IF NOT EXISTS idx_trabajos_org_estado
-    ON trabajos_scraping(organizacion_id, estado);
-
--- Polling por ID de trabajo específico
-CREATE INDEX IF NOT EXISTS idx_trabajos_n8n_id
-    ON trabajos_scraping(n8n_execution_id)
-    WHERE n8n_execution_id IS NOT NULL;
-
--- Jobs recientes (listado de historial)
-CREATE INDEX IF NOT EXISTS idx_trabajos_created
-    ON trabajos_scraping(organizacion_id, created_at DESC);
+-- Lookup por trabajo de búsqueda (ver qué leads generó cada búsqueda)
+CREATE INDEX IF NOT EXISTS idx_leads_trabajo_busqueda_id
+    ON leads_prospectados(trabajo_busqueda_id)
+    WHERE trabajo_busqueda_id IS NOT NULL;
 
 -- ============================================================
 -- configuracion_tenant

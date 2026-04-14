@@ -12,8 +12,7 @@ type Empresa = {
   provincia: string | null;
   sector: string | null;
   telefono: string | null;
-  direccion: string | null;
-  google_maps_url: string | null;
+  linkedin_url: string | null;
 };
 
 type Contacto = {
@@ -57,9 +56,9 @@ export default async function LeadDetailPage({
   const { data: lead } = await supabase
     .from("leads_prospectados")
     .select(`
-      id, estado, email_borrador, email_aprobado, email_asunto,
+      id, estado, borrador_email, email_aprobado, email_asunto,
       email_enviado_at, notas, created_at,
-      global_empresas (id, nombre, dominio, ciudad, provincia, sector, telefono, direccion, google_maps_url),
+      global_empresas (id, nombre, dominio, ciudad, provincia, sector, telefono, linkedin_url),
       global_contactos (id, nombre, apellidos, cargo, email, linkedin_url, telefono)
     `)
     .eq("id", params.leadId)
@@ -117,14 +116,14 @@ export default async function LeadDetailPage({
                       </a>
                     </div>
                   )}
-                  {empresa.google_maps_url && (
+                  {empresa.linkedin_url && (
                     <a
-                      href={empresa.google_maps_url}
+                      href={empresa.linkedin_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-1 inline-flex items-center gap-1 text-xs text-leadby-500 hover:text-leadby-600 dark:text-leadby-400"
                     >
-                      Ver en Google Maps <ExternalLink className="w-3 h-3" />
+                      Ver empresa en LinkedIn <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
                 </div>
@@ -201,7 +200,7 @@ export default async function LeadDetailPage({
           leadId={lead.id}
           organizacionId={membresia.organizacion_id}
           estado={lead.estado}
-          emailBorrador={lead.email_borrador}
+          emailBorrador={lead.borrador_email}
           emailAprobado={lead.email_aprobado}
           emailAsunto={lead.email_asunto}
         />

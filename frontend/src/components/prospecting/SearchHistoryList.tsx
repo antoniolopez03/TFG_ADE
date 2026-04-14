@@ -9,20 +9,20 @@ export async function SearchHistoryList({ organizacionId }: SearchHistoryListPro
 
   const { data: leads } = await supabase
     .from("leads_prospectados")
-    .select("id, estado, created_at, n8n_job_id")
+    .select("id, estado, created_at, trabajo_busqueda_id")
     .eq("organizacion_id", organizacionId)
-    .not("n8n_job_id", "is", null)
+    .not("trabajo_busqueda_id", "is", null)
     .order("created_at", { ascending: false })
     .limit(50);
 
-  // Agrupar por n8n_job_id para obtener sesiones de búsqueda
+  // Agrupar por trabajo_busqueda_id para obtener sesiones de búsqueda
   const grupos = new Map<
     string,
     { fecha: string; total: number; estados: Record<string, number> }
   >();
 
   for (const lead of leads ?? []) {
-    const key = lead.n8n_job_id as string;
+    const key = lead.trabajo_busqueda_id as string;
     if (!grupos.has(key)) {
       grupos.set(key, { fecha: lead.created_at, total: 0, estados: {} });
     }

@@ -2,10 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * API Route: Aprobar lead para generación de borrador.
+ * API Route: Aprobar lead para envío.
  *
- * Transiciona el lead de 'nuevo'/'enriqueciendo' a 'pendiente_aprobacion'
- * para continuar con el flujo human-in-the-loop.
+ * Transiciona el lead de 'pendiente_aprobacion' a 'aprobado'.
  */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -60,19 +59,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Lead no encontrado" }, { status: 404 });
   }
 
-  if (lead.estado !== "nuevo" && lead.estado !== "enriqueciendo") {
+  if (lead.estado !== "pendiente_aprobacion") {
     return NextResponse.json(
       {
-        error: `Estado inválido: '${lead.estado}'. Solo se puede aprobar desde 'nuevo' o 'enriqueciendo'.`,
+        error: `Estado inválido: '${lead.estado}'. Solo se puede aprobar desde 'pendiente_aprobacion'.`,
       },
       { status: 409 }
     );
   }
 
-  // Actualizar estado a pendiente_aprobacion
+  // Actualizar estado a aprobado
   const { error: updateError } = await supabase
     .from("leads_prospectados")
-    .update({ estado: "pendiente_aprobacion" })
+    .update({ estado: "aprobado" })
     .eq("id", lead_id);
 
   if (updateError) {
@@ -84,8 +83,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json(
     {
-      mensaje:
-        "Lead aprobado y movido a pendiente_aprobacion. La generación automática de borrador se habilitará en Fase 3.",
+      mensaje: "Lead aprobado correctamente.",
       lead_id,
     },
     { status: 202 }

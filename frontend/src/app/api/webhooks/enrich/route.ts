@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
-  // Verificar que el lead existe y está en estado 'nuevo'
+  // Verificar que el lead existe y está pendiente de aprobación
   const { data: lead } = await supabase
     .from("leads_prospectados")
     .select("id, estado")
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Lead no encontrado" }, { status: 404 });
   }
 
-  if (!["nuevo", "enriqueciendo"].includes(lead.estado)) {
+  if (lead.estado !== "pendiente_aprobacion") {
     return NextResponse.json(
       { error: `No se puede enriquecer un lead con estado '${lead.estado}'` },
       { status: 409 }

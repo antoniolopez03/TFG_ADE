@@ -132,7 +132,6 @@ export async function GET(request: NextRequest) {
           organizacion_id: org.id,
           crm_proveedor: "none",
           preferencias_ia: {},
-          scraper_config: {},
         });
 
       if (configError) throw configError;

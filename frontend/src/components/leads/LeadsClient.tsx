@@ -20,12 +20,10 @@ const TABS: Tab[] = [
     filter: (l) => l.filter((x) => x.estado === "pendiente_aprobacion"),
   },
   {
-    label: "Borradores listos",
-    value: "borradores",
+    label: "Aprobados",
+    value: "aprobados",
     filter: (l) =>
-      l.filter(
-        (x) => x.estado === "pendiente_aprobacion" && x.email_borrador !== null
-      ),
+      l.filter((x) => x.estado === "aprobado" && x.borrador_email !== null),
   },
   {
     label: "Enviados",
@@ -76,9 +74,7 @@ export function LeadsClient({
 
       if (res.ok) {
         setLeads((prev) =>
-          prev.map((l) =>
-            l.id === leadId ? { ...l, estado: "pendiente_aprobacion" } : l
-          )
+          prev.map((l) => (l.id === leadId ? { ...l, estado: "aprobado" } : l))
         );
       }
     },
@@ -108,7 +104,7 @@ export function LeadsClient({
   const handleSent = useCallback((leadId: string) => {
     setLeads((prev) =>
       prev.map((l) =>
-        l.id === leadId ? { ...l, estado: "enviado", email_borrador: null } : l
+        l.id === leadId ? { ...l, estado: "enviado", borrador_email: null } : l
       )
     );
   }, []);

@@ -14,10 +14,10 @@ interface Job {
   tipo: string;
   parametros: Record<string, unknown>;
   total_resultados: number;
-  procesados: number;
+  procesados?: number;
   error_mensaje: string | null;
   created_at: string;
-  completado_at: string | null;
+  completado_at?: string | null;
 }
 
 export default function JobStatusPage() {
@@ -33,7 +33,7 @@ export default function JobStatusPage() {
     // Carga inicial
     async function loadJob() {
       const { data } = await supabase
-        .from("trabajos_scraping")
+        .from("trabajos_busqueda")
         .select("*")
         .eq("id", jobId)
         .single();
@@ -52,7 +52,7 @@ export default function JobStatusPage() {
         {
           event: "UPDATE",
           schema: "public",
-          table: "trabajos_scraping",
+          table: "trabajos_busqueda",
           filter: `id=eq.${jobId}`,
         },
         (payload) => {
@@ -85,9 +85,10 @@ export default function JobStatusPage() {
     );
   }
 
+  const procesados = job.procesados ?? job.total_resultados;
   const progreso =
     job.total_resultados > 0
-      ? Math.round((job.procesados / job.total_resultados) * 100)
+      ? Math.round((procesados / job.total_resultados) * 100)
       : job.estado === "ejecutando"
       ? 30
       : job.estado === "completado"
@@ -159,7 +160,7 @@ export default function JobStatusPage() {
           <p>
             Tipo: <span className="font-medium capitalize">{job.tipo.replace("_", " ")}</span>
           </p>
-          {job.tipo === "google_maps" && (
+          {job.tipo === "apollo_search" && (
             <p>
               Búsqueda:{" "}
               <span className="font-medium">
@@ -167,9 +168,9 @@ export default function JobStatusPage() {
               </span>
             </p>
           )}
-          {job.tipo === "google_dorks" && (
+          {job.tipo === "apollo_lookalike" && (
             <p className="font-mono text-xs break-all">
-              {String(job.parametros.dork_query).slice(0, 80)}...
+              Modo lookalike con parámetros: {JSON.stringify(job.parametros).slice(0, 80)}...
             </p>
           )}
         </div>
@@ -177,7 +178,7 @@ export default function JobStatusPage() {
         {/* CTA cuando termina */}
         {job.estado === "completado" && (
           <Link
-            href="/leads?estado=nuevo"
+            href="/leads?tab=pendientes"
             className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors"
           >
             Ver leads encontrados

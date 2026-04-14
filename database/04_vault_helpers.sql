@@ -1,7 +1,7 @@
 -- ==============================================
 -- 04_vault_helpers.sql
 -- Funciones RPC para gestión de secretos via Supabase Vault
--- Llamadas por n8n con la Service Role Key
+-- Llamadas por las API Routes de Next.js con Service Role Key
 -- ==============================================
 
 -- ============================================================
@@ -23,7 +23,6 @@ AS $$
 DECLARE
     v_secret_id UUID;
 BEGIN
-    -- Crear o actualizar el secreto en Vault
     SELECT vault.create_secret(
         p_token,
         'hubspot_' || p_organizacion_id::text,
@@ -42,9 +41,12 @@ BEGIN
 END;
 $$;
 
+COMMENT ON FUNCTION guardar_hubspot_token IS
+    'Almacena el token HubSpot del tenant en Vault y guarda el UUID de referencia '
+    'en configuracion_tenant. Llamar durante el onboarding. Requiere Service Role Key.';
+
 -- ============================================================
 -- Recuperar el token API de HubSpot de un tenant
--- Solo accesible con Service Role Key (n8n)
 -- vault.decrypted_secrets descifra en memoria
 -- ============================================================
 
@@ -65,6 +67,10 @@ BEGIN
     RETURN v_token;
 END;
 $$;
+
+COMMENT ON FUNCTION obtener_hubspot_token IS
+    'Recupera y descifra el token HubSpot del tenant desde Vault. '
+    'El descifrado ocurre exclusivamente en memoria. Requiere Service Role Key.';
 
 -- ============================================================
 -- Rotar (actualizar) el token de HubSpot sin cambiar el UUID
@@ -94,19 +100,25 @@ BEGIN
 END;
 $$;
 
+COMMENT ON FUNCTION rotar_hubspot_token IS
+    'Actualiza el token HubSpot en Vault manteniendo el mismo UUID de referencia. '
+    'Usar para rotación periódica de credenciales. Requiere Service Role Key.';
+
 -- ============================================================
--- NOTA DE USO EN N8N:
+-- NOTA DE USO EN LAS API ROUTES DE NEXT.JS:
 --
--- Inserción durante onboarding:
---   SELECT guardar_hubspot_token(
---     '{{$json.organizacion_id}}'::uuid,
---     '{{$json.hubspot_token}}',
---     '{{$json.nombre_empresa}}'
---   );
+-- Guardar durante onboarding (server-side):
+--   const { data } = await supabase.rpc('guardar_hubspot_token', {
+--     p_organizacion_id: organizacionId,
+--     p_token: hubspotToken,
+--     p_nombre_empresa: nombreEmpresa
+--   })
 --
--- Recuperación antes de llamar a HubSpot API:
---   SELECT obtener_hubspot_token('{{$json.organizacion_id}}'::uuid);
+-- Recuperar antes de llamar a HubSpot API (server-side):
+--   const { data: token } = await supabase.rpc('obtener_hubspot_token', {
+--     p_organizacion_id: organizacionId
+--   })
 --
--- Estas funciones requieren Service Role Key en el cliente Supabase de n8n.
--- NUNCA se llaman desde el frontend.
+-- Estas funciones SOLO se llaman desde API Routes server-side con SUPABASE_SERVICE_ROLE_KEY.
+-- NUNCA desde componentes cliente de React.
 -- ============================================================

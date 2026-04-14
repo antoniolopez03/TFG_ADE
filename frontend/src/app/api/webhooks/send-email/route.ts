@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
  * posiblemente lo ha editado, y pulsa "Confirmar y Enviar".
  *
  * Validaciones críticas antes de ejecutar el envío real:
- * - El lead debe estar en estado 'pendiente_aprobacion'
+ * - El lead debe estar en estado 'aprobado'
  * - El email_aprobado debe estar presente y no vacío
  * - El usuario debe tener acceso a la organización
  */
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
-  // Verificar estado del lead - DEBE estar en 'pendiente_aprobacion'
+  // Verificar estado del lead - DEBE estar en 'aprobado'
   // Esta validación previene doble-envío aunque el frontend sea manipulado
   const { data: lead } = await supabase
     .from("leads_prospectados")
@@ -79,10 +79,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Lead no encontrado" }, { status: 404 });
   }
 
-  if (lead.estado !== "pendiente_aprobacion") {
+  if (lead.estado !== "aprobado") {
     return NextResponse.json(
       {
-        error: `Estado inválido para envío: '${lead.estado}'. Solo se puede enviar desde 'pendiente_aprobacion'.`,
+        error: `Estado inválido para envío: '${lead.estado}'. Solo se puede enviar desde 'aprobado'.`,
       },
       { status: 409 }
     );

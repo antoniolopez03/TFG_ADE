@@ -20,7 +20,7 @@ export function EmailDrawer({ lead, onClose, onSent }: EmailDrawerProps) {
   useEffect(() => {
     if (lead) {
       setAsunto(lead.email_asunto ?? "");
-      setCuerpo(lead.email_borrador ?? "");
+      setCuerpo(lead.borrador_email ?? "");
       setError(null);
     }
   }, [lead]);

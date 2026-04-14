@@ -155,9 +155,9 @@ export function LeadsTable({
                 {/* Acciones */}
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
-                    {/* Aprobar (nuevo / enriqueciendo) */}
-                    {(lead.estado === "nuevo" ||
-                      lead.estado === "enriqueciendo") && (
+                    {/* Aprobar (pendiente_aprobacion -> aprobado) */}
+                    {lead.estado === "pendiente_aprobacion" &&
+                      lead.borrador_email && (
                       <button
                         onClick={() => handleApprove(lead.id)}
                         disabled={isApprovingThis}
@@ -174,9 +174,9 @@ export function LeadsTable({
                       </button>
                     )}
 
-                    {/* Revisar borrador */}
-                    {lead.estado === "pendiente_aprobacion" &&
-                      lead.email_borrador && (
+                    {/* Revisar borrador (ya aprobado) */}
+                    {lead.estado === "aprobado" &&
+                      lead.borrador_email && (
                         <button
                           onClick={() => onOpenDrawer(lead)}
                           className="border border-leadby-500 text-leadby-600 hover:bg-leadby-500/5 font-medium px-3 py-1.5 rounded-lg transition-colors text-xs"
@@ -185,12 +185,12 @@ export function LeadsTable({
                         </button>
                       )}
 
-                    {/* Generando borrador */}
+                    {/* Esperando borrador */}
                     {lead.estado === "pendiente_aprobacion" &&
-                      !lead.email_borrador && (
+                      !lead.borrador_email && (
                         <span className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
                           <Loader2 className="w-3 h-3 animate-spin" />
-                          Generando...
+                          Esperando borrador...
                         </span>
                       )}
 

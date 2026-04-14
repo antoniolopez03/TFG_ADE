@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Send, Edit3, CheckCircle, Clock, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import type { LeadEstado } from "@/lib/types/app.types";
 
 interface EmailApprovalPanelProps {
   leadId: string;
   organizacionId: string;
-  estado: string;
+  estado: LeadEstado;
   emailBorrador: string | null;
   emailAprobado: string | null;
   emailAsunto: string | null;
@@ -35,10 +36,47 @@ export function EmailApprovalPanel({
   const [contenido, setContenido] = useState(contenidoInicial);
   const [asunto, setAsunto] = useState(asuntoInicial ?? "");
   const [loading, setLoading] = useState(false);
+  const [approving, setApproving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [estadoActual, setEstadoActual] = useState(estado);
   const [enviado, setEnviado] = useState(estado === "enviado");
 
+  async function handleAprobar() {
+    setApproving(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/leads/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lead_id: leadId,
+          organizacion_id: organizacionId,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data.error ?? "No se pudo aprobar el lead.");
+        return;
+      }
+
+      setEstadoActual("aprobado");
+      router.refresh();
+    } catch {
+      setError("Error de conexión. Inténtalo de nuevo.");
+    } finally {
+      setApproving(false);
+    }
+  }
+
   async function handleEnviar() {
+    if (estadoActual !== "aprobado") {
+      setError("Debes aprobar el lead antes de enviarlo.");
+      return;
+    }
+
     if (!contenido.trim() || !asunto.trim()) {
       setError("El asunto y el cuerpo del email no pueden estar vacíos.");
       return;
@@ -76,7 +114,7 @@ export function EmailApprovalPanel({
   }
 
   // Estado: ya enviado
-  if (enviado || estado === "enviado") {
+  if (enviado || estadoActual === "enviado") {
     return (
       <div className="bg-white rounded-xl border border-gray-100 p-5">
         <div className="flex items-center gap-2 mb-4">
@@ -91,7 +129,7 @@ export function EmailApprovalPanel({
   }
 
   // Estado: no hay borrador todavía
-  if (!emailBorrador && estado !== "pendiente_aprobacion") {
+  if (!emailBorrador) {
     return (
       <div className="bg-white rounded-xl border border-gray-100 p-5">
         <div className="flex items-center gap-2 mb-4">
@@ -99,25 +137,8 @@ export function EmailApprovalPanel({
           <h2 className="font-semibold text-gray-900 text-sm">Borrador de email</h2>
         </div>
         <div className="p-8 text-center">
-          {estado === "enriqueciendo" ? (
-            <>
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-sm text-gray-500">Gemini está redactando el email...</p>
-              <p className="text-xs text-gray-400 mt-1">Actualiza la página en unos segundos.</p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-gray-400">
-                Enriquece este lead primero para generar el borrador con IA.
-              </p>
-              <button
-                onClick={() => router.push("/leads")}
-                className="mt-3 text-xs text-blue-600 hover:underline"
-              >
-                Volver a la bandeja
-              </button>
-            </>
-          )}
+          <p className="text-sm text-gray-500">Aún no hay borrador generado para este lead.</p>
+          <p className="text-xs text-gray-400 mt-1">Vuelve a intentarlo cuando el borrador esté disponible.</p>
         </div>
       </div>
     );
@@ -130,7 +151,7 @@ export function EmailApprovalPanel({
         <Edit3 className="w-4 h-4 text-amber-500" />
         <h2 className="font-semibold text-gray-900 text-sm">Revisar y aprobar email</h2>
         <span className="ml-auto text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-          Pendiente
+          {estadoActual === "aprobado" ? "Aprobado" : "Pendiente"}
         </span>
       </div>
 
@@ -178,18 +199,33 @@ export function EmailApprovalPanel({
 
       {/* Botones de acción */}
       <div className="flex gap-3">
-        <button
-          onClick={handleEnviar}
-          disabled={loading || !contenido.trim() || !asunto.trim()}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 font-medium rounded-lg text-sm transition-colors",
-            "bg-blue-600 hover:bg-blue-700 text-white",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
-        >
-          <Send className="w-4 h-4" />
-          {loading ? "Enviando..." : "Confirmar y Enviar"}
-        </button>
+        {estadoActual === "pendiente_aprobacion" ? (
+          <button
+            onClick={handleAprobar}
+            disabled={approving}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 font-medium rounded-lg text-sm transition-colors",
+              "bg-leadby-500 hover:bg-leadby-600 text-white",
+              "disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+          >
+            <CheckCircle className="w-4 h-4" />
+            {approving ? "Aprobando..." : "Aprobar borrador"}
+          </button>
+        ) : (
+          <button
+            onClick={handleEnviar}
+            disabled={loading || !contenido.trim() || !asunto.trim()}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 font-medium rounded-lg text-sm transition-colors",
+              "bg-blue-600 hover:bg-blue-700 text-white",
+              "disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+          >
+            <Send className="w-4 h-4" />
+            {loading ? "Enviando..." : "Confirmar y Enviar"}
+          </button>
+        )}
 
         <button
           onClick={() => router.back()}
