@@ -1,4 +1,15 @@
 import { Check } from "lucide-react";
+import { ContactForm } from "@/components/public/ContactForm";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Contacto",
+  description:
+    "Solicita una demostración personalizada de LeadBy y recibe una hoja de ruta técnica para automatizar tu pipeline comercial B2B.",
+  alternates: {
+    canonical: "/contact",
+  },
+};
 
 const HIGHLIGHTS = [
   "Diagnóstico inicial de tu proceso comercial.",
@@ -8,9 +19,6 @@ const HIGHLIGHTS = [
 ];
 
 export default function ContactPage() {
-  const inputClasses =
-    "mt-1 w-full rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black shadow-sm placeholder:text-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:border-leadby-500 ring-leadby dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/40";
-
   return (
     <>
       <section className="relative overflow-hidden">
@@ -55,94 +63,7 @@ export default function ContactPage() {
             </div>
           </div>
 
-          <form
-            action="/contact"
-            method="get"
-            className="rounded-2xl border border-black/5 bg-white/80 p-6 shadow-sm shadow-black/5 backdrop-blur dark:border-white/10 dark:bg-white/5"
-          >
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label htmlFor="nombre" className="text-sm font-medium text-black/70 dark:text-white/70">
-                  Nombre y apellidos
-                </label>
-                <input
-                  id="nombre"
-                  name="nombre"
-                  type="text"
-                  placeholder="Antonio López"
-                  className={inputClasses}
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="empresa" className="text-sm font-medium text-black/70 dark:text-white/70">
-                  Empresa
-                </label>
-                <input
-                  id="empresa"
-                  name="empresa"
-                  type="text"
-                  placeholder="Empresa Industrial"
-                  className={inputClasses}
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="email" className="text-sm font-medium text-black/70 dark:text-white/70">
-                  Email corporativo
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="tu@empresa.com"
-                  className={inputClasses}
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="telefono" className="text-sm font-medium text-black/70 dark:text-white/70">
-                  Teléfono
-                </label>
-                <input id="telefono" name="telefono" type="tel" placeholder="+34 600 000 000" className={inputClasses} />
-              </div>
-            </div>
-
-            <div className="mt-5">
-              <label htmlFor="cargo" className="text-sm font-medium text-black/70 dark:text-white/70">
-                Cargo / Departamento
-              </label>
-              <input id="cargo" name="cargo" type="text" placeholder="Dirección Comercial" className={inputClasses} />
-            </div>
-
-            <div className="mt-5">
-              <label htmlFor="mensaje" className="text-sm font-medium text-black/70 dark:text-white/70">
-                Mensaje
-              </label>
-              <textarea
-                id="mensaje"
-                name="mensaje"
-                rows={5}
-                placeholder="Describe tu objetivo comercial y el volumen de cuentas que gestionas."
-                className={inputClasses}
-              />
-            </div>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-black/50 dark:text-white/50">
-                Al enviar aceptas nuestra Política de Privacidad y el tratamiento de datos conforme a RGPD.
-              </p>
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-foreground shadow-leadby transition-colors hover:bg-leadby-600"
-              >
-                Enviar solicitud
-              </button>
-            </div>
-          </form>
+          <ContactForm />
         </div>
       </section>
     </>

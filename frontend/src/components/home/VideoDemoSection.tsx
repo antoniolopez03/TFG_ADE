@@ -74,13 +74,13 @@ export function VideoDemoSection() {
             className="vd-headline text-3xl font-semibold md:text-4xl text-balance"
             style={{ visibility: "hidden" }}
           >
-            Mira cómo funciona en 90 segundos
+            Mira el flujo completo de LeadBy
           </h2>
           <p
             className="vd-sub mt-4 text-base leading-relaxed text-black/60 dark:text-white/60 max-w-xl mx-auto"
             style={{ visibility: "hidden" }}
           >
-            Del lead sin contacto al correo aprobado en tu CRM. Todo automatizado.
+            Desde la detección del lead hasta el correo aprobado en CRM, con validación humana en cada envío.
           </p>
         </div>
 

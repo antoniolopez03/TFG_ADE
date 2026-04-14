@@ -1,4 +1,7 @@
-export const metadata = { title: "Aviso Legal y Política de Privacidad · LeadBy" };
+export const metadata = {
+  title: "Aviso Legal y Política de Privacidad · LeadBy",
+  alternates: { canonical: "/legal/privacy" },
+};
 
 export default function PrivacyPage() {
   return (

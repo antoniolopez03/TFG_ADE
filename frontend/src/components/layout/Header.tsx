@@ -14,9 +14,14 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-black/5 bg-background/80 backdrop-blur dark:border-white/10">
       <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-4">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="relative h-10 w-10 flex-shrink-0">
-            <Image src="/LEADBY-Logo.png" alt="LeadBy" fill className="object-contain" priority />
-          </div>
+          <Image
+            src="/LEADBY-Logo.png"
+            alt="LeadBy"
+            width={40}
+            height={40}
+            className="h-10 w-10 flex-shrink-0 object-contain"
+            priority
+          />
           <span className="text-sm font-semibold uppercase tracking-[0.18em]">LeadBy</span>
         </Link>
 

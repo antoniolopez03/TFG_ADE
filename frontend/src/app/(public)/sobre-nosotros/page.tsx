@@ -1,5 +1,15 @@
 import Image from "next/image";
 import { BannerPortal } from "@/components/layout/BannerPortal";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Sobre Nosotros",
+  description:
+    "LeadBy es un proyecto académico de la UCM para validar la automatización de prospección B2B con IA y supervisión humana.",
+  alternates: {
+    canonical: "/sobre-nosotros",
+  },
+};
 
 export default function AboutPage() {
   return (

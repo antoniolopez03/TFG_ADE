@@ -142,10 +142,10 @@ HubSpot parte vacío, instancia nueva desde cero.
 | # | Tarea |
 |---|-------|
 | 7.1 | Revisar y pulir Hero Section con vídeo corporativo embebido |
-| 7.2 | Verificar página de Pricing con planes de suscripción |
-| 7.3 | Revisar blog: verificar pre-renderizado SSG de artículos Markdown |
-| 7.4 | Verificar páginas legales (RGPD, Términos) con contenido completo |
-| 7.5 | Optimizar Core Web Vitals y meta tags SEO |
+| 7.2 | [x] Verificar página de Pricing con planes de suscripción |
+| 7.3 | [x] Revisar blog: verificar pre-renderizado SSG de artículos Markdown |
+| 7.4 | [x] Verificar páginas legales (RGPD, Términos) con contenido completo |
+| 7.5 | [x] Optimizar Core Web Vitals y meta tags SEO |
 
 **Tareas: 5** · Usuario: 0 · Agente: 5
 

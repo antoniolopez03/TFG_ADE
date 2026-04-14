@@ -18,9 +18,9 @@ const INTEGRATIONS = [
     description: "Generación de correos hiperpersonalizados con contexto real de cada empresa",
   },
   {
-    emoji: "🔴",
-    name: "n8n",
-    description: "Orquestación visual de flujos de automatización sin necesidad de código",
+    emoji: "⚡",
+    name: "Next.js API",
+    description: "Arquitectura serverless unificada para búsqueda, enriquecimiento y envío",
   },
   {
     emoji: "📮",
@@ -33,9 +33,9 @@ const INTEGRATIONS = [
     description: "Base de datos multitenant con aislamiento criptográfico por organización",
   },
   {
-    emoji: "🎭",
-    name: "Playwright",
-    description: "Scraping de datos industriales con evasión de sistemas anti-bot",
+    emoji: "🔐",
+    name: "Supabase Vault",
+    description: "Gestión segura de secretos de integración por tenant",
   },
 ];
 

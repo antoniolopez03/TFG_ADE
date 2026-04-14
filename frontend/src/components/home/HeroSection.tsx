@@ -13,7 +13,7 @@ const METRICS = [
   { display: "×10", to: 10, prefix: "×", suffix: "", label: "Tasa de respuesta vs. correo masivo" },
 ];
 
-const TRUST_LOGOS = ["HubSpot", "Google Gemini", "n8n", "Supabase", "Resend"];
+const TRUST_LOGOS = ["HubSpot", "Google Gemini", "Next.js API", "Supabase", "Resend"];
 
 const MOCK_LEADS = [
   { company: "Técnicas del Henares S.L.", contact: "J. Ramírez", role: "Dir. Compras" },
@@ -224,7 +224,7 @@ export function HeroSection() {
           {/* CTAs */}
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
-              href="/sobre-nosotros"
+              href="/contact"
               className="h-cta inline-flex items-center gap-2 rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-white shadow-leadby transition-all hover:bg-leadby-600 hover:shadow-leadby"
               style={{ visibility: "hidden" }}
             >

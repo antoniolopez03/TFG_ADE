@@ -1,0 +1,49 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F0F10" />
+      <stop offset="1" stop-color="#2B1B12" />
+    </linearGradient>
+    <radialGradient id="g1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(976 90) rotate(130) scale(500 470)">
+      <stop stop-color="#FF751F" stop-opacity="0.55" />
+      <stop offset="1" stop-color="#FF751F" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <rect width="1200" height="630" fill="url(#g1)" />
+
+  <rect x="88" y="88" width="1024" height="454" rx="30" fill="rgba(255,255,255,0.03)" stroke="rgba(255,117,31,0.45)" />
+
+  <g>
+    <rect x="148" y="148" width="76" height="76" rx="18" fill="#FF751F" />
+    <path d="M170 182H198" stroke="white" stroke-width="7" stroke-linecap="round" />
+    <path d="M184 168V196" stroke="white" stroke-width="7" stroke-linecap="round" />
+  </g>
+
+  <text x="148" y="314" fill="white" font-family="Arial, sans-serif" font-size="72" font-weight="700">
+    LeadBy
+  </text>
+  <text x="148" y="380" fill="rgba(255,255,255,0.84)" font-family="Arial, sans-serif" font-size="36" font-weight="500">
+    Prospección comercial B2B con IA
+  </text>
+  <text x="148" y="430" fill="rgba(255,255,255,0.66)" font-family="Arial, sans-serif" font-size="28">
+    Descubre leads, hiperpersonaliza emails y sincroniza tu CRM.
+  </text>
+
+  <g opacity="0.18" stroke="white" stroke-width="1">
+    <path d="M0 70H1200" />
+    <path d="M0 160H1200" />
+    <path d="M0 250H1200" />
+    <path d="M0 340H1200" />
+    <path d="M0 430H1200" />
+    <path d="M0 520H1200" />
+    <path d="M0 610H1200" />
+    <path d="M110 0V630" />
+    <path d="M300 0V630" />
+    <path d="M490 0V630" />
+    <path d="M680 0V630" />
+    <path d="M870 0V630" />
+    <path d="M1060 0V630" />
+  </g>
+</svg>

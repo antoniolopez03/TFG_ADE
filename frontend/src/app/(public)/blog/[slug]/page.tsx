@@ -1,34 +1,84 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { ARTICLES } from "@/lib/data/articles";
+import {
+  getAllBlogSummaries,
+  getBlogArticleBySlug,
+  getRelatedBlogArticles,
+} from "@/lib/content/blog";
 import type { Metadata } from "next";
 
 type Props = { params: { slug: string } };
+const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000";
 
-export function generateStaticParams() {
-  return ARTICLES.map((article) => ({ slug: article.slug }));
+export async function generateStaticParams() {
+  const articles = await getAllBlogSummaries();
+  return articles.map((article) => ({ slug: article.slug }));
 }
 
-export function generateMetadata({ params }: Props): Metadata {
-  const article = ARTICLES.find((a) => a.slug === params.slug);
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const article = await getBlogArticleBySlug(params.slug);
   if (!article) return { title: "Artículo no encontrado" };
+
+  const articleUrl = `/blog/${article.slug}`;
+
   return {
     title: article.title,
     description: article.excerpt,
+    alternates: {
+      canonical: articleUrl,
+    },
+    openGraph: {
+      title: article.title,
+      description: article.excerpt,
+      type: "article",
+      url: articleUrl,
+      images: [
+        {
+          url: "/images/og-cover.svg",
+          width: 1200,
+          height: 630,
+          alt: article.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description: article.excerpt,
+      images: ["/images/og-cover.svg"],
+    },
   };
 }
 
-export default function ArticlePage({ params }: Props) {
-  const article = ARTICLES.find((a) => a.slug === params.slug);
+export default async function ArticlePage({ params }: Props) {
+  const article = await getBlogArticleBySlug(params.slug);
   if (!article) notFound();
 
-  const relatedArticles = ARTICLES.filter(
-    (a) => a.category === article.category && a.slug !== article.slug
-  ).slice(0, 3);
+  const relatedArticles = await getRelatedBlogArticles(article.category, article.slug, 3);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: article.title,
+    description: article.excerpt,
+    datePublished: article.dateTime,
+    dateModified: article.dateTime,
+    articleSection: article.category,
+    url: `${appUrl}/blog/${article.slug}`,
+    publisher: {
+      "@type": "Organization",
+      name: "LeadBy",
+    },
+  };
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* Back link */}
       <div className="mx-auto max-w-4xl px-6 pt-10">
         <Link
@@ -70,11 +120,10 @@ export default function ArticlePage({ params }: Props) {
 
       {/* Article body */}
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <article className="prose prose-neutral max-w-none leading-relaxed dark:prose-invert prose-headings:text-foreground prose-p:text-black/70 dark:prose-p:text-white/70 prose-a:text-leadby-500 dark:prose-a:text-leadby-400 prose-headings:font-semibold">
-          {article.body.map((paragraph, i) => (
-            <p key={i}>{paragraph}</p>
-          ))}
-        </article>
+        <article
+          className="prose prose-neutral max-w-none leading-relaxed dark:prose-invert prose-headings:text-foreground prose-p:text-black/70 dark:prose-p:text-white/70 prose-a:text-leadby-500 dark:prose-a:text-leadby-400 prose-headings:font-semibold"
+          dangerouslySetInnerHTML={{ __html: article.htmlBody }}
+        />
       </div>
 
       {/* Related articles */}

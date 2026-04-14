@@ -1,0 +1,42 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="720" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#131313" />
+      <stop offset="1" stop-color="#2A1A10" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(974 130) rotate(132.356) scale(516.918 507.866)">
+      <stop stop-color="#FF751F" stop-opacity="0.45" />
+      <stop offset="1" stop-color="#FF751F" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1280" height="720" fill="url(#bg)" />
+  <rect width="1280" height="720" fill="url(#glow)" />
+
+  <g opacity="0.12" stroke="white" stroke-width="1">
+    <path d="M0 80H1280" />
+    <path d="M0 180H1280" />
+    <path d="M0 280H1280" />
+    <path d="M0 380H1280" />
+    <path d="M0 480H1280" />
+    <path d="M0 580H1280" />
+    <path d="M90 0V720" />
+    <path d="M290 0V720" />
+    <path d="M490 0V720" />
+    <path d="M690 0V720" />
+    <path d="M890 0V720" />
+    <path d="M1090 0V720" />
+  </g>
+
+  <rect x="170" y="150" width="940" height="420" rx="28" fill="rgba(255,255,255,0.04)" stroke="rgba(255,117,31,0.45)" />
+
+  <circle cx="640" cy="360" r="66" fill="rgba(255,117,31,0.20)" stroke="rgba(255,117,31,0.8)" stroke-width="3" />
+  <path d="M620 327.5V392.5C620 397.47 625.35 400.59 629.66 398.09L683.35 366.84C687.66 364.34 687.66 358.66 683.35 356.16L629.66 324.91C625.35 322.41 620 325.53 620 330.5Z" fill="#FF751F" />
+
+  <text x="640" y="520" fill="white" font-family="Arial, sans-serif" font-size="38" font-weight="700" text-anchor="middle">
+    LeadBy Demo
+  </text>
+  <text x="640" y="556" fill="rgba(255,255,255,0.72)" font-family="Arial, sans-serif" font-size="22" text-anchor="middle">
+    Prospección B2B asistida por IA
+  </text>
+</svg>

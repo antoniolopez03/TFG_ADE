@@ -1,5 +1,15 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Precios",
+  description:
+    "Modelo de pricing híbrido de LeadBy: implementación inicial, licencia de mantenimiento y comisión por rendimiento para equipos comerciales B2B.",
+  alternates: {
+    canonical: "/precios",
+  },
+};
 
 const PRICING_CARDS = [
   {

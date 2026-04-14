@@ -6,6 +6,7 @@ export interface SendEmailViaResendOptions {
   html: string;
   text?: string;
   from?: string;
+  replyTo?: string;
 }
 
 export interface SendEmailViaResendResult {
@@ -48,6 +49,7 @@ export async function sendEmailViaResend(
     subject: options.subject,
     html: options.html,
     text: options.text,
+    replyTo: options.replyTo,
   });
 
   if (error || !data?.id) {

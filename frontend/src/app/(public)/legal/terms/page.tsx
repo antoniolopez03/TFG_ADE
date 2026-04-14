@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-export const metadata = { title: "Términos de Servicio · LeadBy" };
+export const metadata = {
+  title: "Términos de Servicio · LeadBy",
+  alternates: { canonical: "/legal/terms" },
+};
 
 export default function TermsPage() {
   return (
@@ -11,7 +14,7 @@ export default function TermsPage() {
         </Link>
         <article className="prose prose-neutral mt-8 max-w-none leading-relaxed dark:prose-invert prose-headings:text-foreground prose-p:text-black/70 dark:prose-p:text-white/70 prose-li:text-black/70 dark:prose-li:text-white/70 prose-a:text-leadby-500 dark:prose-a:text-leadby-400">
           <h1>Términos de Servicio</h1>
-          <p className="text-sm text-black/60 dark:text-white/60">Última actualización: Enero 2025</p>
+          <p className="text-sm text-black/60 dark:text-white/60">Última actualización: abril de 2026</p>
 
           <h2>1. Objeto</h2>
           <p>
