@@ -40,9 +40,11 @@ export async function sendEmailViaResend(
   const from =
     options.from?.trim() || process.env.RESEND_FROM_EMAIL?.trim() || "LeadBy <noreply@leadby.app>";
 
+  const to = process.env.RESEND_TEST_TO?.trim() || options.to;
+
   const { data, error } = await client.emails.send({
     from,
-    to: options.to,
+    to,
     subject: options.subject,
     html: options.html,
     text: options.text,

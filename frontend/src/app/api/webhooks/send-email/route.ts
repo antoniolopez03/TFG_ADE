@@ -1,5 +1,7 @@
 ﻿import { createHubSpotEmailEngagement, getHubSpotTokenFromVault } from "@/lib/services/hubspot";
+import { buildLeadByEmailHtml } from "@/lib/services/email-template";
 import { sendEmailViaResend } from "@/lib/services/resend";
+import { createUnsubscribeToken } from "@/lib/services/unsubscribe";
 import { createClient, createServiceClient } from "@/lib/supabase/request-client";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -34,32 +36,8 @@ function toRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function toSimpleHtmlEmail(text: string): string {
-  const sanitized = escapeHtml(text.trim());
-  const paragraphs = sanitized
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.replace(/\n/g, "<br />"))
-    .filter((paragraph) => paragraph.trim().length > 0)
-    .map((paragraph) => `<p style=\"margin:0 0 14px;\">${paragraph}</p>`)
-    .join("");
-
-  return `
-    <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.6; font-size: 15px;">
-      ${paragraphs}
-      <p style="margin-top: 24px; color: #6b7280; font-size: 12px;">
-        Si prefieres no recibir mas comunicaciones, responde a este correo indicando "baja".
-      </p>
-    </div>
-  `;
+function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
 }
 
 export async function POST(request: NextRequest) {
@@ -125,7 +103,8 @@ export async function POST(request: NextRequest) {
       estado,
       metadata,
       hubspot_contact_id,
-      global_contactos (email, nombre, apellidos)
+      global_contactos (email, nombre, apellidos),
+      global_empresas (nombre)
     `
     )
     .eq("id", lead_id)
@@ -146,7 +125,9 @@ export async function POST(request: NextRequest) {
   }
 
   const contacto = normalizeOne(lead.global_contactos as MaybeArray<Record<string, unknown>>);
-  const contactoEmail = typeof contacto?.email === "string" ? contacto.email.trim() : "";
+  const empresa = normalizeOne(lead.global_empresas as MaybeArray<Record<string, unknown>>);
+
+  const contactoEmail = typeof contacto?.email === "string" ? normalizeEmail(contacto.email) : "";
 
   if (!contactoEmail) {
     return NextResponse.json(
@@ -166,6 +147,33 @@ export async function POST(request: NextRequest) {
   }
 
   const serviceClient = createServiceClient();
+
+  const { data: optOutData, error: optOutError } = await serviceClient
+    .from("email_opt_outs")
+    .select("id, unsubscribed_at")
+    .eq("organizacion_id", organizacion_id)
+    .eq("email", contactoEmail)
+    .maybeSingle();
+
+  if (optOutError) {
+    return NextResponse.json(
+      {
+        error:
+          "No se pudo verificar el estado de baja RGPD. Ejecuta el script database/05_email_opt_outs.sql y reintenta.",
+      },
+      { status: 500 }
+    );
+  }
+
+  if (optOutData) {
+    return NextResponse.json(
+      {
+        error: "Este contacto ya se dio de baja y no puede recibir mas comunicaciones.",
+      },
+      { status: 409 }
+    );
+  }
+
   let hubSpotToken: string | null = null;
 
   try {
@@ -187,12 +195,39 @@ export async function POST(request: NextRequest) {
 
   let resendMessageId = "";
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+  const appBaseUrl = appUrl.replace(/\/$/, "");
+
+  let unsubscribeToken = "";
+  try {
+    unsubscribeToken = createUnsubscribeToken({
+      orgId: organizacion_id,
+      leadId: lead_id,
+      email: contactoEmail,
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "Falta configurar EMAIL_UNSUBSCRIBE_SECRET para habilitar el opt-out RGPD." },
+      { status: 500 }
+    );
+  }
+
+  const unsubscribeUrl = `${appBaseUrl}/api/webhooks/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`;
+
   try {
     const resendResult = await sendEmailViaResend({
       to: contactoEmail,
       subject: email_asunto.trim(),
-      html: toSimpleHtmlEmail(email_aprobado),
-      text: email_aprobado.trim(),
+      html: buildLeadByEmailHtml({
+        bodyText: email_aprobado,
+        unsubscribeUrl,
+        recipientName:
+          [contacto?.nombre, contacto?.apellidos]
+            .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+            .join(" ") || null,
+        companyName: typeof empresa?.nombre === "string" ? empresa.nombre : null,
+      }),
+      text: `${email_aprobado.trim()}\n\nBaja: ${unsubscribeUrl}`,
     });
 
     resendMessageId = resendResult.id;
@@ -243,6 +278,8 @@ export async function POST(request: NextRequest) {
           ...metadataSendEmail,
           sent_at: new Date().toISOString(),
           resend_message_id: resendMessageId,
+          unsubscribe_url: unsubscribeUrl,
+          email_to: contactoEmail,
         },
         hubspot_sync: {
           ...metadataHubSpot,

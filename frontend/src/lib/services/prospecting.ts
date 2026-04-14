@@ -97,6 +97,14 @@ function toStringOrNull(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function normalizeEmail(email: string | null): string | null {
+  if (!email) {
+    return null;
+  }
+
+  return email.trim().toLowerCase() || null;
+}
+
 function toStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -291,6 +299,40 @@ function isPostgrestErrorLike(error: unknown): error is PostgrestErrorLike {
   return typeof error === "object" && error !== null;
 }
 
+function isMissingRelationError(error: unknown): boolean {
+  return isPostgrestErrorLike(error) && error.code === "42P01";
+}
+
+async function isContactoOptedOut(options: {
+  userClient: SupabaseClient;
+  organizacionId: string;
+  email: string | null;
+}): Promise<boolean> {
+  const normalizedEmail = normalizeEmail(options.email);
+  if (!normalizedEmail) {
+    return false;
+  }
+
+  const { data, error } = await options.userClient
+    .from("email_opt_outs")
+    .select("id")
+    .eq("organizacion_id", options.organizacionId)
+    .eq("email", normalizedEmail)
+    .limit(1)
+    .maybeSingle();
+
+  if (!error) {
+    return Boolean(data);
+  }
+
+  // Permite compatibilidad mientras el script SQL de opt-out no esté desplegado.
+  if (isMissingRelationError(error)) {
+    return false;
+  }
+
+  throw new Error(`Error verificando opt-out del contacto: ${error.message}`);
+}
+
 async function ensureLead(
   userClient: SupabaseClient,
   payload: {
@@ -478,6 +520,20 @@ async function processApolloPerson(
 
   const { empresa, cacheHit } = await resolveEmpresa(input.userClient, organization);
   const contacto = await resolveContactoDesdePersona(input.userClient, input.person, empresa.id);
+
+  const isOptedOut = await isContactoOptedOut({
+    userClient: input.userClient,
+    organizacionId: input.organizacionId,
+    email: contacto.email,
+  });
+
+  if (isOptedOut) {
+    return {
+      lead: null,
+      cacheHit,
+      cacheMiss: false,
+    };
+  }
 
   const lead = await ensureLead(input.userClient, {
     organizacionId: input.organizacionId,

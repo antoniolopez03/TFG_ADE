@@ -606,7 +606,7 @@ export async function createHubSpotEmailEngagement(
       metadata: {
         subject: options.subject,
         text: options.body,
-        from: { email: "noreply@leadby.app" },
+        from: { email: "onboarding@resend.dev" },
         to: options.recipientEmail ? [{ email: options.recipientEmail }] : [],
       },
     },

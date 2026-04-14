@@ -107,12 +107,12 @@ HubSpot parte vacío, instancia nueva desde cero.
 
 | # | Tarea |
 |---|-------|
-| 5.1 | **(USUARIO)** Crear cuenta en Resend y obtener API Key |
-| 5.2 | **(USUARIO)** Configurar dominio de envío en Resend: añadir registros DNS (SPF, DKIM, DMARC) en el proveedor de dominio |
-| 5.3 | **(USUARIO)** Añadir `RESEND_API_KEY` al archivo `.env.local` |
+| 5.1 | [x] **(USUARIO)** Crear cuenta en Resend y obtener API Key |
+| 5.2 | [x] **(USUARIO)** Configurar dominio de envío en Resend: añadir registros DNS (SPF, DKIM, DMARC) en el proveedor de dominio |
+| 5.3 | [x] **(USUARIO)** Añadir `RESEND_API_KEY` al archivo `.env.local` |
 | 5.4 | [x] Crear `lib/services/resend.ts`: cliente tipado para Resend API |
 | 5.5 | [x] Reescribir `api/webhooks/send-email/route.ts`: eliminar n8n, implementar flujo Resend + HubSpot directo |
-| 5.6 | Implementar plantilla HTML base para los correos (responsive, con enlace opt-out RGPD) |
+| 5.6 | [x] Implementar plantilla HTML base para los correos (responsive, con enlace opt-out RGPD) |
 | 5.7 | [x] Implementar lógica: enviar vía Resend → registrar en HubSpot → actualizar estado a 'enviado' |
 
 **Tareas: 7** · Usuario: 3 · Agente: 4
