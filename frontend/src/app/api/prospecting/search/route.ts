@@ -1,10 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
+import {
+  executeApolloProspectingJob,
+  resolveProspectingErrorMessage,
+  resolveProspectingErrorStatus,
+} from "@/lib/services/prospecting";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * API Route: Búsqueda manual de prospectos.
- * Recibe sector, ubicacion y tamano, obtiene el organizacion_id del usuario
- * y valida acceso para la ejecución síncrona que se implementará con Apollo.
+ * Recibe sector, ubicación y tamaño, ejecuta prospección síncrona
+ * con Apollo + Data Moat y crea leads en estado pendiente_aprobacion.
  */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -33,24 +38,58 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Obtener organización del usuario
-  const { data: membresia } = await supabase
+  const { data: membresia, error: membresiaError } = await supabase
     .from("miembros_equipo")
     .select("organizacion_id")
     .eq("user_id", user.id)
     .eq("activo", true)
     .single();
 
-  if (!membresia) {
+  if (membresiaError || !membresia) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
-  return NextResponse.json(
-    {
-      error:
-        "La búsqueda manual aún no está disponible. Se habilitará al integrar Apollo en la Fase 2.",
-      organizacion_id: membresia.organizacion_id,
-    },
-    { status: 501 }
-  );
+  const serviceClient = createServiceClient();
+
+  try {
+    const result = await executeApolloProspectingJob({
+      userClient: supabase,
+      serviceClient,
+      organizacionId: membresia.organizacion_id,
+      createdBy: user.id,
+      tipo: "apollo_search",
+      parametros: {
+        sector,
+        ubicacion,
+        tamano,
+      },
+      organizationCriteria: {
+        query: sector,
+        location: ubicacion,
+        sector,
+        ubicacion,
+        tamano,
+        perPage: 10,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        job_id: result.jobId,
+        organizacion_id: membresia.organizacion_id,
+        total_resultados: result.totalResultados,
+        cache_hits: result.cacheHits,
+        cache_misses: result.cacheMisses,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error en búsqueda manual", error);
+    return NextResponse.json(
+      {
+        error: resolveProspectingErrorMessage(error),
+      },
+      { status: resolveProspectingErrorStatus(error) }
+    );
+  }
 }

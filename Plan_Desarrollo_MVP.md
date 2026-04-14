@@ -51,12 +51,12 @@ Límite: máximo 10 resultados por búsqueda (una sola llamada síncrona a Apoll
 
 | # | Tarea |
 |---|-------|
-| 2.1 | **(USUARIO)** Crear cuenta en Apollo.io con email corporativo y obtener API Key |
-| 2.2 | **(USUARIO)** Añadir `APOLLO_API_KEY` al archivo `.env.local` |
-| 2.3 | Crear `lib/services/apollo.ts`: cliente tipado para Apollo.io (Organization Search, People Search, Organization Enrich) con `per_page=10` |
-| 2.4 | Implementar lógica de caché en `lib/services/data-moat.ts`: consulta local → miss → Apollo → insert en global_empresas/global_contactos |
-| 2.5 | Reescribir `api/webhooks/scrape/route.ts`: eliminar n8n, implementar flujo síncrono Apollo + caché + creación de leads |
-| 2.6 | Reescribir `api/prospecting/search/route.ts`: recibir sector/ubicación/tamaño, traducir a parámetros Apollo, ejecutar búsqueda limitada a 10 resultados |
+| 2.1 | [x] **(USUARIO)** Crear cuenta en Apollo.io con email corporativo y obtener API Key |
+| 2.2 | [x] **(USUARIO)** Añadir `APOLLO_API_KEY` al archivo `.env.local` |
+| 2.3 | [x] Crear `lib/services/apollo.ts`: cliente tipado para Apollo.io (Organization Search, People Search, Organization Enrich) con `per_page=10` |
+| 2.4 | [x] Implementar lógica de caché en `lib/services/data-moat.ts`: consulta local → miss → Apollo → insert en global_empresas/global_contactos |
+| 2.5 | [x] Reescribir `api/webhooks/scrape/route.ts`: eliminar n8n, implementar flujo síncrono Apollo + caché + creación de leads |
+| 2.6 | [x] Reescribir `api/prospecting/search/route.ts`: recibir sector/ubicación/tamaño, traducir a parámetros Apollo, ejecutar búsqueda limitada a 10 resultados |
 
 **Tareas: 6** · Usuario: 2 · Agente: 4
 

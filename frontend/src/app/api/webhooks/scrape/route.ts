@@ -1,15 +1,21 @@
-import { createClient } from "@/lib/supabase/server";
+import {
+  executeApolloProspectingJob,
+  resolveProspectingErrorMessage,
+  resolveProspectingErrorStatus,
+} from "@/lib/services/prospecting";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * API Route: Trigger de busqueda.
  *
- * Registra un trabajo de busqueda para su trazabilidad en server-side.
+ * Ejecuta una búsqueda síncrona (Apollo + Data Moat) y
+ * registra el trabajo para trazabilidad.
  *
  * Flujo:
  * 1. Verificar sesión de usuario con Supabase
  * 2. Verificar que el usuario pertenece a la organización solicitada
- * 3. Crear registro en trabajos_busqueda
+ * 3. Ejecutar prospección y crear leads
  */
 export async function POST(request: NextRequest) {
   // 1. Verificar autenticación
@@ -72,38 +78,69 @@ export async function POST(request: NextRequest) {
       ? "apollo_lookalike"
       : tipo;
 
-  // 4. Crear registro del job en Supabase
-  const parametros =
-    tipoBusqueda === "apollo_search"
-      ? { query, location, max_results }
-      : { dork_query, max_results };
+  const maxResults = Math.min(Math.max(Math.trunc(max_results), 1), 10);
+  const serviceClient = createServiceClient();
 
-  const { data: job, error: jobError } = await supabase
-    .from("trabajos_busqueda")
-    .insert({
-      organizacion_id,
-      tipo: tipoBusqueda,
-      parametros,
-      estado: "completado",
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
-
-  if (jobError || !job) {
-    console.error("Error creando trabajo de busqueda:", jobError);
+  if (tipoBusqueda === "apollo_search" && (!query || !location)) {
     return NextResponse.json(
-      { error: "Error interno al crear el trabajo" },
-      { status: 500 }
+      { error: "Para búsqueda manual se requieren query y location" },
+      { status: 400 }
     );
   }
 
-  return NextResponse.json(
-    {
-      job_id: job.id,
-      organizacion_id,
-      mensaje: "Trabajo de busqueda registrado correctamente.",
-    },
-    { status: 202 }
-  );
+  if (tipoBusqueda === "apollo_lookalike" && !dork_query) {
+    return NextResponse.json(
+      { error: "Para búsqueda lookalike se requiere dork_query" },
+      { status: 400 }
+    );
+  }
+
+  const parametros =
+    tipoBusqueda === "apollo_search"
+      ? { query, location, max_results: maxResults }
+      : { dork_query, max_results: maxResults };
+
+  try {
+    const result = await executeApolloProspectingJob({
+      userClient: supabase,
+      serviceClient,
+      organizacionId: organizacion_id,
+      createdBy: user.id,
+      tipo: tipoBusqueda,
+      parametros,
+      organizationCriteria:
+        tipoBusqueda === "apollo_search"
+          ? {
+              query,
+              location,
+              sector: query,
+              ubicacion: location,
+              perPage: maxResults,
+            }
+          : {
+              query: dork_query,
+              perPage: maxResults,
+            },
+    });
+
+    return NextResponse.json(
+      {
+        job_id: result.jobId,
+        organizacion_id,
+        total_resultados: result.totalResultados,
+        cache_hits: result.cacheHits,
+        cache_misses: result.cacheMisses,
+        mensaje: "Búsqueda completada correctamente.",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error ejecutando scrape síncrono", error);
+    return NextResponse.json(
+      {
+        error: resolveProspectingErrorMessage(error),
+      },
+      { status: resolveProspectingErrorStatus(error) }
+    );
+  }
 }
