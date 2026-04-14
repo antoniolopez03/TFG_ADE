@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
  * API Route: Aprobar lead para generación de borrador.
  *
  * Transiciona el lead de 'nuevo'/'enriqueciendo' a 'pendiente_aprobacion'
- * y dispara el webhook de n8n para que Gemini genere el borrador de email.
+ * para continuar con el flujo human-in-the-loop.
  */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -82,32 +82,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Notificar a n8n para que genere el borrador con Gemini
-  const webhookUrl = process.env.N8N_WEBHOOK_APPROVE_LEAD_URL;
-  const webhookSecret = process.env.N8N_WEBHOOK_SECRET;
-
-  if (webhookUrl && webhookSecret) {
-    try {
-      await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Webhook-Secret": webhookSecret,
-        },
-        body: JSON.stringify({
-          lead_id,
-          organizacion_id,
-          user_id: user.id,
-        }),
-      });
-    } catch (e) {
-      console.error("Error notificando aprobación a n8n:", e);
-      // El estado ya es 'pendiente_aprobacion'; n8n puede procesarlo cuando recupere conectividad
-    }
-  }
-
   return NextResponse.json(
-    { mensaje: "Lead aprobado, generando borrador", lead_id },
+    {
+      mensaje:
+        "Lead aprobado y movido a pendiente_aprobacion. La generación automática de borrador se habilitará en Fase 3.",
+      lead_id,
+    },
     { status: 202 }
   );
 }

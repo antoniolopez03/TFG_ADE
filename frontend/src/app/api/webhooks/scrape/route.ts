@@ -4,14 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * API Route: Trigger de scraping.
  *
- * Actúa como proxy seguro entre el frontend y n8n.
- * El frontend NUNCA llama a n8n directamente (mantiene el webhook secret server-side).
+ * Registra un trabajo de scraping para su procesamiento server-side.
  *
  * Flujo:
  * 1. Verificar sesión de usuario con Supabase
  * 2. Verificar que el usuario pertenece a la organización solicitada
  * 3. Crear registro en trabajos_scraping (para polling del frontend)
- * 4. Notificar a n8n con el webhook secret
  */
 export async function POST(request: NextRequest) {
   // 1. Verificar autenticación
@@ -92,48 +90,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 5. Notificar al orquestador n8n (server-side: el secret no se expone al cliente)
-  const webhookUrl = process.env.N8N_WEBHOOK_SCRAPE_URL;
-  const webhookSecret = process.env.N8N_WEBHOOK_SECRET;
-
-  if (!webhookUrl || !webhookSecret) {
-    console.error("Variables de entorno N8N_WEBHOOK_SCRAPE_URL o N8N_WEBHOOK_SECRET no configuradas");
-    // El job queda en estado 'pendiente'; el admin puede reintentarlo
-    return NextResponse.json(
-      {
-        job_id: job.id,
-        organizacion_id,
-        mensaje: "Job creado. El orquestador no está configurado.",
-      },
-      { status: 202 }
-    );
-  }
-
-  try {
-    await fetch(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Webhook-Secret": webhookSecret,
-      },
-      body: JSON.stringify({
-        job_id: job.id,
-        organizacion_id,
-        tipo,
-        parametros,
-        user_id: user.id,
-      }),
-    });
-  } catch (fetchError) {
-    console.error("Error notificando a n8n:", fetchError);
-    // El job queda en 'pendiente'; n8n puede procesarlo más tarde
-  }
-
   return NextResponse.json(
     {
       job_id: job.id,
       organizacion_id,
-      mensaje: "Job de scraping iniciado correctamente",
+      mensaje:
+        "Job de scraping registrado en estado pendiente. El procesamiento automático se habilitará en fases siguientes.",
     },
     { status: 202 }
   );

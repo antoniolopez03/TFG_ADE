@@ -8,15 +8,10 @@ import { NextRequest, NextResponse } from "next/server";
  * Solo se activa cuando el comercial ha revisado el borrador,
  * posiblemente lo ha editado, y pulsa "Confirmar y Enviar".
  *
- * Validaciones críticas antes de notificar a n8n:
+ * Validaciones críticas antes de ejecutar el envío real:
  * - El lead debe estar en estado 'pendiente_aprobacion'
  * - El email_aprobado debe estar presente y no vacío
  * - El usuario debe tener acceso a la organización
- *
- * N8n luego:
- * 1. Llama a Resend para enviar el email real
- * 2. Registra el email en HubSpot CRM (Timeline)
- * 3. Actualiza leads_prospectados.estado = 'enviado'
  */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -93,51 +88,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Guardar el email aprobado (editado por el comercial) y marcar como 'aprobado'
-  const { error: updateError } = await supabase
-    .from("leads_prospectados")
-    .update({
-      email_aprobado: email_aprobado.trim(),
-      email_asunto: email_asunto.trim(),
-      estado: "aprobado",
-    })
-    .eq("id", lead_id);
-
-  if (updateError) {
-    return NextResponse.json(
-      { error: "Error actualizando el lead" },
-      { status: 500 }
-    );
-  }
-
-  // Notificar a n8n para que ejecute el envío real
-  const webhookUrl = process.env.N8N_WEBHOOK_SEND_EMAIL_URL;
-  const webhookSecret = process.env.N8N_WEBHOOK_SECRET;
-
-  if (webhookUrl && webhookSecret) {
-    try {
-      await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Webhook-Secret": webhookSecret,
-        },
-        body: JSON.stringify({
-          lead_id,
-          organizacion_id,
-          user_id: user.id,
-          email_aprobado: email_aprobado.trim(),
-          email_asunto: email_asunto.trim(),
-        }),
-      });
-    } catch (e) {
-      console.error("Error notificando envío a n8n:", e);
-      // El estado ya es 'aprobado'; n8n puede procesarlo cuando recupere conectividad
-    }
-  }
-
   return NextResponse.json(
-    { mensaje: "Email enviado a procesar", lead_id },
-    { status: 202 }
+    {
+      error:
+        "El envío automático aún no está disponible. Se habilitará al integrar Resend y HubSpot en la Fase 5.",
+      lead_id,
+      organizacion_id,
+      preview: {
+        email_aprobado: email_aprobado.trim(),
+        email_asunto: email_asunto.trim(),
+      },
+    },
+    { status: 501 }
   );
 }

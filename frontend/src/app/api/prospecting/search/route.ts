@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * API Route: Búsqueda manual de prospectos.
  * Recibe sector, ubicacion y tamano, obtiene el organizacion_id del usuario
- * y dispara el webhook de n8n para iniciar la búsqueda.
+ * y valida acceso para la ejecución síncrona que se implementará con Apollo.
  */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -45,41 +45,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
-  const webhookUrl = process.env.N8N_WEBHOOK_PROSPECTING_URL;
-  const webhookSecret = process.env.N8N_WEBHOOK_SECRET;
-
-  if (!webhookUrl || !webhookSecret) {
-    return NextResponse.json(
-      { error: "Servicio de prospección no configurado" },
-      { status: 503 }
-    );
-  }
-
-  try {
-    await fetch(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Webhook-Secret": webhookSecret,
-      },
-      body: JSON.stringify({
-        sector,
-        ubicacion,
-        tamano,
-        organizacion_id: membresia.organizacion_id,
-        user_id: user.id,
-      }),
-    });
-  } catch (e) {
-    console.error("Error llamando webhook de prospección:", e);
-    return NextResponse.json(
-      { error: "Error al iniciar la búsqueda" },
-      { status: 502 }
-    );
-  }
-
   return NextResponse.json(
-    { mensaje: "Búsqueda iniciada. Los leads aparecerán en tu bandeja en unos minutos." },
-    { status: 202 }
+    {
+      error:
+        "La búsqueda manual aún no está disponible. Se habilitará al integrar Apollo en la Fase 2.",
+      organizacion_id: membresia.organizacion_id,
+    },
+    { status: 501 }
   );
 }

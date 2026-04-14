@@ -4,13 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * API Route: Trigger de enriquecimiento con IA.
  *
- * Cuando el usuario aprueba un lead en la Bandeja de Leads,
- * este endpoint notifica a n8n para que:
- * 1. Llame a Apollo.io (si el contacto no tiene email verificado)
- * 2. Scrape la web de la empresa
- * 3. Pida a Google Gemini que redacte el email de prospección
- * 4. Guarde el borrador en leads_prospectados.email_borrador
- * 5. Actualice el estado a 'pendiente_aprobacion'
+ * Endpoint reservado para el flujo de enriquecimiento con Gemini.
+ * La integración real se implementará en la Fase 3.
  */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -72,37 +67,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Marcar como 'enriqueciendo' para que el frontend muestre el estado correcto
-  await supabase
-    .from("leads_prospectados")
-    .update({ estado: "enriqueciendo" })
-    .eq("id", lead_id);
-
-  // Notificar a n8n
-  const webhookUrl = process.env.N8N_WEBHOOK_ENRICH_URL;
-  const webhookSecret = process.env.N8N_WEBHOOK_SECRET;
-
-  if (webhookUrl && webhookSecret) {
-    try {
-      await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Webhook-Secret": webhookSecret,
-        },
-        body: JSON.stringify({
-          lead_id,
-          organizacion_id,
-          user_id: user.id,
-        }),
-      });
-    } catch (e) {
-      console.error("Error notificando enriquecimiento a n8n:", e);
-    }
-  }
-
   return NextResponse.json(
-    { mensaje: "Enriquecimiento iniciado", lead_id },
-    { status: 202 }
+    {
+      error:
+        "El enriquecimiento automático aún no está disponible. Se habilitará al integrar Gemini en la Fase 3.",
+      lead_id,
+    },
+    { status: 501 }
   );
 }
