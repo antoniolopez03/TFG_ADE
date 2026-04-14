@@ -40,8 +40,8 @@ export default async function LeadsPage() {
           email_asunto,
           email_enviado_at,
           created_at,
-          global_empresas ( nombre, sector ),
-          global_contactos ( nombre, apellidos, cargo, email, linkedin_url )
+          global_empresas ( nombre, sector, dominio, linkedin_url, ingresos_rango, tecnologias ),
+          global_contactos ( nombre, apellidos, cargo, email, linkedin_url, apollo_contact_id, email_status, seniority, departamento )
         `)
         .eq("organizacion_id", orgId)
         .order("created_at", { ascending: false })

@@ -169,6 +169,8 @@ export async function POST(request: NextRequest) {
       lead_id,
       word_count: draft.wordCount,
       fallback_used: draft.fallbackUsed,
+      email_asunto: draft.subject,
+      email_borrador: draft.body,
     },
     { status: 200 }
   );

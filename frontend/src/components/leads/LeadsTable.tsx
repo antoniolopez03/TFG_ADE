@@ -11,6 +11,7 @@ interface LeadsTableProps {
   onApprove: (leadId: string) => Promise<void>;
   onOpenDrawer: (lead: LeadConRelaciones) => void;
   onDiscard: (leadId: string) => Promise<void>;
+  onGenerateDraft: (leadId: string) => Promise<void>;
 }
 
 export function LeadsTable({
@@ -18,10 +19,15 @@ export function LeadsTable({
   onApprove,
   onOpenDrawer,
   onDiscard,
+  onGenerateDraft,
 }: LeadsTableProps) {
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [discardingId, setDiscardingId] = useState<string | null>(null);
   const [confirmDiscardId, setConfirmDiscardId] = useState<string | null>(null);
+  const [generatingDraftId, setGeneratingDraftId] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState<{ leadId: string; message: string } | null>(
+    null
+  );
 
   async function handleApprove(leadId: string) {
     setApprovingId(leadId);
@@ -43,6 +49,23 @@ export function LeadsTable({
       await onDiscard(leadId);
     } finally {
       setDiscardingId(null);
+    }
+  }
+
+  async function handleGenerateDraft(leadId: string) {
+    setGeneratingDraftId(leadId);
+    setDraftError(null);
+
+    try {
+      await onGenerateDraft(leadId);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo generar el borrador con IA.";
+      setDraftError({ leadId, message });
+    } finally {
+      setGeneratingDraftId(null);
     }
   }
 
@@ -95,6 +118,12 @@ export function LeadsTable({
             const isApprovingThis = approvingId === lead.id;
             const isDiscardingThis = discardingId === lead.id;
             const confirmingDiscard = confirmDiscardId === lead.id;
+            const isGeneratingDraftThis = generatingDraftId === lead.id;
+            const draftErrorForLead =
+              draftError?.leadId === lead.id ? draftError.message : null;
+            const tecnologias = Array.isArray(empresa?.tecnologias)
+              ? empresa.tecnologias.filter((item): item is string => typeof item === "string")
+              : [];
 
             return (
               <tr
@@ -106,6 +135,11 @@ export function LeadsTable({
                   <p className="font-medium text-gray-900 dark:text-white">
                     {empresa?.nombre ?? "—"}
                   </p>
+                  {empresa?.dominio && (
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                      {empresa.dominio}
+                    </p>
+                  )}
                 </td>
 
                 {/* Sector */}
@@ -113,6 +147,17 @@ export function LeadsTable({
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {empresa?.sector ?? "—"}
                   </p>
+                  {empresa?.ingresos_rango && (
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                      Ingresos: {empresa.ingresos_rango}
+                    </p>
+                  )}
+                  {tecnologias.length > 0 && (
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 truncate max-w-[220px]">
+                      Tech: {tecnologias.slice(0, 2).join(", ")}
+                      {tecnologias.length > 2 ? "..." : ""}
+                    </p>
+                  )}
                 </td>
 
                 {/* Contacto */}
@@ -126,6 +171,11 @@ export function LeadsTable({
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {contacto.cargo ?? "—"}
                         </p>
+                        {contacto.seniority && (
+                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 uppercase">
+                            {contacto.seniority}
+                          </span>
+                        )}
                         {contacto.linkedin_url && (
                           <a
                             href={contacto.linkedin_url}
@@ -136,6 +186,11 @@ export function LeadsTable({
                           </a>
                         )}
                       </div>
+                      {contacto.email_status && (
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+                          Email: {contacto.email_status}
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <p className="text-xs text-gray-400 dark:text-gray-500 italic">Sin contacto</p>
@@ -154,7 +209,8 @@ export function LeadsTable({
 
                 {/* Acciones */}
                 <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center justify-end gap-2">
                     {/* Aprobar (pendiente_aprobacion -> aprobado) */}
                     {lead.estado === "pendiente_aprobacion" &&
                       lead.borrador_email && (
@@ -188,10 +244,20 @@ export function LeadsTable({
                     {/* Esperando borrador */}
                     {lead.estado === "pendiente_aprobacion" &&
                       !lead.borrador_email && (
-                        <span className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          Esperando borrador...
-                        </span>
+                        <button
+                          onClick={() => handleGenerateDraft(lead.id)}
+                          disabled={isGeneratingDraftThis}
+                          className="text-xs px-3 py-1.5 rounded-lg border border-leadby-500/30 text-leadby-600 hover:bg-leadby-500/5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5"
+                        >
+                          {isGeneratingDraftThis ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Generando...
+                            </>
+                          ) : (
+                            "Generar borrador IA"
+                          )}
+                        </button>
                       )}
 
                     {/* Enviado */}
@@ -221,6 +287,13 @@ export function LeadsTable({
                             : "Descartar"}
                         </button>
                       )}
+                    </div>
+
+                    {draftErrorForLead && (
+                      <p className="text-[11px] text-red-500 dark:text-red-400 max-w-[240px] text-right">
+                        {draftErrorForLead}
+                      </p>
+                    )}
                   </div>
                 </td>
               </tr>

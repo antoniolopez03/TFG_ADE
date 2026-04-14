@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LeadsTable } from "./LeadsTable";
 import { EmailDrawer } from "./EmailDrawer";
@@ -54,6 +54,10 @@ export function LeadsClient({
 
   const [leads, setLeads] = useState<LeadConRelaciones[]>(leadsIniciales);
   const [drawerLead, setDrawerLead] = useState<LeadConRelaciones | null>(null);
+
+  useEffect(() => {
+    setLeads(leadsIniciales);
+  }, [leadsIniciales]);
 
   const tabConfig = TABS.find((t) => t.value === tabActivo) ?? TABS[0];
   const leadsFiltrados = tabConfig.filter(leads);
@@ -109,6 +113,41 @@ export function LeadsClient({
     );
   }, []);
 
+  const handleGenerateDraft = useCallback(
+    async (leadId: string) => {
+      const res = await fetch("/api/webhooks/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_id: leadId, organizacion_id: organizacionId }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "No se pudo generar el borrador con IA.");
+      }
+
+      setLeads((prev) =>
+        prev.map((lead) =>
+          lead.id === leadId
+            ? {
+                ...lead,
+                borrador_email:
+                  typeof data.email_borrador === "string"
+                    ? data.email_borrador
+                    : lead.borrador_email,
+                email_asunto:
+                  typeof data.email_asunto === "string"
+                    ? data.email_asunto
+                    : lead.email_asunto,
+              }
+            : lead
+        )
+      );
+    },
+    [organizacionId]
+  );
+
   const pendingCount =
     countsByEstado["pendiente_aprobacion"] ??
     leads.filter((l) => l.estado === "pendiente_aprobacion").length;
@@ -150,6 +189,7 @@ export function LeadsClient({
         onApprove={handleApprove}
         onOpenDrawer={setDrawerLead}
         onDiscard={handleDiscard}
+        onGenerateDraft={handleGenerateDraft}
       />
 
       {/* Email Drawer */}

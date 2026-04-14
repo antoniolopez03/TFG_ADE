@@ -77,7 +77,13 @@ export interface LeadConRelaciones {
   global_empresas: {
     nombre: string | null;
     sector: string | null;
+    dominio?: string | null;
+    ciudad?: string | null;
+    provincia?: string | null;
     linkedin_url?: string | null;
+    apollo_org_id?: string | null;
+    ingresos_rango?: IngresosRangoApollo | null;
+    tecnologias?: string[] | null;
   } | null;
   global_contactos: {
     nombre: string | null;
@@ -85,6 +91,8 @@ export interface LeadConRelaciones {
     cargo: string | null;
     email: string | null;
     linkedin_url: string | null;
+    apollo_contact_id?: string | null;
+    email_status?: EmailStatusApollo | null;
     seniority?: SeniorityApollo | null;
     departamento?: string | null;
   } | null;

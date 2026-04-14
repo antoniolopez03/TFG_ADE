@@ -125,13 +125,13 @@ HubSpot parte vacío, instancia nueva desde cero.
 |---|-------|
 | 6.1 | Actualizar `ManualSearchForm.tsx` y `SearchForm.tsx`: conectar con nueva API de prospecting (respuesta síncrona) |
 | 6.2 | Actualizar `LookalikeTrigger.tsx`: conectar con API de lookalike |
-| 6.3 | Actualizar `LeadsTable.tsx` y `LeadsClient.tsx`: reflejar nuevos campos de Apollo (linkedin, seniority) |
-| 6.4 | Actualizar `EmailDrawer.tsx` y `EmailApprovalPanel.tsx`: flujo completo de revisión/edición/envío del borrador Gemini |
-| 6.5 | Actualizar `DashboardClient.tsx`: integrar métricas reales de HubSpot |
+| 6.3 | [x] Actualizar `LeadsTable.tsx` y `LeadsClient.tsx`: reflejar nuevos campos de Apollo (linkedin, seniority) |
+| 6.4 | [x] Actualizar `EmailDrawer.tsx` y `EmailApprovalPanel.tsx`: flujo completo de revisión/edición/envío del borrador Gemini |
+| 6.5 | [x] Actualizar `DashboardClient.tsx`: integrar métricas reales de HubSpot |
 | 6.6 | Actualizar `CrmIntegrationForm.tsx`: formulario para guardar token HubSpot en Vault |
 | 6.7 | Actualizar `AiToneForm.tsx`: guardar preferencias de IA en configuracion_tenant |
 | 6.8 | Actualizar `SettingsTabs.tsx` y `TeamManager.tsx`: verificar funcionalidad de gestión de equipo |
-| 6.9 | Actualizar página de detalle de lead (`leads/[leadId]`) con datos Apollo enriquecidos |
+| 6.9 | [x] Actualizar página de detalle de lead (`leads/[leadId]`) con datos Apollo enriquecidos |
 
 **Tareas: 9** · Usuario: 0 · Agente: 9
 

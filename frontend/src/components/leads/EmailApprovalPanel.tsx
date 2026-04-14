@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Edit3, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Send, Edit3, CheckCircle, Clock, XCircle, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { LeadEstado } from "@/lib/types/app.types";
 
@@ -32,14 +32,70 @@ export function EmailApprovalPanel({
 }: EmailApprovalPanelProps) {
   const router = useRouter();
 
-  const contenidoInicial = emailAprobado ?? emailBorrador ?? "";
-  const [contenido, setContenido] = useState(contenidoInicial);
+  const [emailBorradorActual, setEmailBorradorActual] = useState(emailBorrador);
+  const [contenido, setContenido] = useState(emailAprobado ?? emailBorrador ?? "");
   const [asunto, setAsunto] = useState(asuntoInicial ?? "");
   const [loading, setLoading] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [generatingDraft, setGeneratingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [estadoActual, setEstadoActual] = useState(estado);
   const [enviado, setEnviado] = useState(estado === "enviado");
+  const borradorDisponible = emailBorradorActual ?? emailBorrador;
+
+  useEffect(() => {
+    setEmailBorradorActual(emailBorrador);
+    setContenido(emailAprobado ?? emailBorrador ?? "");
+    setAsunto(asuntoInicial ?? "");
+    setEstadoActual(estado);
+    setEnviado(estado === "enviado");
+  }, [emailAprobado, emailBorrador, asuntoInicial, estado]);
+
+  async function handleGenerarBorrador() {
+    setGeneratingDraft(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/webhooks/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lead_id: leadId,
+          organizacion_id: organizacionId,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data.error ?? "No se pudo generar el borrador con IA.");
+        return;
+      }
+
+      const borrador =
+        typeof data.email_borrador === "string" ? data.email_borrador : "";
+      const asuntoGenerado =
+        typeof data.email_asunto === "string" ? data.email_asunto : "";
+
+      if (!borrador) {
+        setError("Gemini no devolvió un borrador válido para este lead.");
+        return;
+      }
+
+      setEmailBorradorActual(borrador);
+      setContenido(borrador);
+
+      if (asuntoGenerado) {
+        setAsunto(asuntoGenerado);
+      }
+
+      router.refresh();
+    } catch {
+      setError("Error de conexión. Inténtalo de nuevo.");
+    } finally {
+      setGeneratingDraft(false);
+    }
+  }
 
   async function handleAprobar() {
     setApproving(true);
@@ -122,14 +178,14 @@ export function EmailApprovalPanel({
           <h2 className="font-semibold text-gray-900 text-sm">Email enviado</h2>
         </div>
         <div className="p-4 bg-gray-50 rounded-lg text-sm text-gray-600 whitespace-pre-wrap font-mono text-xs">
-          {emailAprobado ?? emailBorrador ?? "—"}
+          {emailAprobado ?? borradorDisponible ?? "—"}
         </div>
       </div>
     );
   }
 
   // Estado: no hay borrador todavía
-  if (!emailBorrador) {
+  if (!borradorDisponible) {
     return (
       <div className="bg-white rounded-xl border border-gray-100 p-5">
         <div className="flex items-center gap-2 mb-4">
@@ -138,7 +194,31 @@ export function EmailApprovalPanel({
         </div>
         <div className="p-8 text-center">
           <p className="text-sm text-gray-500">Aún no hay borrador generado para este lead.</p>
-          <p className="text-xs text-gray-400 mt-1">Vuelve a intentarlo cuando el borrador esté disponible.</p>
+          <p className="text-xs text-gray-400 mt-1">Puedes generarlo ahora con Gemini para continuar el flujo de aprobación.</p>
+
+          {error && (
+            <p className="mt-3 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-left">
+              {error}
+            </p>
+          )}
+
+          <button
+            onClick={handleGenerarBorrador}
+            disabled={generatingDraft}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-leadby-500 hover:bg-leadby-600 text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {generatingDraft ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generando borrador...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Generar borrador con IA
+              </>
+            )}
+          </button>
         </div>
       </div>
     );

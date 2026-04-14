@@ -13,6 +13,9 @@ type Empresa = {
   sector: string | null;
   telefono: string | null;
   linkedin_url: string | null;
+  apollo_org_id: string | null;
+  ingresos_rango: string | null;
+  tecnologias: string[] | null;
 };
 
 type Contacto = {
@@ -23,6 +26,10 @@ type Contacto = {
   email: string | null;
   linkedin_url: string | null;
   telefono: string | null;
+  apollo_contact_id: string | null;
+  seniority: string | null;
+  departamento: string | null;
+  email_status: string | null;
 };
 
 type MaybeArray<T> = T | T[] | null | undefined;
@@ -58,8 +65,8 @@ export default async function LeadDetailPage({
     .select(`
       id, estado, borrador_email, email_aprobado, email_asunto,
       email_enviado_at, notas, created_at,
-      global_empresas (id, nombre, dominio, ciudad, provincia, sector, telefono, linkedin_url),
-      global_contactos (id, nombre, apellidos, cargo, email, linkedin_url, telefono)
+      global_empresas (id, nombre, dominio, ciudad, provincia, sector, telefono, linkedin_url, apollo_org_id, ingresos_rango, tecnologias),
+      global_contactos (id, nombre, apellidos, cargo, email, linkedin_url, telefono, apollo_contact_id, seniority, departamento, email_status)
     `)
     .eq("id", params.leadId)
     .eq("organizacion_id", membresia.organizacion_id)
@@ -69,6 +76,9 @@ export default async function LeadDetailPage({
 
   const empresa = normalizeOne<Empresa>(lead.global_empresas as MaybeArray<Empresa>);
   const contacto = normalizeOne<Contacto>(lead.global_contactos as MaybeArray<Contacto>);
+  const tecnologias = Array.isArray(empresa?.tecnologias)
+    ? empresa.tecnologias.filter((item): item is string => typeof item === "string")
+    : [];
 
   return (
     <div className="p-8 max-w-5xl">
@@ -94,6 +104,17 @@ export default async function LeadDetailPage({
                 {empresa.sector && (
                   <p className="w-fit rounded-md bg-black/5 px-2 py-1 text-xs text-black/60 dark:bg-white/10 dark:text-white/60">
                     {empresa.sector}
+                  </p>
+                )}
+                {empresa.ingresos_rango && (
+                  <p className="w-fit rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+                    Ingresos estimados: {empresa.ingresos_rango}
+                  </p>
+                )}
+                {tecnologias.length > 0 && (
+                  <p className="text-xs text-black/60 dark:text-white/60">
+                    Stack detectado: {tecnologias.slice(0, 4).join(", ")}
+                    {tecnologias.length > 4 ? "..." : ""}
                   </p>
                 )}
                 <div className="space-y-1.5 mt-3">
@@ -146,6 +167,21 @@ export default async function LeadDetailPage({
                 </p>
                 {contacto.cargo && (
                   <p className="text-xs text-black/60 dark:text-white/60">{contacto.cargo}</p>
+                )}
+                {contacto.seniority && (
+                  <p className="text-xs text-black/60 dark:text-white/60 uppercase">
+                    Seniority: {contacto.seniority}
+                  </p>
+                )}
+                {contacto.departamento && (
+                  <p className="text-xs text-black/60 dark:text-white/60">
+                    Departamento: {contacto.departamento}
+                  </p>
+                )}
+                {contacto.email_status && (
+                  <p className="text-xs text-black/60 dark:text-white/60">
+                    Estado email: {contacto.email_status}
+                  </p>
                 )}
                 <div className="space-y-1.5 mt-3">
                   {contacto.email && (

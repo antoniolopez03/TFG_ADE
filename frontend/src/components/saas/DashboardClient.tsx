@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
 import Link from "next/link";
-import { Search, Users, Send, TrendingUp } from "lucide-react";
+import { Search, Users, Send, TrendingUp, Building2 } from "lucide-react";
 
 interface DashboardClientProps {
   orgName: string | null;
@@ -13,6 +13,9 @@ interface DashboardClientProps {
   totalLeads: number;
   leadsEnviados: number;
   leadsPendientes: number;
+  hubspotDealsWon: number;
+  hubspotRevenueWon: number;
+  hubspotMetricsSource: "hubspot" | "sin_token" | "error";
 }
 
 interface Metrica {
@@ -29,8 +32,14 @@ export function DashboardClient({
   totalLeads,
   leadsEnviados,
   leadsPendientes,
+  hubspotDealsWon,
+  hubspotRevenueWon,
+  hubspotMetricsSource,
 }: DashboardClientProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hubspotRevenueFormatted = hubspotRevenueWon.toLocaleString("es-ES", {
+    maximumFractionDigits: 0,
+  });
 
   const METRICAS: Metrica[] = [
     {
@@ -53,6 +62,13 @@ export function DashboardClient({
       icon: TrendingUp,
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-50 dark:bg-amber-950/40",
+    },
+    {
+      label: "Deals ganados (HubSpot)",
+      valor: hubspotDealsWon,
+      icon: Building2,
+      color: "text-violet-600 dark:text-violet-400",
+      bg: "bg-violet-50 dark:bg-violet-950/40",
     },
   ];
 
@@ -138,7 +154,7 @@ export function DashboardClient({
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-4">
         {METRICAS.map(({ label, valor, icon: Icon, color, bg }) => (
           <div
             key={label}
@@ -160,6 +176,25 @@ export function DashboardClient({
             </p>
           </div>
         ))}
+      </div>
+
+      <div className="mb-8 text-xs text-gray-500 dark:text-gray-400">
+        {hubspotMetricsSource === "hubspot" && (
+          <p>
+            HubSpot conectado: {hubspotDealsWon} deals ganados y valor total estimado de
+            {" "}EUR {hubspotRevenueFormatted}.
+          </p>
+        )}
+        {hubspotMetricsSource === "sin_token" && (
+          <p>
+            Configura el token de HubSpot en Ajustes para habilitar métricas CRM reales.
+          </p>
+        )}
+        {hubspotMetricsSource === "error" && (
+          <p>
+            No fue posible cargar métricas de HubSpot en este momento. Mostrando métricas internas.
+          </p>
+        )}
       </div>
 
       {/* Acciones rápidas */}
