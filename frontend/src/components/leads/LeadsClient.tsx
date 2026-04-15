@@ -1,10 +1,44 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { LeadsTable } from "./LeadsTable";
 import { EmailDrawer } from "./EmailDrawer";
+import { LeadDetailsModal } from "./LeadDetailsModal";
 import type { LeadConRelaciones } from "@/lib/types/app.types";
+
+const BULK_CHUNK_SIZE = 10;
+const BULK_DELAY_MS = 15000;
+
+type BulkProgressStatus = "idle" | "processing" | "waiting";
+type BulkAction = "generate" | "discard" | null;
+
+interface BulkProgress {
+  current: number;
+  total: number;
+  status: BulkProgressStatus;
+}
+
+interface BulkNotice {
+  type: "success" | "error";
+  message: string;
+}
+
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+function chunkArray<T>(items: T[], chunkSize: number): T[][] {
+  if (chunkSize <= 0) {
+    return [items];
+  }
+
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+
+  return chunks;
+}
 
 interface Tab {
   label: string;
@@ -47,13 +81,68 @@ export function LeadsClient({
 
   const [leads, setLeads] = useState<LeadConRelaciones[]>(leadsIniciales);
   const [drawerLead, setDrawerLead] = useState<LeadConRelaciones | null>(null);
+  const [detailsLead, setDetailsLead] = useState<LeadConRelaciones | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [bulkAction, setBulkAction] = useState<BulkAction>(null);
+  const [progress, setProgress] = useState<BulkProgress>({
+    current: 0,
+    total: 0,
+    status: "idle",
+  });
+  const [bulkNotice, setBulkNotice] = useState<BulkNotice | null>(null);
 
   useEffect(() => {
     setLeads(leadsIniciales);
   }, [leadsIniciales]);
 
   const tabConfig = TABS.find((t) => t.value === tabActivo) ?? TABS[0];
-  const leadsFiltrados = tabConfig.filter(leads);
+  const isPendingTab = tabActivo === "pendientes";
+  const leadsFiltrados = useMemo(() => tabConfig.filter(leads), [tabConfig, leads]);
+
+  useEffect(() => {
+    const visibleIds = new Set(leadsFiltrados.map((lead) => lead.id));
+    setSelectedIds((prev) => {
+      const next = prev.filter((leadId) => visibleIds.has(leadId));
+      const isSameSelection =
+        next.length === prev.length && next.every((leadId, index) => leadId === prev[index]);
+
+      return isSameSelection ? prev : next;
+    });
+  }, [leadsFiltrados]);
+
+  useEffect(() => {
+    if (!isPendingTab) {
+      setSelectedIds([]);
+    }
+  }, [isPendingTab]);
+
+  const selectableLeadIds = useMemo(
+    () => {
+      if (!isPendingTab) {
+        return [];
+      }
+
+      return leadsFiltrados
+        .filter((lead) => lead.estado === "pendiente_aprobacion" && !lead.borrador_email)
+        .map((lead) => lead.id);
+    },
+    [isPendingTab, leadsFiltrados]
+  );
+
+  const selectableLeadIdsSet = useMemo(
+    () => new Set(selectableLeadIds),
+    [selectableLeadIds]
+  );
+
+  const selectedEligibleIds = useMemo(
+    () => selectedIds.filter((leadId) => selectableLeadIdsSet.has(leadId)),
+    [selectedIds, selectableLeadIdsSet]
+  );
+
+  const allSelectableSelected =
+    selectableLeadIds.length > 0 &&
+    selectedEligibleIds.length === selectableLeadIds.length;
 
   function setTab(value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -61,7 +150,20 @@ export function LeadsClient({
     router.push(`?${params.toString()}`, { scroll: false });
   }
 
-  const handleDiscard = useCallback(
+  const markLeadsAsDiscarded = useCallback((leadIds: string[]) => {
+    if (leadIds.length === 0) {
+      return;
+    }
+
+    const idsSet = new Set(leadIds);
+    setLeads((prev) =>
+      prev.map((lead) =>
+        idsSet.has(lead.id) ? { ...lead, estado: "descartado" } : lead
+      )
+    );
+  }, []);
+
+  const discardLeadRequest = useCallback(
     async (leadId: string) => {
       const res = await fetch("/api/leads/discard", {
         method: "POST",
@@ -69,30 +171,30 @@ export function LeadsClient({
         body: JSON.stringify({ lead_id: leadId, organizacion_id: organizacionId }),
       });
 
-      if (!res.ok) {
+      return res.ok;
+    },
+    [organizacionId]
+  );
+
+  const handleDiscard = useCallback(
+    async (leadId: string) => {
+      const discarded = await discardLeadRequest(leadId);
+      if (!discarded) {
         return;
       }
 
-      setLeads((prev) =>
-        prev.map((l) =>
-          l.id === leadId ? { ...l, estado: "descartado" } : l
-        )
-      );
+      markLeadsAsDiscarded([leadId]);
       router.refresh();
     },
-    [organizacionId, router]
+    [discardLeadRequest, markLeadsAsDiscarded, router]
   );
 
   const handleDiscardedFromDrawer = useCallback(
     (leadId: string) => {
-      setLeads((prev) =>
-        prev.map((lead) =>
-          lead.id === leadId ? { ...lead, estado: "descartado" } : lead
-        )
-      );
+      markLeadsAsDiscarded([leadId]);
       router.refresh();
     },
-    [router]
+    [markLeadsAsDiscarded, router]
   );
 
   const handleSent = useCallback(
@@ -142,9 +244,252 @@ export function LeadsClient({
     [organizacionId]
   );
 
+  const handleToggleSelect = useCallback(
+    (leadId: string) => {
+      if (!isPendingTab || isProcessing || !selectableLeadIdsSet.has(leadId)) {
+        return;
+      }
+
+      setBulkNotice(null);
+      setSelectedIds((prev) =>
+        prev.includes(leadId)
+          ? prev.filter((currentLeadId) => currentLeadId !== leadId)
+          : [...prev, leadId]
+      );
+    },
+    [isPendingTab, isProcessing, selectableLeadIdsSet]
+  );
+
+  const handleToggleSelectAll = useCallback(() => {
+    if (!isPendingTab || isProcessing || selectableLeadIds.length === 0) {
+      return;
+    }
+
+    setBulkNotice(null);
+    setSelectedIds((prev) => {
+      if (allSelectableSelected) {
+        return prev.filter((leadId) => !selectableLeadIdsSet.has(leadId));
+      }
+
+      const next = new Set(prev);
+      selectableLeadIds.forEach((leadId) => {
+        next.add(leadId);
+      });
+
+      return Array.from(next);
+    });
+  }, [allSelectableSelected, isPendingTab, isProcessing, selectableLeadIds, selectableLeadIdsSet]);
+
+  const handleClearSelection = useCallback(() => {
+    if (isProcessing) {
+      return;
+    }
+
+    setSelectedIds([]);
+  }, [isProcessing]);
+
+  const handleGenerateDraftsInBatches = useCallback(async () => {
+    if (isProcessing) {
+      return;
+    }
+
+    const idsToProcess = [...selectedEligibleIds];
+    if (idsToProcess.length === 0) {
+      setBulkNotice({
+        type: "error",
+        message: "Selecciona al menos un lead pendiente para generar borradores.",
+      });
+      return;
+    }
+
+    setBulkNotice(null);
+    setIsProcessing(true);
+    setBulkAction("generate");
+    setProgress({ current: 0, total: idsToProcess.length, status: "processing" });
+
+    const chunks = chunkArray(idsToProcess, BULK_CHUNK_SIZE);
+    let processedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
+
+    try {
+      let chunkIndex = 0;
+
+      for (const chunk of chunks) {
+        setProgress({
+          current: processedCount,
+          total: idsToProcess.length,
+          status: "processing",
+        });
+
+        const results = await Promise.allSettled(
+          chunk.map((leadId) => handleGenerateDraft(leadId))
+        );
+
+        for (const result of results) {
+          processedCount += 1;
+          if (result.status === "fulfilled") {
+            successCount += 1;
+          } else {
+            failedCount += 1;
+          }
+        }
+
+        const isLastChunk = chunkIndex === chunks.length - 1;
+        setProgress({
+          current: processedCount,
+          total: idsToProcess.length,
+          status: isLastChunk ? "processing" : "waiting",
+        });
+
+        if (!isLastChunk) {
+          await delay(BULK_DELAY_MS);
+        }
+
+        chunkIndex += 1;
+      }
+
+      setSelectedIds([]);
+
+      if (successCount > 0 && failedCount === 0) {
+        setBulkNotice({
+          type: "success",
+          message: `Se generaron ${successCount} borrador${
+            successCount === 1 ? "" : "es"
+          } con IA.`,
+        });
+      } else if (successCount > 0) {
+        setBulkNotice({
+          type: "success",
+          message: `Proceso completado: ${successCount} borrador${
+            successCount === 1 ? "" : "es"
+          } generado${successCount === 1 ? "" : "s"} y ${failedCount} fallo${
+            failedCount === 1 ? "" : "s"
+          }.`,
+        });
+      } else {
+        setBulkNotice({
+          type: "error",
+          message: "No se pudo generar ningún borrador. Intenta de nuevo en unos minutos.",
+        });
+      }
+
+      router.refresh();
+    } finally {
+      setIsProcessing(false);
+      setBulkAction(null);
+      setProgress({ current: 0, total: 0, status: "idle" });
+    }
+  }, [handleGenerateDraft, isProcessing, router, selectedEligibleIds]);
+
+  const handleDiscardSelectedInBulk = useCallback(async () => {
+    if (isProcessing) {
+      return;
+    }
+
+    const idsToProcess = [...selectedEligibleIds];
+    if (idsToProcess.length === 0) {
+      setBulkNotice({
+        type: "error",
+        message: "Selecciona al menos un lead para descartar.",
+      });
+      return;
+    }
+
+    setBulkNotice(null);
+    setIsProcessing(true);
+    setBulkAction("discard");
+    setProgress({ current: 0, total: idsToProcess.length, status: "processing" });
+
+    const chunks = chunkArray(idsToProcess, BULK_CHUNK_SIZE);
+    const discardedIds: string[] = [];
+    let processedCount = 0;
+    let failedCount = 0;
+
+    try {
+      for (const chunk of chunks) {
+        const results = await Promise.allSettled(
+          chunk.map(async (leadId) => {
+            const discarded = await discardLeadRequest(leadId);
+            if (!discarded) {
+              throw new Error("No se pudo descartar el lead");
+            }
+
+            return leadId;
+          })
+        );
+
+        for (const result of results) {
+          processedCount += 1;
+          if (result.status === "fulfilled") {
+            discardedIds.push(result.value);
+          } else {
+            failedCount += 1;
+          }
+        }
+
+        setProgress({
+          current: processedCount,
+          total: idsToProcess.length,
+          status: "processing",
+        });
+      }
+
+      if (discardedIds.length > 0) {
+        markLeadsAsDiscarded(discardedIds);
+      }
+      setSelectedIds([]);
+
+      if (discardedIds.length > 0 && failedCount === 0) {
+        setBulkNotice({
+          type: "success",
+          message: `Se descartaron ${discardedIds.length} lead${
+            discardedIds.length === 1 ? "" : "s"
+          } correctamente.`,
+        });
+      } else if (discardedIds.length > 0) {
+        setBulkNotice({
+          type: "success",
+          message: `Proceso completado: ${discardedIds.length} lead${
+            discardedIds.length === 1 ? "" : "s"
+          } descartado${discardedIds.length === 1 ? "" : "s"} y ${failedCount} fallo${
+            failedCount === 1 ? "" : "s"
+          }.`,
+        });
+      } else {
+        setBulkNotice({
+          type: "error",
+          message: "No se pudo descartar ningún lead. Intenta de nuevo.",
+        });
+      }
+
+      router.refresh();
+    } finally {
+      setIsProcessing(false);
+      setBulkAction(null);
+      setProgress({ current: 0, total: 0, status: "idle" });
+    }
+  }, [discardLeadRequest, isProcessing, markLeadsAsDiscarded, router, selectedEligibleIds]);
+
   const pendingCount = leads.filter(
     (l) => l.estado === "pendiente_aprobacion" || l.estado === "aprobado"
   ).length;
+
+  const progressMessage = useMemo(() => {
+    if (!isProcessing || progress.total === 0) {
+      return "";
+    }
+
+    if (bulkAction === "discard") {
+      return `Descartando leads... (${progress.current}/${progress.total})`;
+    }
+
+    if (progress.status === "waiting") {
+      return `Esperando para el siguiente lote... (${progress.current}/${progress.total})`;
+    }
+
+    return `Generando borradores... (${progress.current}/${progress.total})`;
+  }, [bulkAction, isProcessing, progress]);
 
   return (
     <div>
@@ -177,12 +522,100 @@ export function LeadsClient({
         </span>
       </div>
 
+      {isPendingTab && (
+        <div className="mb-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+              {selectedEligibleIds.length} lead
+              {selectedEligibleIds.length === 1 ? "" : "s"} seleccionado
+              {selectedEligibleIds.length === 1 ? "" : "s"}
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              Solo se pueden seleccionar leads en estado pendiente y sin borrador.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleClearSelection}
+              disabled={isProcessing || selectedEligibleIds.length === 0}
+              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Limpiar selección
+            </button>
+
+            <button
+              onClick={handleGenerateDraftsInBatches}
+              disabled={isProcessing || selectedEligibleIds.length === 0}
+              className="text-xs px-3 py-1.5 rounded-lg bg-leadby-500 text-white hover:bg-leadby-600 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+            >
+              {isProcessing && bulkAction === "generate" ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Procesando lotes...
+                </>
+              ) : (
+                "Generar todos los borradores"
+              )}
+            </button>
+
+            <button
+              onClick={handleDiscardSelectedInBulk}
+              disabled={isProcessing || selectedEligibleIds.length === 0}
+              className="text-xs px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+            >
+              {isProcessing && bulkAction === "discard" ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Descartando...
+                </>
+              ) : (
+                "Descartar todos"
+              )}
+            </button>
+          </div>
+        </div>
+
+        {isProcessing && progressMessage && (
+          <p className="mt-3 text-xs text-leadby-600 dark:text-leadby-400">
+            {progressMessage}
+          </p>
+        )}
+
+        {bulkNotice && (
+          <p
+            className={`mt-3 text-xs ${
+              bulkNotice.type === "success"
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-500 dark:text-red-400"
+            }`}
+          >
+            {bulkNotice.message}
+          </p>
+        )}
+        </div>
+      )}
+
       {/* Tabla */}
       <LeadsTable
         leads={leadsFiltrados}
+        showBulkSelection={isPendingTab}
+        selectedIds={selectedEligibleIds}
+        selectableCount={selectableLeadIds.length}
+        allSelectableSelected={allSelectableSelected}
+        isProcessingBulk={isProcessing}
+        onToggleSelect={handleToggleSelect}
+        onToggleSelectAll={handleToggleSelectAll}
+        onOpenDetails={setDetailsLead}
         onOpenDrawer={setDrawerLead}
         onDiscard={handleDiscard}
         onGenerateDraft={handleGenerateDraft}
+      />
+
+      <LeadDetailsModal
+        lead={detailsLead}
+        onClose={() => setDetailsLead(null)}
       />
 
       {/* Email Drawer */}

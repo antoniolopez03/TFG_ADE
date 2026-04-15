@@ -34,7 +34,11 @@ export interface EmpresaResumen {
   nombre: string | null;
   dominio: string | null;
   ciudad: string | null;
+  provincia?: string | null;
+  pais?: string | null;
   sector: string | null;
+  telefono?: string | null;
+  empleados_rango?: string | null;
   apollo_org_id?: string | null;
   linkedin_url?: string | null;
   tecnologias?: string[] | null;
@@ -46,6 +50,7 @@ export interface ContactoResumen {
   apellidos: string | null;
   cargo: string | null;
   email: string | null;
+  telefono?: string | null;
   linkedin_url: string | null;
   apollo_contact_id?: string | null;
   email_status?: EmailStatusApollo | null;
@@ -80,8 +85,11 @@ export interface LeadConRelaciones {
     dominio?: string | null;
     ciudad?: string | null;
     provincia?: string | null;
+    pais?: string | null;
+    telefono?: string | null;
     linkedin_url?: string | null;
     apollo_org_id?: string | null;
+    empleados_rango?: string | null;
     ingresos_rango?: IngresosRangoApollo | null;
     tecnologias?: string[] | null;
   } | null;
@@ -90,6 +98,7 @@ export interface LeadConRelaciones {
     apellidos: string | null;
     cargo: string | null;
     email: string | null;
+    telefono?: string | null;
     linkedin_url: string | null;
     apollo_contact_id?: string | null;
     email_status?: EmailStatusApollo | null;
@@ -123,9 +132,14 @@ export interface LeadCompleto {
     nombre: string;
     dominio: string | null;
     ciudad: string | null;
+    provincia?: string | null;
+    pais?: string | null;
     sector: string | null;
+    telefono?: string | null;
     linkedin_url?: string | null;
     apollo_org_id?: string | null;
+    empleados_rango?: string | null;
+    tecnologias?: string[] | null;
     ingresos_rango?: IngresosRangoApollo | null;
   };
   contacto: {
@@ -134,6 +148,7 @@ export interface LeadCompleto {
     apellidos: string | null;
     cargo: string | null;
     email: string | null;
+    telefono?: string | null;
     linkedin_url: string | null;
     apollo_contact_id?: string | null;
     email_status?: EmailStatusApollo | null;

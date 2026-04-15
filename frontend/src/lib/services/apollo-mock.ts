@@ -9,6 +9,7 @@ export interface ApolloOrganization {
   industry?: string;
   city?: string;
   country?: string;
+  telefono?: string;
   phone?: string;
   estimated_num_employees?: number;
   annual_revenue_printed?: string;
@@ -22,6 +23,8 @@ export interface ApolloPerson {
   last_name?: string;
   title?: string;
   email?: string;
+  telefono?: string;
+  phone?: string;
   email_status?: string;
   seniority?: string;
   departments?: string[];
@@ -216,6 +219,7 @@ Cada elemento debe tener esta estructura exacta:
   "last_name": "apellido real español",
   "title": "cargo relevante para el sector indicado",
   "email": "nombre.apellido@dominio-empresa.es",
+  "telefono": "+34 6XX XXX XXX",
   "email_status": "verified",
   "seniority": "director|manager|vp|c_suite",
   "departments": ["department_name"],
@@ -229,7 +233,7 @@ Cada elemento debe tener esta estructura exacta:
     "industry": "${criteria.sector}",
     "city": "ciudad real de ${criteria.ubicacion}",
     "country": "Spain",
-    "phone": "+34 9XX XXX XXX",
+    "telefono": "+34 9XX XXX XXX",
     "estimated_num_employees": número entero realista,
     "annual_revenue_printed": "Xm€ - Ym€",
     "short_description": "descripción de 1 frase de la empresa"
@@ -242,6 +246,7 @@ Requisitos de calidad:
 - Los dominios de empresa deben ser coherentes con el nombre de la empresa
 - Las ciudades deben ser reales y estar en la zona geográfica indicada
 - Los emails deben seguir el patrón nombre.apellido@dominio
+- Para cada contacto y para cada empresa, DEBES generar un número de teléfono ficticio pero realista (por ejemplo, con formato internacional +34 6XX XXX XXX para móviles o +34 9XX para fijos). Asigna este valor al campo "telefono"
 - No repitas empresas: cada contacto debe pertenecer a una empresa diferente
 - Los números de empleados deben ser coherentes con el tamaño indicado`;
 }

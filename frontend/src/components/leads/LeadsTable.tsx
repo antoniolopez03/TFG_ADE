@@ -2,19 +2,43 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Loader2, CheckCircle, Eye } from "lucide-react";
+import { ExternalLink, Loader2, CheckCircle, Eye, UserRound } from "lucide-react";
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import type { LeadConRelaciones } from "@/lib/types/app.types";
 
 interface LeadsTableProps {
   leads: LeadConRelaciones[];
+  showBulkSelection: boolean;
+  selectedIds: string[];
+  selectableCount: number;
+  allSelectableSelected: boolean;
+  isProcessingBulk: boolean;
+  onToggleSelect: (leadId: string) => void;
+  onToggleSelectAll: () => void;
+  onOpenDetails: (lead: LeadConRelaciones) => void;
   onOpenDrawer: (lead: LeadConRelaciones) => void;
   onDiscard: (leadId: string) => Promise<void>;
   onGenerateDraft: (leadId: string) => Promise<void>;
 }
 
+function isInteractiveRowTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  return Boolean(target.closest("button, a, input, textarea, select, [role='button']"));
+}
+
 export function LeadsTable({
   leads,
+  showBulkSelection,
+  selectedIds,
+  selectableCount,
+  allSelectableSelected,
+  isProcessingBulk,
+  onToggleSelect,
+  onToggleSelectAll,
+  onOpenDetails,
   onOpenDrawer,
   onDiscard,
   onGenerateDraft,
@@ -76,6 +100,18 @@ export function LeadsTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+            {showBulkSelection && (
+              <th className="px-4 py-3 w-10">
+                <input
+                  type="checkbox"
+                  checked={allSelectableSelected}
+                  onChange={onToggleSelectAll}
+                  disabled={isProcessingBulk || selectableCount === 0}
+                  className="h-4 w-4 rounded border-gray-300 text-leadby-500 focus:ring-leadby-500 disabled:cursor-not-allowed"
+                  aria-label="Seleccionar todos los leads elegibles"
+                />
+              </th>
+            )}
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
               Empresa
             </th>
@@ -108,6 +144,9 @@ export function LeadsTable({
             const isGeneratingDraftThis = generatingDraftId === lead.id;
             const draftErrorForLead =
               draftError?.leadId === lead.id ? draftError.message : null;
+            const isSelected = selectedIds.includes(lead.id);
+            const canSelectForBulk =
+              lead.estado === "pendiente_aprobacion" && !lead.borrador_email;
             const canReviewDraft =
               Boolean(lead.borrador_email) &&
               (lead.estado === "pendiente_aprobacion" || lead.estado === "aprobado");
@@ -118,8 +157,28 @@ export function LeadsTable({
             return (
               <tr
                 key={lead.id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                onClick={(event) => {
+                  if (isInteractiveRowTarget(event.target)) {
+                    return;
+                  }
+
+                  onOpenDetails(lead);
+                }}
               >
+                {showBulkSelection && (
+                  <td className="px-4 py-3 align-top">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => onToggleSelect(lead.id)}
+                      disabled={isProcessingBulk || !canSelectForBulk}
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-leadby-500 focus:ring-leadby-500 disabled:cursor-not-allowed"
+                      aria-label={`Seleccionar lead ${empresa?.nombre ?? lead.id}`}
+                    />
+                  </td>
+                )}
+
                 {/* Empresa */}
                 <td className="px-4 py-3">
                   <p className="font-medium text-gray-900 dark:text-white">
@@ -201,11 +260,20 @@ export function LeadsTable({
                 <td className="px-4 py-3">
                   <div className="flex flex-col items-end gap-1">
                     <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => onOpenDetails(lead)}
+                        className="border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100/70 dark:hover:bg-gray-800 font-medium px-3 py-1.5 rounded-lg transition-colors text-xs inline-flex items-center gap-1.5"
+                      >
+                        <UserRound className="w-3.5 h-3.5" />
+                        Ver perfil
+                      </button>
+
                       {/* Revisar borrador en panel lateral */}
                       {canReviewDraft && (
                         <button
                           onClick={() => onOpenDrawer(lead)}
-                          className="border border-leadby-500 text-leadby-600 hover:bg-leadby-500/5 font-medium px-3 py-1.5 rounded-lg transition-colors text-xs inline-flex items-center gap-1.5"
+                          disabled={isProcessingBulk}
+                          className="border border-leadby-500 text-leadby-600 hover:bg-leadby-500/5 font-medium px-3 py-1.5 rounded-lg transition-colors text-xs inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           Revisar borrador
@@ -217,7 +285,7 @@ export function LeadsTable({
                       !lead.borrador_email && (
                         <button
                           onClick={() => handleGenerateDraft(lead.id)}
-                          disabled={isGeneratingDraftThis}
+                          disabled={isGeneratingDraftThis || isProcessingBulk}
                           className="text-xs px-3 py-1.5 rounded-lg border border-leadby-500/30 text-leadby-600 hover:bg-leadby-500/5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5"
                         >
                           {isGeneratingDraftThis ? (
@@ -245,7 +313,7 @@ export function LeadsTable({
                       !canReviewDraft && (
                         <button
                           onClick={() => handleDiscard(lead.id)}
-                          disabled={isDiscardingThis}
+                          disabled={isDiscardingThis || isProcessingBulk}
                           className={`text-xs px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
                             confirmingDiscard
                               ? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 font-medium"

@@ -250,6 +250,14 @@ function extractDepartamento(person: ApolloPerson): string | null {
   return toStringOrNull(person.department);
 }
 
+function extractTelefonoFromOrganization(org: ApolloOrganization): string | null {
+  return toStringOrNull(org.telefono) ?? toStringOrNull(org.phone);
+}
+
+function extractTelefonoFromPerson(person: ApolloPerson): string | null {
+  return toStringOrNull(person.telefono) ?? toStringOrNull(person.phone);
+}
+
 function normalizePersonaNombre(person: ApolloPerson): { nombre: string | null; apellidos: string | null } {
   const nombre = toStringOrNull(person.first_name);
   const apellidos = toStringOrNull(person.last_name);
@@ -434,7 +442,7 @@ async function resolveEmpresa(
     ciudad: toStringOrNull(organization.city),
     provincia: toStringOrNull(organization.state),
     pais: toStringOrNull(organization.country) ?? "ES",
-    telefono: toStringOrNull(organization.phone),
+    telefono: extractTelefonoFromOrganization(organization),
     fuente: "apollo",
     ultimaVerificacion: new Date().toISOString(),
   });
@@ -468,6 +476,7 @@ async function resolveContactoDesdePersona(
     cargo: toStringOrNull(person.title),
     email: toStringOrNull(person.email),
     linkedinUrl: toStringOrNull(person.linkedin_url),
+    telefono: extractTelefonoFromPerson(person),
     fuente: "apollo",
     emailStatus: toStringOrNull(person.email_status),
     seniority: toStringOrNull(person.seniority),
