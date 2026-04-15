@@ -86,11 +86,17 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
     .join(", ");
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
-
-      <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 lg:p-10">
-        <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 backdrop-blur-[2px] p-4 sm:p-6 lg:p-10"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Perfil enriquecido del lead"
+    >
+      <div
+        className="mx-auto w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+        onClick={(event) => event.stopPropagation()}
+      >
           <div className="relative border-b border-slate-200 px-6 pb-6 pt-8 dark:border-slate-700 sm:px-8">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-r from-cyan-50 via-sky-50 to-teal-50 dark:from-cyan-950/20 dark:via-sky-950/20 dark:to-teal-950/20" />
 
@@ -109,6 +115,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
               </div>
 
               <button
+                type="button"
                 onClick={onClose}
                 className="rounded-lg border border-slate-200 bg-white/80 p-2 text-slate-500 transition-colors hover:text-slate-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:text-white"
                 aria-label="Cerrar panel de detalles"
@@ -327,8 +334,7 @@ export function LeadDetailsModal({ lead, onClose }: LeadDetailsModalProps) {
               </dl>
             </section>
           </div>
-        </div>
       </div>
-    </>
+    </div>
   );
 }

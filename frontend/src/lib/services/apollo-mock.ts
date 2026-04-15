@@ -12,6 +12,7 @@ export interface ApolloOrganization {
   telefono?: string;
   phone?: string;
   estimated_num_employees?: number;
+  ingresos_rango?: "0-1M" | "1-10M" | "10-100M" | "100M+";
   annual_revenue_printed?: string;
   short_description?: string;
   [key: string]: unknown;
@@ -235,7 +236,8 @@ Cada elemento debe tener esta estructura exacta:
     "country": "Spain",
     "telefono": "+34 9XX XXX XXX",
     "estimated_num_employees": número entero realista,
-    "annual_revenue_printed": "Xm€ - Ym€",
+    "ingresos_rango": "0-1M|1-10M|10-100M|100M+",
+    "annual_revenue_printed": "0-1M|1-10M|10-100M|100M+",
     "short_description": "descripción de 1 frase de la empresa"
   }
 }
@@ -247,6 +249,7 @@ Requisitos de calidad:
 - Las ciudades deben ser reales y estar en la zona geográfica indicada
 - Los emails deben seguir el patrón nombre.apellido@dominio
 - Para cada contacto y para cada empresa, DEBES generar un número de teléfono ficticio pero realista (por ejemplo, con formato internacional +34 6XX XXX XXX para móviles o +34 9XX para fijos). Asigna este valor al campo "telefono"
+- DEBES establecer SIEMPRE los campos "ingresos_rango" y "annual_revenue_printed" con uno de estos valores exactos: "0-1M", "1-10M", "10-100M" o "100M+". No uses otros formatos (sin €, sin texto adicional)
 - No repitas empresas: cada contacto debe pertenecer a una empresa diferente
 - Los números de empleados deben ser coherentes con el tamaño indicado`;
 }
