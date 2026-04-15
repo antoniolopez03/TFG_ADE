@@ -155,7 +155,7 @@ function classifyGeminiError(error: unknown): ApolloMockAiError {
       status: 503,
       message: `Gemini saturado: ${message}`,
       publicMessage:
-        "Los servidores de IA están experimentando alta demanda. Por favor, espera 30 segundos y vuelve a intentarlo.",
+        "Estamos recibiendo una alta demanda en estaos momentos, pruebe más tarde",
       cause: error,
     });
   }

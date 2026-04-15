@@ -57,7 +57,7 @@ export function SearchForm({ organizacionId }: SearchFormProps) {
         } catch {
           if (res.status === 503) {
             message =
-              "Los servidores de IA están experimentando alta demanda. Espera 30 segundos y vuelve a intentarlo.";
+              "Estamos recibiendo una alta demanda en estaos momentos, pruebe más tarde";
           } else if (res.status === 429) {
             message =
               "Se alcanzó el límite de peticiones de IA. Espera unos segundos y vuelve a intentarlo.";

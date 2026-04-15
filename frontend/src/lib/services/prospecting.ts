@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  isApolloMockAiError,
   type ApolloOrganization,
   type ApolloPerson,
   searchPeopleWithCompany,
@@ -764,12 +765,39 @@ export async function executeApolloLookalikeJob(
 }
 
 export function resolveProspectingErrorStatus(error: unknown): number {
-  void error;
+  if (isApolloMockAiError(error)) {
+    return error.status;
+  }
+
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    if (message.includes("gemini saturado") || message.includes("high demand")) {
+      return 503;
+    }
+
+    if (message.includes("límite de peticiones") || message.includes("rate limit")) {
+      return 429;
+    }
+  }
+
   return 500;
 }
 
 export function resolveProspectingErrorMessage(error: unknown): string {
+  if (isApolloMockAiError(error)) {
+    return error.publicMessage;
+  }
+
   if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    if (message.includes("gemini saturado") || message.includes("high demand")) {
+      return "Estamos recibiendo una alta demanda en estaos momentos, pruebe más tarde";
+    }
+
+    if (message.includes("límite de peticiones") || message.includes("rate limit")) {
+      return "Se alcanzó el límite de peticiones de IA. Espera unos segundos y vuelve a intentarlo.";
+    }
+
     return error.message;
   }
 
