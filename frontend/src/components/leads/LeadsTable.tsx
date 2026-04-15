@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Loader2, CheckCircle } from "lucide-react";
+import { ExternalLink, Loader2, CheckCircle, Eye } from "lucide-react";
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import type { LeadConRelaciones } from "@/lib/types/app.types";
 
 interface LeadsTableProps {
   leads: LeadConRelaciones[];
-  onApprove: (leadId: string) => Promise<void>;
   onOpenDrawer: (lead: LeadConRelaciones) => void;
   onDiscard: (leadId: string) => Promise<void>;
   onGenerateDraft: (leadId: string) => Promise<void>;
@@ -16,27 +15,16 @@ interface LeadsTableProps {
 
 export function LeadsTable({
   leads,
-  onApprove,
   onOpenDrawer,
   onDiscard,
   onGenerateDraft,
 }: LeadsTableProps) {
-  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [discardingId, setDiscardingId] = useState<string | null>(null);
   const [confirmDiscardId, setConfirmDiscardId] = useState<string | null>(null);
   const [generatingDraftId, setGeneratingDraftId] = useState<string | null>(null);
   const [draftError, setDraftError] = useState<{ leadId: string; message: string } | null>(
     null
   );
-
-  async function handleApprove(leadId: string) {
-    setApprovingId(leadId);
-    try {
-      await onApprove(leadId);
-    } finally {
-      setApprovingId(null);
-    }
-  }
 
   async function handleDiscard(leadId: string) {
     if (confirmDiscardId !== leadId) {
@@ -115,12 +103,14 @@ export function LeadsTable({
             const contactoNombre = [contacto?.nombre, contacto?.apellidos]
               .filter(Boolean)
               .join(" ");
-            const isApprovingThis = approvingId === lead.id;
             const isDiscardingThis = discardingId === lead.id;
             const confirmingDiscard = confirmDiscardId === lead.id;
             const isGeneratingDraftThis = generatingDraftId === lead.id;
             const draftErrorForLead =
               draftError?.leadId === lead.id ? draftError.message : null;
+            const canReviewDraft =
+              Boolean(lead.borrador_email) &&
+              (lead.estado === "pendiente_aprobacion" || lead.estado === "aprobado");
             const tecnologias = Array.isArray(empresa?.tecnologias)
               ? empresa.tecnologias.filter((item): item is string => typeof item === "string")
               : [];
@@ -211,33 +201,14 @@ export function LeadsTable({
                 <td className="px-4 py-3">
                   <div className="flex flex-col items-end gap-1">
                     <div className="flex items-center justify-end gap-2">
-                    {/* Aprobar (pendiente_aprobacion -> aprobado) */}
-                    {lead.estado === "pendiente_aprobacion" &&
-                      lead.borrador_email && (
-                      <button
-                        onClick={() => handleApprove(lead.id)}
-                        disabled={isApprovingThis}
-                        className="bg-leadby-500 hover:bg-leadby-600 text-white font-medium px-3 py-1.5 rounded-lg transition-colors text-xs flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {isApprovingThis ? (
-                          <>
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            Aprobando...
-                          </>
-                        ) : (
-                          "Aprobar"
-                        )}
-                      </button>
-                    )}
-
-                    {/* Revisar borrador (ya aprobado) */}
-                    {lead.estado === "aprobado" &&
-                      lead.borrador_email && (
+                      {/* Revisar borrador en panel lateral */}
+                      {canReviewDraft && (
                         <button
                           onClick={() => onOpenDrawer(lead)}
-                          className="border border-leadby-500 text-leadby-600 hover:bg-leadby-500/5 font-medium px-3 py-1.5 rounded-lg transition-colors text-xs"
+                          className="border border-leadby-500 text-leadby-600 hover:bg-leadby-500/5 font-medium px-3 py-1.5 rounded-lg transition-colors text-xs inline-flex items-center gap-1.5"
                         >
-                          Revisar borrador →
+                          <Eye className="w-3.5 h-3.5" />
+                          Revisar borrador
                         </button>
                       )}
 
@@ -270,7 +241,8 @@ export function LeadsTable({
 
                     {/* Descartar */}
                     {lead.estado !== "descartado" &&
-                      lead.estado !== "enviado" && (
+                      lead.estado !== "enviado" &&
+                      !canReviewDraft && (
                         <button
                           onClick={() => handleDiscard(lead.id)}
                           disabled={isDiscardingThis}

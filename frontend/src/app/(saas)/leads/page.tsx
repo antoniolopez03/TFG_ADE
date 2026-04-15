@@ -58,11 +58,6 @@ export default async function LeadsPage() {
     ),
   }));
 
-  const countsByEstado: Record<string, number> = {};
-  for (const lead of leadsNormalized) {
-    countsByEstado[lead.estado] = (countsByEstado[lead.estado] ?? 0) + 1;
-  }
-
   return (
     <div className="p-8">
       <div className="mb-8 flex items-center justify-between">
@@ -71,7 +66,7 @@ export default async function LeadsPage() {
             GestiÃ³n de Leads
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Revisa y aprueba los prospectos descubiertos por el motor de
+            Revisa y envÃ­a los prospectos descubiertos por el motor de
             prospecciÃ³n.
           </p>
         </div>
@@ -83,7 +78,6 @@ export default async function LeadsPage() {
       <LeadsClient
         leadsIniciales={leadsNormalized}
         organizacionId={orgId ?? ""}
-        countsByEstado={countsByEstado}
       />
     </div>
   );

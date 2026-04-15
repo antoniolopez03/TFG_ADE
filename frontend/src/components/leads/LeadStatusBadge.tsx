@@ -8,12 +8,12 @@ const ESTADO_MAP: Record<
   { label: string; className: string; spinner?: boolean }
 > = {
   pendiente_aprobacion: {
-    label: "Pendiente de revisión",
+    label: "Pendiente",
     className: "bg-amber-100 text-amber-700",
   },
   aprobado: {
-    label: "Aprobado",
-    className: "bg-leadby-500/10 text-leadby-600 border border-leadby-500/20",
+    label: "Pendiente",
+    className: "bg-amber-100 text-amber-700",
   },
   enviado: {
     label: "Enviado",

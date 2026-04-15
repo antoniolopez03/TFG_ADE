@@ -1,45 +1,106 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, ExternalLink, Loader2, Send } from "lucide-react";
+import { X, ExternalLink, Loader2, Send, Trash2 } from "lucide-react";
 import type { LeadConRelaciones } from "@/lib/types/app.types";
 
 interface EmailDrawerProps {
   lead: LeadConRelaciones | null;
   onClose: () => void;
+  onDiscarded: (leadId: string) => void;
   onSent: (leadId: string) => void;
 }
 
-export function EmailDrawer({ lead, onClose, onSent }: EmailDrawerProps) {
+export function EmailDrawer({
+  lead,
+  onClose,
+  onDiscarded,
+  onSent,
+}: EmailDrawerProps) {
   const [asunto, setAsunto] = useState("");
   const [cuerpo, setCuerpo] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<"discard" | "send" | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState(false);
 
   useEffect(() => {
     if (lead) {
       setAsunto(lead.email_asunto ?? "");
-      setCuerpo(lead.borrador_email ?? "");
+      setCuerpo(lead.email_aprobado ?? lead.borrador_email ?? "");
       setError(null);
     }
   }, [lead]);
 
   if (!lead) return null;
+  const selectedLead = lead;
 
-  const empresa = lead.global_empresas;
-  const contacto = lead.global_contactos;
+  const canSend =
+    selectedLead.estado === "pendiente_aprobacion" || selectedLead.estado === "aprobado";
+  const isLoading = actionLoading !== null;
+
+  const empresa = selectedLead.global_empresas;
+  const contacto = selectedLead.global_contactos;
   const contactoNombre = [contacto?.nombre, contacto?.apellidos]
     .filter(Boolean)
     .join(" ");
 
-  async function handleSend() {
-    if (!asunto.trim() || !cuerpo.trim()) {
+  function getNormalizedEmailContent() {
+    const asuntoNormalizado = asunto.trim();
+    const cuerpoNormalizado = cuerpo.trim();
+
+    if (!asuntoNormalizado || !cuerpoNormalizado) {
       setError("El asunto y el cuerpo del correo son obligatorios.");
+      return null;
+    }
+
+    return {
+      asuntoNormalizado,
+      cuerpoNormalizado,
+    };
+  }
+
+  async function handleDiscard() {
+    setActionLoading("discard");
+    setError(null);
+
+    try {
+      const res = await fetch("/api/leads/discard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lead_id: selectedLead.id,
+          organizacion_id: selectedLead.organizacion_id,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "No se pudo descartar el lead.");
+        return;
+      }
+
+      onDiscarded(selectedLead.id);
+      onClose();
+    } catch {
+      setError("Error de conexión. Comprueba tu red e inténtalo de nuevo.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleSend() {
+    if (!canSend) {
+      setError("Este lead no permite envío desde su estado actual.");
       return;
     }
 
-    setLoading(true);
+    const normalized = getNormalizedEmailContent();
+    if (!normalized) {
+      return;
+    }
+
+    setActionLoading("send");
     setError(null);
 
     try {
@@ -47,10 +108,10 @@ export function EmailDrawer({ lead, onClose, onSent }: EmailDrawerProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lead_id: lead!.id,
-          organizacion_id: lead!.organizacion_id,
-          email_aprobado: cuerpo.trim(),
-          email_asunto: asunto.trim(),
+          lead_id: selectedLead.id,
+          organizacion_id: selectedLead.organizacion_id,
+          email_aprobado: normalized.cuerpoNormalizado,
+          email_asunto: normalized.asuntoNormalizado,
         }),
       });
 
@@ -60,14 +121,12 @@ export function EmailDrawer({ lead, onClose, onSent }: EmailDrawerProps) {
         return;
       }
 
-      setToast(true);
-      setTimeout(() => setToast(false), 3000);
-      onSent(lead!.id);
+      onSent(selectedLead.id);
       onClose();
     } catch {
       setError("Error de conexión. Comprueba tu red e inténtalo de nuevo.");
     } finally {
-      setLoading(false);
+      setActionLoading(null);
     }
   }
 
@@ -79,14 +138,6 @@ export function EmailDrawer({ lead, onClose, onSent }: EmailDrawerProps) {
         onClick={onClose}
         aria-hidden="true"
       />
-
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-4 right-4 z-[60] bg-green-600 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2">
-          <Send className="w-4 h-4" />
-          ¡Correo enviado y registrado en HubSpot!
-        </div>
-      )}
 
       {/* Drawer panel */}
       <div className="fixed right-0 top-0 h-full w-[560px] z-50 bg-white dark:bg-gray-900 shadow-2xl flex flex-col">
@@ -161,8 +212,9 @@ export function EmailDrawer({ lead, onClose, onSent }: EmailDrawerProps) {
 
           {/* Nota informativa */}
           <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-800/50 rounded-lg px-4 py-3 text-xs text-amber-700 dark:text-amber-300">
-            💡 Este correo será enviado desde tu dominio verificado y registrado
-            automáticamente en HubSpot.
+            {canSend
+              ? "Revisa el texto y envíalo directamente. El lead se sincroniza con HubSpot automáticamente antes del envío."
+              : "Este lead ya no permite acciones de envío desde este panel."}
           </div>
 
           {/* Error */}
@@ -177,28 +229,53 @@ export function EmailDrawer({ lead, onClose, onSent }: EmailDrawerProps) {
         <div className="border-t border-gray-100 dark:border-gray-800 p-6 flex gap-3">
           <button
             onClick={onClose}
-            disabled={loading}
+            disabled={isLoading}
             className="border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-2 rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
           >
-            Cancelar
+            Cerrar
           </button>
-          <button
-            onClick={handleSend}
-            disabled={loading}
-            className="flex-1 bg-leadby-500 hover:bg-leadby-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Enviando...
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                Confirmar y Enviar a CRM
-              </>
-            )}
-          </button>
+
+          {canSend && (
+            <>
+              <button
+                onClick={handleDiscard}
+                disabled={isLoading}
+                className="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition-colors text-sm font-medium inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {actionLoading === "discard" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Descartando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Descartar
+                  </>
+                )}
+              </button>
+            </>
+          )}
+
+          {canSend && (
+            <button
+              onClick={handleSend}
+              disabled={isLoading}
+              className="flex-1 bg-leadby-500 hover:bg-leadby-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {actionLoading === "send" ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  Enviar borrador
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </>

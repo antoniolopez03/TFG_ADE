@@ -1,6 +1,16 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export const GEMINI_FLASH_MODEL = "gemini-2.0-flash";
+export const GEMINI_PRO_MODEL = "gemini-2.5-pro";
+const LOOKALIKE_GENERATION_CONFIG = {
+  temperature: 0.25,
+  topP: 0.85,
+  maxOutputTokens: 512,
+};
+const EMAIL_GENERATION_CONFIG = {
+  temperature: 0.65,
+  topP: 0.92,
+  maxOutputTokens: 1024,
+};
 const DEFAULT_LOOKALIKE_TERMS = [
   "saas b2b espana",
   "software ventas empresas medianas",
@@ -91,10 +101,17 @@ export function createGeminiClient(): GoogleGenerativeAI {
 }
 
 /**
- * Obtiene el modelo Flash de Gemini usado en el MVP.
+ * Obtiene el modelo Pro de Gemini para tareas de redaccion y clasificacion B2B.
  */
-export function createGeminiFlashModel() {
-  return createGeminiClient().getGenerativeModel({ model: GEMINI_FLASH_MODEL });
+export function createGeminiProModel(generationConfig?: {
+  temperature?: number;
+  topP?: number;
+  maxOutputTokens?: number;
+}) {
+  return createGeminiClient().getGenerativeModel({
+    model: GEMINI_PRO_MODEL,
+    ...(generationConfig ? { generationConfig } : {}),
+  });
 }
 
 function toNonEmptyString(value: unknown): string | null {
@@ -301,7 +318,7 @@ export async function generateLookalikeTerms(
   ].join("\n");
 
   try {
-    const response = await createGeminiFlashModel().generateContent(prompt);
+    const response = await createGeminiProModel(LOOKALIKE_GENERATION_CONFIG).generateContent(prompt);
     const rawText = response.response.text();
     const payload = parseJsonObject(rawText);
     const terms = normalizeTermArray(payload?.terminos ?? payload?.terms);
@@ -346,7 +363,7 @@ export async function generateProspectEmailDraft(
   ].join("\n");
 
   try {
-    const response = await createGeminiFlashModel().generateContent(prompt);
+    const response = await createGeminiProModel(EMAIL_GENERATION_CONFIG).generateContent(prompt);
     const payload = parseJsonObject(response.response.text());
     const subject =
       toNonEmptyString(payload?.asunto) ??

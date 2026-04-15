@@ -1,4 +1,10 @@
-﻿import { createHubSpotEmailEngagement, getHubSpotTokenFromVault } from "@/lib/services/hubspot";
+﻿import {
+  createHubSpotDeal,
+  createHubSpotEmailEngagement,
+  createOrUpdateHubSpotCompany,
+  createOrUpdateHubSpotContact,
+  getHubSpotTokenFromVault,
+} from "@/lib/services/hubspot";
 import { buildLeadByEmailHtml } from "@/lib/services/email-template";
 import { sendEmailViaResend } from "@/lib/services/resend";
 import { createUnsubscribeToken } from "@/lib/services/unsubscribe";
@@ -6,14 +12,14 @@ import { createClient, createServiceClient } from "@/lib/supabase/request-client
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * API Route: Envio de email aprobado.
+ * API Route: Envio de email revisado.
  *
  * Este es el endpoint del HUMAN-IN-THE-LOOP.
  * Solo se activa cuando el comercial ha revisado el borrador,
  * posiblemente lo ha editado, y pulsa "Confirmar y Enviar".
  *
  * Validaciones criticas antes de ejecutar el envio real:
- * - El lead debe estar en estado 'aprobado'
+ * - El lead debe estar en estado 'pendiente_aprobacion' (o 'aprobado' legacy)
  * - El email_aprobado debe estar presente y no vacio
  * - El usuario debe tener acceso a la organizacion
  */
@@ -103,8 +109,9 @@ export async function POST(request: NextRequest) {
       estado,
       metadata,
       hubspot_contact_id,
-      global_contactos (email, nombre, apellidos),
-      global_empresas (nombre)
+      hubspot_deal_id,
+      global_contactos (email, nombre, apellidos, cargo, telefono, departamento),
+      global_empresas (nombre, dominio, sector, ciudad, pais, telefono, descripcion)
     `
     )
     .eq("id", lead_id)
@@ -115,10 +122,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Lead no encontrado" }, { status: 404 });
   }
 
-  if (lead.estado !== "aprobado") {
+  if (lead.estado !== "pendiente_aprobacion" && lead.estado !== "aprobado") {
     return NextResponse.json(
       {
-        error: `Estado invalido para envio: '${lead.estado}'. Solo se puede enviar desde 'aprobado'.`,
+        error:
+          `Estado invalido para envio: '${lead.estado}'. ` +
+          "Solo se puede enviar desde 'pendiente_aprobacion'.",
       },
       { status: 409 }
     );
@@ -132,16 +141,6 @@ export async function POST(request: NextRequest) {
   if (!contactoEmail) {
     return NextResponse.json(
       { error: "El lead no tiene email de contacto para poder enviar." },
-      { status: 409 }
-    );
-  }
-
-  const hubSpotContactId =
-    typeof lead.hubspot_contact_id === "string" ? lead.hubspot_contact_id.trim() : "";
-
-  if (!hubSpotContactId) {
-    return NextResponse.json(
-      { error: "El lead no tiene hubspot_contact_id. Aprueba y sincroniza de nuevo antes de enviar." },
       { status: 409 }
     );
   }
@@ -191,6 +190,82 @@ export async function POST(request: NextRequest) {
       { error: "No hay token HubSpot configurado para esta organizacion." },
       { status: 409 }
     );
+  }
+
+  let hubSpotContactId =
+    typeof lead.hubspot_contact_id === "string" ? lead.hubspot_contact_id.trim() : "";
+  let hubSpotDealId =
+    typeof lead.hubspot_deal_id === "string" ? lead.hubspot_deal_id.trim() : "";
+  let hubSpotCompanyId = "";
+
+  if (!hubSpotContactId) {
+    if (!empresa || !contacto) {
+      return NextResponse.json(
+        {
+          error:
+            "No se puede sincronizar el lead con HubSpot porque faltan datos de empresa o contacto.",
+        },
+        { status: 409 }
+      );
+    }
+
+    try {
+      const company = await createOrUpdateHubSpotCompany({
+        accessToken: hubSpotToken,
+        empresa: {
+          nombre: typeof empresa.nombre === "string" ? empresa.nombre : null,
+          dominio: typeof empresa.dominio === "string" ? empresa.dominio : null,
+          sector: typeof empresa.sector === "string" ? empresa.sector : null,
+          ciudad: typeof empresa.ciudad === "string" ? empresa.ciudad : null,
+          pais: typeof empresa.pais === "string" ? empresa.pais : null,
+          telefono: typeof empresa.telefono === "string" ? empresa.telefono : null,
+          descripcion: typeof empresa.descripcion === "string" ? empresa.descripcion : null,
+        },
+      });
+
+      const contact = await createOrUpdateHubSpotContact({
+        accessToken: hubSpotToken,
+        companyId: company.id,
+        contacto: {
+          nombre: typeof contacto.nombre === "string" ? contacto.nombre : null,
+          apellidos: typeof contacto.apellidos === "string" ? contacto.apellidos : null,
+          email: typeof contacto.email === "string" ? contacto.email : null,
+          cargo: typeof contacto.cargo === "string" ? contacto.cargo : null,
+          telefono: typeof contacto.telefono === "string" ? contacto.telefono : null,
+          departamento: typeof contacto.departamento === "string" ? contacto.departamento : null,
+        },
+      });
+
+      const companyName =
+        (typeof empresa.nombre === "string" && empresa.nombre.trim()) ||
+        (typeof empresa.dominio === "string" && empresa.dominio.trim()) ||
+        "Empresa";
+
+      const contactName =
+        [contacto.nombre, contacto.apellidos]
+          .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+          .join(" ") || "Contacto";
+
+      const deal = await createHubSpotDeal({
+        accessToken: hubSpotToken,
+        companyId: company.id,
+        contactId: contact.id,
+        dealName: `LeadBy: ${companyName} - ${contactName}`,
+      });
+
+      hubSpotCompanyId = company.id;
+      hubSpotContactId = contact.id;
+      hubSpotDealId = deal.id;
+    } catch (hubspotError) {
+      console.error("Error sincronizando lead con HubSpot antes del envio", hubspotError);
+      return NextResponse.json(
+        {
+          error:
+            "No se pudo sincronizar el lead con HubSpot antes del envio. Revisa credenciales y permisos.",
+        },
+        { status: 502 }
+      );
+    }
   }
 
   let resendMessageId = "";
@@ -272,6 +347,8 @@ export async function POST(request: NextRequest) {
       email_asunto: email_asunto.trim(),
       email_enviado_at: new Date().toISOString(),
       resend_message_id: resendMessageId,
+      hubspot_contact_id: hubSpotContactId,
+      hubspot_deal_id: hubSpotDealId || null,
       metadata: {
         ...metadataActual,
         send_email: {
@@ -283,6 +360,10 @@ export async function POST(request: NextRequest) {
         },
         hubspot_sync: {
           ...metadataHubSpot,
+          ...(hubSpotCompanyId ? { company_id: hubSpotCompanyId } : {}),
+          ...(hubSpotContactId ? { contact_id: hubSpotContactId } : {}),
+          ...(hubSpotDealId ? { deal_id: hubSpotDealId } : {}),
+          ...(hubSpotCompanyId || hubSpotDealId ? { synced_at: new Date().toISOString() } : {}),
           timeline_synced: timelineSyncOk,
           timeline_error: timelineSyncError,
           timeline_engagement_id: hubSpotEngagementId,

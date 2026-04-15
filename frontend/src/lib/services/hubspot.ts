@@ -1,5 +1,6 @@
 import { Client as HubSpotClient } from "@hubspot/api-client";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { mapIndustryToHubSpotString } from "../data/hubspot-industry-mapper";
 
 const HUBSPOT_API_BASE_URL = "https://api.hubapi.com";
 
@@ -250,7 +251,7 @@ function buildCompanyProperties(empresa: HubSpotCompanyInput): Record<string, st
   return cleanProperties({
     name: toNonEmptyString(empresa.nombre) ?? domain ?? "Empresa LeadBy",
     domain,
-    industry: toNonEmptyString(empresa.sector),
+    industry: mapIndustryToHubSpotString(empresa.sector), // ← fix: mapeado al enum de HubSpot
     city: toNonEmptyString(empresa.ciudad),
     country: toNonEmptyString(empresa.pais),
     phone: toNonEmptyString(empresa.telefono),
@@ -265,7 +266,6 @@ function buildContactProperties(contacto: HubSpotContactInput): Record<string, s
     email: toNonEmptyString(contacto.email),
     jobtitle: toNonEmptyString(contacto.cargo),
     phone: toNonEmptyString(contacto.telefono),
-    department: toNonEmptyString(contacto.departamento),
   });
 }
 

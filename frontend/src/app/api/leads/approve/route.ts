@@ -9,6 +9,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 type MaybeArray<T> = T | T[] | null | undefined;
 
+interface ApproveLeadBody {
+  lead_id?: unknown;
+  organizacion_id?: unknown;
+  email_aprobado?: unknown;
+  email_asunto?: unknown;
+}
+
 function normalizeOne<T>(value: MaybeArray<T>): T | null {
   if (Array.isArray(value)) {
     return value[0] ?? null;
@@ -41,7 +48,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  let body: { lead_id: string; organizacion_id: string };
+  let body: ApproveLeadBody;
 
   try {
     body = await request.json();
@@ -49,11 +56,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Body JSON invÃ¡lido" }, { status: 400 });
   }
 
-  const { lead_id, organizacion_id } = body;
+  const lead_id = typeof body.lead_id === "string" ? body.lead_id : "";
+  const organizacion_id =
+    typeof body.organizacion_id === "string" ? body.organizacion_id : "";
+  const emailAprobadoNormalizado =
+    typeof body.email_aprobado === "string" ? body.email_aprobado.trim() : null;
+  const emailAsuntoNormalizado =
+    typeof body.email_asunto === "string" ? body.email_asunto.trim() : null;
 
   if (!lead_id || !organizacion_id) {
     return NextResponse.json(
       { error: "Faltan campos: lead_id, organizacion_id" },
+      { status: 400 }
+    );
+  }
+
+  if (typeof body.email_aprobado === "string" && !emailAprobadoNormalizado) {
+    return NextResponse.json(
+      { error: "email_aprobado no puede estar vacÃ­o" },
+      { status: 400 }
+    );
+  }
+
+  if (typeof body.email_asunto === "string" && !emailAsuntoNormalizado) {
+    return NextResponse.json(
+      { error: "email_asunto no puede estar vacÃ­o" },
       { status: 400 }
     );
   }
@@ -202,24 +229,34 @@ export async function POST(request: NextRequest) {
   // Actualizar estado a aprobado
   const metadataActual = toRecord(lead.metadata);
   const metadataHubSpot = toRecord(metadataActual.hubspot_sync);
+  const payloadActualizacion: Record<string, unknown> = {
+    estado: "aprobado",
+    hubspot_contact_id: hubSpotContactId,
+    hubspot_deal_id: hubSpotDealId,
+    metadata: {
+      ...metadataActual,
+      hubspot_sync: {
+        ...metadataHubSpot,
+        company_id: hubSpotCompanyId,
+        contact_id: hubSpotContactId,
+        deal_id: hubSpotDealId,
+        synced_at: new Date().toISOString(),
+      },
+    },
+  };
+
+  if (emailAprobadoNormalizado) {
+    payloadActualizacion.email_aprobado = emailAprobadoNormalizado;
+    payloadActualizacion.borrador_email = emailAprobadoNormalizado;
+  }
+
+  if (emailAsuntoNormalizado) {
+    payloadActualizacion.email_asunto = emailAsuntoNormalizado;
+  }
 
   const { error: updateError } = await supabase
     .from("leads_prospectados")
-    .update({
-      estado: "aprobado",
-      hubspot_contact_id: hubSpotContactId,
-      hubspot_deal_id: hubSpotDealId,
-      metadata: {
-        ...metadataActual,
-        hubspot_sync: {
-          ...metadataHubSpot,
-          company_id: hubSpotCompanyId,
-          contact_id: hubSpotContactId,
-          deal_id: hubSpotDealId,
-          synced_at: new Date().toISOString(),
-        },
-      },
-    })
+    .update(payloadActualizacion)
     .eq("id", lead_id);
 
   if (updateError) {
@@ -233,6 +270,8 @@ export async function POST(request: NextRequest) {
     {
       mensaje: "Lead aprobado correctamente.",
       lead_id,
+      email_aprobado: emailAprobadoNormalizado,
+      email_asunto: emailAsuntoNormalizado,
     },
     { status: 202 }
   );

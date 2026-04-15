@@ -17,13 +17,8 @@ const TABS: Tab[] = [
   {
     label: "Pendientes",
     value: "pendientes",
-    filter: (l) => l.filter((x) => x.estado === "pendiente_aprobacion"),
-  },
-  {
-    label: "Aprobados",
-    value: "aprobados",
     filter: (l) =>
-      l.filter((x) => x.estado === "aprobado" && x.borrador_email !== null),
+      l.filter((x) => x.estado === "pendiente_aprobacion" || x.estado === "aprobado"),
   },
   {
     label: "Enviados",
@@ -40,13 +35,11 @@ const TABS: Tab[] = [
 interface LeadsClientProps {
   leadsIniciales: LeadConRelaciones[];
   organizacionId: string;
-  countsByEstado: Record<string, number>;
 }
 
 export function LeadsClient({
   leadsIniciales,
   organizacionId,
-  countsByEstado,
 }: LeadsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -68,50 +61,51 @@ export function LeadsClient({
     router.push(`?${params.toString()}`, { scroll: false });
   }
 
-  const handleApprove = useCallback(
+  const handleDiscard = useCallback(
     async (leadId: string) => {
-      const res = await fetch("/api/leads/approve", {
+      const res = await fetch("/api/leads/discard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lead_id: leadId, organizacion_id: organizacionId }),
       });
 
-      if (res.ok) {
-        setLeads((prev) =>
-          prev.map((l) => (l.id === leadId ? { ...l, estado: "aprobado" } : l))
-        );
+      if (!res.ok) {
+        return;
       }
-    },
-    [organizacionId]
-  );
-
-  const handleDiscard = useCallback(
-    async (leadId: string) => {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      if (!supabaseUrl) return;
 
       setLeads((prev) =>
         prev.map((l) =>
           l.id === leadId ? { ...l, estado: "descartado" } : l
         )
       );
-
-      await fetch(`/api/leads/discard`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lead_id: leadId, organizacion_id: organizacionId }),
-      });
+      router.refresh();
     },
-    [organizacionId]
+    [organizacionId, router]
   );
 
-  const handleSent = useCallback((leadId: string) => {
-    setLeads((prev) =>
-      prev.map((l) =>
-        l.id === leadId ? { ...l, estado: "enviado", borrador_email: null } : l
-      )
-    );
-  }, []);
+  const handleDiscardedFromDrawer = useCallback(
+    (leadId: string) => {
+      setLeads((prev) =>
+        prev.map((lead) =>
+          lead.id === leadId ? { ...lead, estado: "descartado" } : lead
+        )
+      );
+      router.refresh();
+    },
+    [router]
+  );
+
+  const handleSent = useCallback(
+    (leadId: string) => {
+      setLeads((prev) =>
+        prev.map((l) =>
+          l.id === leadId ? { ...l, estado: "enviado", borrador_email: null } : l
+        )
+      );
+      router.refresh();
+    },
+    [router]
+  );
 
   const handleGenerateDraft = useCallback(
     async (leadId: string) => {
@@ -148,9 +142,9 @@ export function LeadsClient({
     [organizacionId]
   );
 
-  const pendingCount =
-    countsByEstado["pendiente_aprobacion"] ??
-    leads.filter((l) => l.estado === "pendiente_aprobacion").length;
+  const pendingCount = leads.filter(
+    (l) => l.estado === "pendiente_aprobacion" || l.estado === "aprobado"
+  ).length;
 
   return (
     <div>
@@ -186,7 +180,6 @@ export function LeadsClient({
       {/* Tabla */}
       <LeadsTable
         leads={leadsFiltrados}
-        onApprove={handleApprove}
         onOpenDrawer={setDrawerLead}
         onDiscard={handleDiscard}
         onGenerateDraft={handleGenerateDraft}
@@ -196,6 +189,7 @@ export function LeadsClient({
       <EmailDrawer
         lead={drawerLead}
         onClose={() => setDrawerLead(null)}
+        onDiscarded={handleDiscardedFromDrawer}
         onSent={handleSent}
       />
     </div>

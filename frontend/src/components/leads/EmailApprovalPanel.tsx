@@ -36,12 +36,12 @@ export function EmailApprovalPanel({
   const [contenido, setContenido] = useState(emailAprobado ?? emailBorrador ?? "");
   const [asunto, setAsunto] = useState(asuntoInicial ?? "");
   const [loading, setLoading] = useState(false);
-  const [approving, setApproving] = useState(false);
   const [generatingDraft, setGeneratingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [estadoActual, setEstadoActual] = useState(estado);
   const [enviado, setEnviado] = useState(estado === "enviado");
   const borradorDisponible = emailBorradorActual ?? emailBorrador;
+  const canSend = estadoActual === "pendiente_aprobacion" || estadoActual === "aprobado";
 
   useEffect(() => {
     setEmailBorradorActual(emailBorrador);
@@ -97,39 +97,9 @@ export function EmailApprovalPanel({
     }
   }
 
-  async function handleAprobar() {
-    setApproving(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/leads/approve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lead_id: leadId,
-          organizacion_id: organizacionId,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.error ?? "No se pudo aprobar el lead.");
-        return;
-      }
-
-      setEstadoActual("aprobado");
-      router.refresh();
-    } catch {
-      setError("Error de conexión. Inténtalo de nuevo.");
-    } finally {
-      setApproving(false);
-    }
-  }
-
   async function handleEnviar() {
-    if (estadoActual !== "aprobado") {
-      setError("Debes aprobar el lead antes de enviarlo.");
+    if (!canSend) {
+      setError("Este lead no se puede enviar desde su estado actual.");
       return;
     }
 
@@ -229,15 +199,15 @@ export function EmailApprovalPanel({
     <div className="bg-white rounded-xl border border-gray-100 p-5">
       <div className="flex items-center gap-2 mb-4">
         <Edit3 className="w-4 h-4 text-amber-500" />
-        <h2 className="font-semibold text-gray-900 text-sm">Revisar y aprobar email</h2>
+        <h2 className="font-semibold text-gray-900 text-sm">Revisar y enviar email</h2>
         <span className="ml-auto text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-          {estadoActual === "aprobado" ? "Aprobado" : "Pendiente"}
+          Pendiente
         </span>
       </div>
 
       <p className="text-xs text-gray-500 mb-4">
         Este borrador ha sido generado por Google Gemini basándose en el perfil de la empresa.
-        Puedes editarlo antes de enviarlo. El email NO se enviará hasta que pulses &quot;Confirmar y Enviar&quot;.
+        Puedes editarlo antes de enviarlo. El email NO se enviará hasta que pulses &quot;Enviar borrador&quot;.
       </p>
 
       {error && (
@@ -279,33 +249,18 @@ export function EmailApprovalPanel({
 
       {/* Botones de acción */}
       <div className="flex gap-3">
-        {estadoActual === "pendiente_aprobacion" ? (
-          <button
-            onClick={handleAprobar}
-            disabled={approving}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 font-medium rounded-lg text-sm transition-colors",
-              "bg-leadby-500 hover:bg-leadby-600 text-white",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
-          >
-            <CheckCircle className="w-4 h-4" />
-            {approving ? "Aprobando..." : "Aprobar borrador"}
-          </button>
-        ) : (
-          <button
-            onClick={handleEnviar}
-            disabled={loading || !contenido.trim() || !asunto.trim()}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 font-medium rounded-lg text-sm transition-colors",
-              "bg-blue-600 hover:bg-blue-700 text-white",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
-          >
-            <Send className="w-4 h-4" />
-            {loading ? "Enviando..." : "Confirmar y Enviar"}
-          </button>
-        )}
+        <button
+          onClick={handleEnviar}
+          disabled={loading || !contenido.trim() || !asunto.trim() || !canSend}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 font-medium rounded-lg text-sm transition-colors",
+            "bg-blue-600 hover:bg-blue-700 text-white",
+            "disabled:opacity-50 disabled:cursor-not-allowed"
+          )}
+        >
+          <Send className="w-4 h-4" />
+          {loading ? "Enviando..." : "Enviar borrador"}
+        </button>
 
         <button
           onClick={() => router.back()}
