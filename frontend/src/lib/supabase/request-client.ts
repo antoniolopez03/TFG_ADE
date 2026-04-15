@@ -1,10 +1,10 @@
-﻿import { createServerClient } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 
 /**
  * Cliente Supabase request-scoped para Server Components y Route Handlers.
- * Mantiene sesiÃ³n del usuario usando cookies de Next.js.
+ * Mantiene sesión del usuario usando cookies de Next.js.
  */
 export function createClient() {
   const cookieStore = cookies();
@@ -23,7 +23,7 @@ export function createClient() {
               cookieStore.set(name, value, options);
             });
           } catch {
-            // En contextos de solo lectura no siempre estÃ¡ disponible set().
+            // En contextos de solo lectura no siempre está disponible set().
           }
         },
       },

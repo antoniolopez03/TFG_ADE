@@ -1,4 +1,4 @@
-﻿import { createClient } from "@/lib/supabase/request-client";
+import { createClient } from "@/lib/supabase/request-client";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Body JSON invÃ¡lido" }, { status: 400 });
+    return NextResponse.json({ error: "Body JSON inválido" }, { status: 400 });
   }
 
   const { lead_id, organizacion_id } = body;
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Faltan campos" }, { status: 400 });
   }
 
-  // Verificar membresÃ­a
+  // Verificar membresía
   const { data: membresia } = await supabase
     .from("miembros_equipo")
     .select("id")

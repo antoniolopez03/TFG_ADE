@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Loader2, CheckCircle, Eye, UserRound } from "lucide-react";
+import { toast } from "sonner";
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import type { LeadConRelaciones } from "@/lib/types/app.types";
 
@@ -70,12 +71,14 @@ export function LeadsTable({
 
     try {
       await onGenerateDraft(leadId);
+      toast.success("Borrador generado con éxito.");
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : "No se pudo generar el borrador con IA.";
       setDraftError({ leadId, message });
+      toast.error(message);
     } finally {
       setGeneratingDraftId(null);
     }

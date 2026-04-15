@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { LeadsTable } from "./LeadsTable";
 import { EmailDrawer } from "./EmailDrawer";
 import { LeadDetailsModal } from "./LeadDetailsModal";
@@ -23,6 +24,11 @@ interface BulkProgress {
 interface BulkNotice {
   type: "success" | "error";
   message: string;
+}
+
+interface DiscardLeadResult {
+  ok: boolean;
+  error?: string;
 }
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -164,27 +170,44 @@ export function LeadsClient({
   }, []);
 
   const discardLeadRequest = useCallback(
-    async (leadId: string) => {
+    async (leadId: string): Promise<DiscardLeadResult> => {
       const res = await fetch("/api/leads/discard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lead_id: leadId, organizacion_id: organizacionId }),
       });
 
-      return res.ok;
+      if (res.ok) {
+        return { ok: true };
+      }
+
+      const data = await res.json().catch(() => ({}));
+      return {
+        ok: false,
+        error:
+          typeof data.error === "string" && data.error.trim().length > 0
+            ? data.error
+            : "No se pudo descartar el lead.",
+      };
     },
     [organizacionId]
   );
 
   const handleDiscard = useCallback(
     async (leadId: string) => {
-      const discarded = await discardLeadRequest(leadId);
-      if (!discarded) {
-        return;
-      }
+      try {
+        const discarded = await discardLeadRequest(leadId);
+        if (!discarded.ok) {
+          toast.error(discarded.error ?? "No se pudo descartar el lead.");
+          return;
+        }
 
-      markLeadsAsDiscarded([leadId]);
-      router.refresh();
+        markLeadsAsDiscarded([leadId]);
+        toast.success("Lead descartado correctamente.");
+        router.refresh();
+      } catch {
+        toast.error("Error de conexión. Inténtalo de nuevo.");
+      }
     },
     [discardLeadRequest, markLeadsAsDiscarded, router]
   );
@@ -295,10 +318,12 @@ export function LeadsClient({
 
     const idsToProcess = [...selectedEligibleIds];
     if (idsToProcess.length === 0) {
+      const message = "Selecciona al menos un lead pendiente para generar borradores.";
       setBulkNotice({
         type: "error",
-        message: "Selecciona al menos un lead pendiente para generar borradores.",
+        message,
       });
+      toast.error(message);
       return;
     }
 
@@ -311,6 +336,7 @@ export function LeadsClient({
     let processedCount = 0;
     let successCount = 0;
     let failedCount = 0;
+    let firstErrorMessage: string | null = null;
 
     try {
       let chunkIndex = 0;
@@ -332,6 +358,12 @@ export function LeadsClient({
             successCount += 1;
           } else {
             failedCount += 1;
+            if (!firstErrorMessage) {
+              firstErrorMessage =
+                result.reason instanceof Error
+                  ? result.reason.message
+                  : "Error desconocido al generar borradores en lote.";
+            }
           }
         }
 
@@ -367,14 +399,30 @@ export function LeadsClient({
             failedCount === 1 ? "" : "s"
           }.`,
         });
+        toast.error(
+          firstErrorMessage
+            ? `Operación masiva incompleta: ${firstErrorMessage}`
+            : "La operación masiva terminó con errores en algunos leads."
+        );
       } else {
+        const message = firstErrorMessage
+          ? `No se pudo generar ningún borrador. ${firstErrorMessage}`
+          : "No se pudo generar ningún borrador. Intenta de nuevo en unos minutos.";
         setBulkNotice({
           type: "error",
-          message: "No se pudo generar ningún borrador. Intenta de nuevo en unos minutos.",
+          message,
         });
+        toast.error(message);
       }
 
       router.refresh();
+    } catch {
+      const message = "Error inesperado en la operación masiva de borradores.";
+      setBulkNotice({
+        type: "error",
+        message,
+      });
+      toast.error(message);
     } finally {
       setIsProcessing(false);
       setBulkAction(null);
@@ -389,10 +437,12 @@ export function LeadsClient({
 
     const idsToProcess = [...selectedEligibleIds];
     if (idsToProcess.length === 0) {
+      const message = "Selecciona al menos un lead para descartar.";
       setBulkNotice({
         type: "error",
-        message: "Selecciona al menos un lead para descartar.",
+        message,
       });
+      toast.error(message);
       return;
     }
 
@@ -405,14 +455,15 @@ export function LeadsClient({
     const discardedIds: string[] = [];
     let processedCount = 0;
     let failedCount = 0;
+    let firstErrorMessage: string | null = null;
 
     try {
       for (const chunk of chunks) {
         const results = await Promise.allSettled(
           chunk.map(async (leadId) => {
             const discarded = await discardLeadRequest(leadId);
-            if (!discarded) {
-              throw new Error("No se pudo descartar el lead");
+            if (!discarded.ok) {
+              throw new Error(discarded.error ?? "No se pudo descartar el lead.");
             }
 
             return leadId;
@@ -425,6 +476,12 @@ export function LeadsClient({
             discardedIds.push(result.value);
           } else {
             failedCount += 1;
+            if (!firstErrorMessage) {
+              firstErrorMessage =
+                result.reason instanceof Error
+                  ? result.reason.message
+                  : "Error desconocido al descartar leads en lote.";
+            }
           }
         }
 
@@ -456,14 +513,30 @@ export function LeadsClient({
             failedCount === 1 ? "" : "s"
           }.`,
         });
+        toast.error(
+          firstErrorMessage
+            ? `Operación masiva incompleta: ${firstErrorMessage}`
+            : "La operación masiva terminó con errores en algunos leads."
+        );
       } else {
+        const message = firstErrorMessage
+          ? `No se pudo descartar ningún lead. ${firstErrorMessage}`
+          : "No se pudo descartar ningún lead. Intenta de nuevo.";
         setBulkNotice({
           type: "error",
-          message: "No se pudo descartar ningún lead. Intenta de nuevo.",
+          message,
         });
+        toast.error(message);
       }
 
       router.refresh();
+    } catch {
+      const message = "Error inesperado en la operación masiva de descarte.";
+      setBulkNotice({
+        type: "error",
+        message,
+      });
+      toast.error(message);
     } finally {
       setIsProcessing(false);
       setBulkAction(null);

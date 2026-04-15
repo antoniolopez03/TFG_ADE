@@ -1,4 +1,4 @@
-﻿import { getHubSpotTokenFromVault, listHubSpotWonDeals } from "@/lib/services/hubspot";
+import { getHubSpotTokenFromVault, listHubSpotWonDeals } from "@/lib/services/hubspot";
 import { createClient, createServiceClient } from "@/lib/supabase/request-client";
 import { redirect } from "next/navigation";
 import { DashboardClient } from "@/components/saas/DashboardClient";
@@ -13,7 +13,7 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/auth/login");
 
-  // Obtener organizaciÃ³n del usuario
+  // Obtener organización del usuario
   const { data: membresia } = await supabase
     .from("miembros_equipo")
     .select("organizacion_id, rol, organizaciones(nombre, plan)")
@@ -21,7 +21,7 @@ export default async function DashboardPage() {
     .eq("activo", true)
     .single();
 
-  // MÃ©tricas rÃ¡pidas desde Supabase
+  // Métricas rápidas desde Supabase
   const orgId = membresia?.organizacion_id;
   const [{ count: totalLeads }, { count: leadsEnviados }, { count: leadsPendientes }] =
     await Promise.all([

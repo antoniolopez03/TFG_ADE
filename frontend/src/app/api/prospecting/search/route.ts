@@ -1,4 +1,4 @@
-﻿import {
+import {
   executeApolloProspectingJob,
 } from "@/lib/services/prospecting";
 import { createClient, createServiceClient } from "@/lib/supabase/request-client";
@@ -76,9 +76,9 @@ function extractDominiosExcluidos(rows: LeadProspectedWithCompanyRow[] | null): 
 }
 
 /**
- * API Route: BÃºsqueda manual de prospectos.
- * Recibe sector, ubicaciÃ³n y tamaÃ±o opcional.
- * Ejecuta prospecciÃ³n sÃ­ncrona con mock Gemini + Data Moat.
+ * API Route: Búsqueda manual de prospectos.
+ * Recibe sector, ubicación y tamaño opcional.
+ * Ejecuta prospección síncrona con mock Gemini + Data Moat.
  */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Body JSON invÃ¡lido" }, { status: 400 });
+    return NextResponse.json({ error: "Body JSON inválido" }, { status: 400 });
   }
 
   const sector = typeof body.sector === "string" ? body.sector.trim() : "";
@@ -111,14 +111,14 @@ export async function POST(request: NextRequest) {
 
   if (!sector) {
     return NextResponse.json(
-      { error: "El campo 'sector' es obligatorio y debe ser un string no vacÃ­o." },
+      { error: "El campo 'sector' es obligatorio y debe ser un string no vacío." },
       { status: 400 }
     );
   }
 
   if (!ubicacion) {
     return NextResponse.json(
-      { error: "El campo 'ubicacion' es obligatorio y debe ser un string no vacÃ­o." },
+      { error: "El campo 'ubicacion' es obligatorio y debe ser un string no vacío." },
       { status: 400 }
     );
   }
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error en bÃºsqueda manual", error);
+    console.error("Error en búsqueda manual", error);
 
     if (isApolloMockAiErrorLike(error)) {
       return NextResponse.json(

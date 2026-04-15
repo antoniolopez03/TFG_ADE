@@ -1,4 +1,4 @@
-﻿import {
+import {
   createHubSpotDeal,
   createOrUpdateHubSpotCompany,
   createOrUpdateHubSpotContact,
@@ -33,7 +33,7 @@ function toRecord(value: unknown): Record<string, unknown> {
 }
 
 /**
- * API Route: Aprobar lead para envÃ­o.
+ * API Route: Aprobar lead para envío.
  *
  * Transiciona el lead de 'pendiente_aprobacion' a 'aprobado'.
  */
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Body JSON invÃ¡lido" }, { status: 400 });
+    return NextResponse.json({ error: "Body JSON inválido" }, { status: 400 });
   }
 
   const lead_id = typeof body.lead_id === "string" ? body.lead_id : "";
@@ -73,19 +73,19 @@ export async function POST(request: NextRequest) {
 
   if (typeof body.email_aprobado === "string" && !emailAprobadoNormalizado) {
     return NextResponse.json(
-      { error: "email_aprobado no puede estar vacÃ­o" },
+      { error: "email_aprobado no puede estar vacío" },
       { status: 400 }
     );
   }
 
   if (typeof body.email_asunto === "string" && !emailAsuntoNormalizado) {
     return NextResponse.json(
-      { error: "email_asunto no puede estar vacÃ­o" },
+      { error: "email_asunto no puede estar vacío" },
       { status: 400 }
     );
   }
 
-  // Verificar membresÃ­a
+  // Verificar membresía
   const { data: membresia } = await supabase
     .from("miembros_equipo")
     .select("id")
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
-  // Verificar que el lead existe y estÃ¡ en estado aprobable
+  // Verificar que el lead existe y está en estado aprobable
   const { data: lead } = await supabase
     .from("leads_prospectados")
     .select(
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
   if (lead.estado !== "pendiente_aprobacion") {
     return NextResponse.json(
       {
-        error: `Estado invÃ¡lido: '${lead.estado}'. Solo se puede aprobar desde 'pendiente_aprobacion'.`,
+        error: `Estado inválido: '${lead.estado}'. Solo se puede aprobar desde 'pendiente_aprobacion'.`,
       },
       { status: 409 }
     );
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
 
   if (!hubSpotToken) {
     return NextResponse.json(
-      { error: "No hay token HubSpot configurado para esta organizaciÃ³n." },
+      { error: "No hay token HubSpot configurado para esta organización." },
       { status: 409 }
     );
   }
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "No se pudo sincronizar el lead con HubSpot. Revisa el token, permisos y configuraciÃ³n del CRM.",
+          "No se pudo sincronizar el lead con HubSpot. Revisa el token, permisos y configuración del CRM.",
       },
       { status: 502 }
     );

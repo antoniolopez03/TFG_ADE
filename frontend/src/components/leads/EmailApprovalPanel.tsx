@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Send, Edit3, CheckCircle, Clock, XCircle, Loader2, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import type { LeadEstado } from "@/lib/types/app.types";
 
@@ -68,7 +69,9 @@ export function EmailApprovalPanel({
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setError(data.error ?? "No se pudo generar el borrador con IA.");
+        const message = data.error ?? "No se pudo generar el borrador con IA.";
+        setError(message);
+        toast.error(message);
         return;
       }
 
@@ -78,7 +81,9 @@ export function EmailApprovalPanel({
         typeof data.email_asunto === "string" ? data.email_asunto : "";
 
       if (!borrador) {
-        setError("Gemini no devolvió un borrador válido para este lead.");
+        const message = "Gemini no devolvió un borrador válido para este lead.";
+        setError(message);
+        toast.error(message);
         return;
       }
 
@@ -89,9 +94,12 @@ export function EmailApprovalPanel({
         setAsunto(asuntoGenerado);
       }
 
+      toast.success("Borrador generado con éxito.");
       router.refresh();
     } catch {
-      setError("Error de conexión. Inténtalo de nuevo.");
+      const message = "Error de conexión. Inténtalo de nuevo.";
+      setError(message);
+      toast.error(message);
     } finally {
       setGeneratingDraft(false);
     }
@@ -126,14 +134,19 @@ export function EmailApprovalPanel({
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Error al enviar el email.");
+        const message = data.error ?? "Error al enviar el email.";
+        setError(message);
+        toast.error(message);
         return;
       }
 
       setEnviado(true);
+      toast.success("¡Correo enviado! El contacto se ha sincronizado con HubSpot.");
       router.refresh();
     } catch {
-      setError("Error de conexión. Inténtalo de nuevo.");
+      const message = "Error de conexión. Inténtalo de nuevo.";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }

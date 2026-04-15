@@ -1,4 +1,4 @@
-﻿import { createClient } from "@/lib/supabase/request-client";
+import { createClient } from "@/lib/supabase/request-client";
 import { redirect } from "next/navigation";
 import { LeadsClient } from "@/components/leads/LeadsClient";
 import type { LeadConRelaciones } from "@/lib/types/app.types";
@@ -63,11 +63,11 @@ export default async function LeadsPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            GestiÃ³n de Leads
+            Gestión de Leads
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Revisa y envÃ­a los prospectos descubiertos por el motor de
-            prospecciÃ³n.
+            Revisa y envía los prospectos descubiertos por el motor de
+            prospección.
           </p>
         </div>
         <span className="text-sm font-medium text-gray-400 bg-gray-100 dark:bg-gray-800 dark:text-gray-400 px-3 py-1.5 rounded-full">

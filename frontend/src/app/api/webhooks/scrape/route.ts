@@ -1,4 +1,4 @@
-﻿import {
+import {
   executeApolloProspectingJob,
   resolveProspectingErrorMessage,
   resolveProspectingErrorStatus,
@@ -9,16 +9,16 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * API Route: Trigger de busqueda.
  *
- * Ejecuta una bÃºsqueda sÃ­ncrona (mock Gemini + Data Moat) y
+ * Ejecuta una búsqueda síncrona (mock Gemini + Data Moat) y
  * registra el trabajo para trazabilidad.
  *
  * Flujo:
- * 1. Verificar sesiÃ³n de usuario con Supabase
- * 2. Verificar que el usuario pertenece a la organizaciÃ³n solicitada
- * 3. Ejecutar prospecciÃ³n y crear leads
+ * 1. Verificar sesión de usuario con Supabase
+ * 2. Verificar que el usuario pertenece a la organización solicitada
+ * 3. Ejecutar prospección y crear leads
  */
 export async function POST(request: NextRequest) {
-  // 1. Verificar autenticaciÃ³n
+  // 1. Verificar autenticación
   const supabase = createClient();
   const {
     data: { user },
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Body JSON invÃ¡lido" }, { status: 400 });
+    return NextResponse.json({ error: "Body JSON inválido" }, { status: 400 });
   }
 
   const { organizacion_id, tipo, sector, ubicacion, tamano } = body;
@@ -68,13 +68,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Para bÃºsqueda manual se requieren sector y ubicacion como strings no vacÃ­os.",
+          "Para búsqueda manual se requieren sector y ubicacion como strings no vacíos.",
       },
       { status: 400 }
     );
   }
 
-  // 3. Verificar que el usuario pertenece a la organizaciÃ³n (autorizaciÃ³n)
+  // 3. Verificar que el usuario pertenece a la organización (autorización)
   const { data: membresia, error: membresiaError } = await supabase
     .from("miembros_equipo")
     .select("id, rol")
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
   if (membresiaError || !membresia) {
     return NextResponse.json(
-      { error: "No tienes acceso a esta organizaciÃ³n" },
+      { error: "No tienes acceso a esta organización" },
       { status: 403 }
     );
   }
@@ -114,12 +114,12 @@ export async function POST(request: NextRequest) {
         total_resultados: result.totalResultados,
         cache_hits: result.cacheHits,
         cache_misses: result.cacheMisses,
-        mensaje: "BÃºsqueda completada correctamente.",
+        mensaje: "Búsqueda completada correctamente.",
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error ejecutando scrape sÃ­ncrono", error);
+    console.error("Error ejecutando scrape síncrono", error);
     return NextResponse.json(
       {
         error: resolveProspectingErrorMessage(error),

@@ -1,4 +1,4 @@
-﻿import { createClient } from "@/lib/supabase/request-client";
+import { createClient } from "@/lib/supabase/request-client";
 
 interface SearchHistoryListProps {
   organizacionId: string;
@@ -15,7 +15,7 @@ export async function SearchHistoryList({ organizacionId }: SearchHistoryListPro
     .order("created_at", { ascending: false })
     .limit(50);
 
-  // Agrupar por trabajo_busqueda_id para obtener sesiones de bÃºsqueda
+  // Agrupar por trabajo_busqueda_id para obtener sesiones de búsqueda
   const grupos = new Map<
     string,
     { fecha: string; total: number; estados: Record<string, number> }
@@ -39,7 +39,7 @@ export async function SearchHistoryList({ organizacionId }: SearchHistoryListPro
     return (
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-8 text-center">
         <p className="text-sm text-gray-400 dark:text-gray-500">
-          AÃºn no hay bÃºsquedas registradas. Â¡Inicia tu primera prospecciÃ³n!
+          Aún no hay búsquedas registradas. ¡Inicia tu primera prospección!
         </p>
       </div>
     );

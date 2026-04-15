@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, ExternalLink, Loader2, Send, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import type { LeadConRelaciones } from "@/lib/types/app.types";
 
 interface EmailDrawerProps {
@@ -76,14 +77,19 @@ export function EmailDrawer({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "No se pudo descartar el lead.");
+        const message = data.error ?? "No se pudo descartar el lead.";
+        setError(message);
+        toast.error(message);
         return;
       }
 
+      toast.success("Lead descartado correctamente.");
       onDiscarded(selectedLead.id);
       onClose();
     } catch {
-      setError("Error de conexión. Comprueba tu red e inténtalo de nuevo.");
+      const message = "Error de conexión. Comprueba tu red e inténtalo de nuevo.";
+      setError(message);
+      toast.error(message);
     } finally {
       setActionLoading(null);
     }
@@ -117,14 +123,19 @@ export function EmailDrawer({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Error al enviar el correo. Inténtalo de nuevo.");
+        const message = data.error ?? "Error al enviar el correo. Inténtalo de nuevo.";
+        setError(message);
+        toast.error(message);
         return;
       }
 
+      toast.success("¡Correo enviado! El contacto se ha sincronizado con HubSpot.");
       onSent(selectedLead.id);
       onClose();
     } catch {
-      setError("Error de conexión. Comprueba tu red e inténtalo de nuevo.");
+      const message = "Error de conexión. Comprueba tu red e inténtalo de nuevo.";
+      setError(message);
+      toast.error(message);
     } finally {
       setActionLoading(null);
     }

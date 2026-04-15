@@ -1,4 +1,4 @@
-﻿import {
+import {
   generateProspectEmailDraft,
   type TenantIaPreferences,
 } from "@/lib/services/gemini";
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Body JSON invÃ¡lido" }, { status: 400 });
+    return NextResponse.json({ error: "Body JSON inválido" }, { status: 400 });
   }
 
   const { lead_id, organizacion_id } = body;
@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Verificar que el lead pertenece a la organizaciÃ³n del usuario (RLS lo harÃ­a tambiÃ©n,
-  // pero validamos aquÃ­ para devolver errores HTTP descriptivos)
+  // Verificar que el lead pertenece a la organización del usuario (RLS lo haría también,
+  // pero validamos aquí para devolver errores HTTP descriptivos)
   const { data: membresia } = await supabase
     .from("miembros_equipo")
     .select("id")
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     return value as Record<string, unknown>;
   }
 
-  // Verificar que el lead existe y estÃ¡ pendiente de aprobaciÃ³n
+  // Verificar que el lead existe y está pendiente de aprobación
   const { data: lead } = await supabase
     .from("leads_prospectados")
     .select(

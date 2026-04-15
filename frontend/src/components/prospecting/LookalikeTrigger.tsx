@@ -5,9 +5,9 @@ import Link from "next/link";
 import { Sparkles, Loader2, CheckCircle, Database, Brain, Zap } from "lucide-react";
 
 const FASES = [
-  { icon: Database, label: "Consultando HubSpot..." },
-  { icon: Brain, label: "Gemini infiriendo tu ICP..." },
-  { icon: Zap, label: "Lanzando scraping automático..." },
+  { icon: Database, label: "Analizando tus éxitos en HubSpot..." },
+  { icon: Brain, label: "Definiendo tu Perfil de Cliente Ideal..." },
+  { icon: Zap, label: "Localizando nuevas empresas en el mercado..." },
 ];
 
 export function LookalikeTrigger() {
@@ -88,12 +88,11 @@ export function LookalikeTrigger() {
         </div>
         <div>
           <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
-            Prospección Inteligente con IA
+            Búsqueda Inteligente por Similitud
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-            LeadBy analiza tus últimos cierres en HubSpot, identifica tu Perfil
-            de Cliente Ideal con Gemini, y lanza automáticamente una búsqueda
-            de empresas similares.
+            LeadBy analiza tus mejores clientes en HubSpot para entender qué
+            empresas te funcionan mejor y encontrar otras similares.
           </p>
         </div>
       </div>

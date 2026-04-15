@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Chakra_Petch } from "next/font/google";
 import Script from "next/script";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { AnimatedBackground } from "@/components/ui/AnimatedBackground";
 
@@ -99,6 +100,7 @@ export default function RootLayout({
           <div id="global-banner" />
           {children}
         </div>
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

@@ -1,9 +1,9 @@
-﻿import { getHubSpotTokenFromVault, verifyHubSpotConnection } from "@/lib/services/hubspot";
+import { getHubSpotTokenFromVault, verifyHubSpotConnection } from "@/lib/services/hubspot";
 import { createClient, createServiceClient } from "@/lib/supabase/request-client";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * API Route: Verificar conexiÃ³n con HubSpot usando token guardado en Vault.
+ * API Route: Verificar conexión con HubSpot usando token guardado en Vault.
  */
 export async function POST(_request: NextRequest) {
   const supabase = createClient();
@@ -30,7 +30,7 @@ export async function POST(_request: NextRequest) {
 
   if (membresia.rol !== "admin") {
     return NextResponse.json(
-      { error: "Solo los administradores pueden verificar la conexiÃ³n CRM" },
+      { error: "Solo los administradores pueden verificar la conexión CRM" },
       { status: 403 }
     );
   }
@@ -63,7 +63,7 @@ export async function POST(_request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      message: "ConexiÃ³n con HubSpot verificada correctamente.",
+      message: "Conexión con HubSpot verificada correctamente.",
     });
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : "Error desconocido";
@@ -71,7 +71,7 @@ export async function POST(_request: NextRequest) {
     if (rawMessage.includes("401")) {
       return NextResponse.json({
         ok: false,
-        message: "Token invÃ¡lido o expirado. Actualiza el token de HubSpot.",
+        message: "Token inválido o expirado. Actualiza el token de HubSpot.",
       });
     }
 

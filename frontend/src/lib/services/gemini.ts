@@ -20,6 +20,8 @@ const DEFAULT_LOOKALIKE_TERMS = [
 ];
 const DEFAULT_MAX_LOOKALIKE_TERMS = 5;
 const DEFAULT_EMAIL_MAX_WORDS = 150;
+const STRICT_SPANISH_PROMPT =
+  "IMPORTANTE: Debes escribir siempre en español impecable, utilizando correctamente todas las tildes y la letra 'ñ' (por ejemplo, escribe 'tamaño' en lugar de 'tamano'). No utilices formatos de texto que omitan caracteres especiales del idioma español.";
 
 export interface TenantIaPreferences {
   tono_voz?: string;
@@ -315,6 +317,7 @@ export async function generateLookalikeTerms(
     "- Evitar duplicados.",
     `Preferencias del tenant: ${JSON.stringify(input.preferenciasIa ?? {})}`,
     `Historial de clientes ganados: ${JSON.stringify(input.wonDeals.slice(0, 20))}`,
+    STRICT_SPANISH_PROMPT,
   ].join("\n");
 
   try {
@@ -360,6 +363,7 @@ export async function generateProspectEmailDraft(
     `Preferencias del tenant: ${JSON.stringify(input.preferenciasIa ?? {})}`,
     `Contexto empresa: ${JSON.stringify(input.empresa)}`,
     `Contexto contacto: ${JSON.stringify(input.contacto ?? {})}`,
+    STRICT_SPANISH_PROMPT,
   ].join("\n");
 
   try {

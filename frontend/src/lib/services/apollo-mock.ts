@@ -251,7 +251,8 @@ Requisitos de calidad:
 - Para cada contacto y para cada empresa, DEBES generar un número de teléfono ficticio pero realista (por ejemplo, con formato internacional +34 6XX XXX XXX para móviles o +34 9XX para fijos). Asigna este valor al campo "telefono"
 - DEBES establecer SIEMPRE los campos "ingresos_rango" y "annual_revenue_printed" con uno de estos valores exactos: "0-1M", "1-10M", "10-100M" o "100M+". No uses otros formatos (sin €, sin texto adicional)
 - No repitas empresas: cada contacto debe pertenecer a una empresa diferente
-- Los números de empleados deben ser coherentes con el tamaño indicado`;
+- Los números de empleados deben ser coherentes con el tamaño indicado
+IMPORTANTE: Debes escribir siempre en español impecable, utilizando correctamente todas las tildes y la letra 'ñ' (por ejemplo, escribe 'tamaño' en lugar de 'tamano'). No utilices formatos de texto que omitan caracteres especiales del idioma español.`;
 }
 
 function cleanJsonText(rawText: string): string {
