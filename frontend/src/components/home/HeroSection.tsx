@@ -4,8 +4,17 @@ import "@/lib/gsap/register";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
 import Link from "next/link";
+import {
+  motion,
+  useMotionValue,
+  useTransform,
+  useSpring,
+} from "framer-motion";
+import { Magnetic } from "@/lib/animations/magnetic";
+
+// ─── Data ─────────────────────────────────────────────────────────────────────
 
 const METRICS = [
   { display: "−80%", to: 80, prefix: "−", suffix: "%", label: "Tiempo en prospección" },
@@ -17,14 +26,32 @@ const TRUST_LOGOS = ["HubSpot", "Google Gemini", "Next.js API", "Supabase", "Res
 
 const MOCK_LEADS = [
   { company: "Técnicas del Henares S.L.", contact: "J. Ramírez", role: "Dir. Compras" },
-  { company: "Mecanizados Levante", contact: "M. Pérez", role: "Gerente" },
-  { company: "Distribuidora Ibérica CNC", contact: "A. García", role: "Resp. Técnico" },
+  { company: "Mecanizados Levante",       contact: "M. Pérez",   role: "Gerente" },
+  { company: "Distribuidora Ibérica CNC", contact: "A. García",  role: "Resp. Técnico" },
   { company: "Industrias Castilla Norte", contact: "P. Llorente", role: "CEO" },
 ];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function HeroSection() {
   const containerRef = useRef<HTMLElement>(null);
 
+  // ── Cursor-tracking glow ──────────────────────────────────────────────────
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 80, damping: 20 });
+  const springY = useSpring(mouseY, { stiffness: 80, damping: 20 });
+  const glowX = useTransform(springX, (v) => `${v}px`);
+  const glowY = useTransform(springY, (v) => `${v}px`);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    mouseX.set(e.clientX - rect.left);
+    mouseY.set(e.clientY - rect.top);
+  }, [mouseX, mouseY]);
+
+  // ── GSAP entry + scroll animations ───────────────────────────────────────
   useGSAP(
     (_, contextSafe) => {
       const mm = gsap.matchMedia();
@@ -35,106 +62,75 @@ export function HeroSection() {
           noMotion: "(prefers-reduced-motion: reduce)",
         },
         (ctx) => {
-          const { motion } = ctx.conditions as { motion: boolean; noMotion: boolean };
+          const { motion: hasMotion } = ctx.conditions as { motion: boolean; noMotion: boolean };
 
-          if (!motion) {
+          if (!hasMotion) {
             gsap.set(
-              [
-                ".h-badge",
-                ".h-headline",
-                ".h-subtitle",
-                ".h-metric",
-                ".h-cta",
-                ".h-trust",
-                ".h-mockup",
-              ],
+              [".h-badge", ".h-headline", ".h-subtitle", ".h-metric", ".h-cta", ".h-trust", ".h-mockup"],
               { autoAlpha: 1, clearProps: "transform" }
             );
             return;
           }
 
-          // ── Entry timeline ─────────────────────────────────────────────────
-          const tl = gsap.timeline({
-            defaults: { ease: "power3.out", duration: 0.65 },
-          });
+          // Entry timeline
+          const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.65 } });
 
-          tl.from(".h-badge", { y: -20, autoAlpha: 0 })
-            .from(".h-headline", { y: 40, autoAlpha: 0 }, "-=0.3")
-            .from(".h-subtitle", { y: 30, autoAlpha: 0 }, "-=0.4")
-            .from(".h-metric", { y: 20, autoAlpha: 0, stagger: 0.1 }, "-=0.3")
-            .from(".h-cta", { y: 20, autoAlpha: 0, stagger: 0.08 }, "-=0.3")
-            .from(".h-trust", { autoAlpha: 0, duration: 0.4 }, "-=0.2");
+          tl.from(".h-badge",    { y: -20, autoAlpha: 0 })
+            .from(".h-headline", { y: 40,  autoAlpha: 0 },              "-=0.3")
+            .from(".h-subtitle", { y: 30,  autoAlpha: 0 },              "-=0.4")
+            .from(".h-metric",   { y: 20,  autoAlpha: 0, stagger: 0.1 }, "-=0.3")
+            .from(".h-cta",      { y: 20,  autoAlpha: 0, stagger: 0.08 }, "-=0.3")
+            .from(".h-trust",    { autoAlpha: 0, duration: 0.4 },        "-=0.2");
 
-          // Mockup enters independently with slight delay
+          // Mockup enters independently
           gsap.from(".h-mockup", {
-            y: 60,
-            autoAlpha: 0,
-            duration: 0.9,
-            ease: "power3.out",
-            delay: 0.5,
+            y: 60, autoAlpha: 0, duration: 0.9, ease: "power3.out", delay: 0.5,
           });
 
-          // ── CountUp animations (run after entry, scroll-triggered) ─────────
+          // CountUp animations
           const metricEls =
             containerRef.current?.querySelectorAll<HTMLElement>("[data-countup]") ?? [];
 
           metricEls.forEach((el) => {
-            const to = Number(el.getAttribute("data-to"));
+            const to     = Number(el.getAttribute("data-to"));
             const prefix = el.getAttribute("data-prefix") ?? "";
             const suffix = el.getAttribute("data-suffix") ?? "";
-            const obj = { val: 0 };
+            const obj    = { val: 0 };
 
             gsap.to(obj, {
-              val: to,
-              duration: 1.5,
-              ease: "power2.out",
-              scrollTrigger: {
-                trigger: el,
-                start: "top 95%",
-                once: true,
-              },
+              val: to, duration: 1.5, ease: "power2.out",
+              scrollTrigger: { trigger: el, start: "top 95%", once: true },
               onUpdate() {
                 el.textContent = prefix + Math.round(obj.val) + suffix;
               },
             });
           });
 
-          // ── Continuous gentle float on mockup ─────────────────────────────
+          // Gentle float on mockup
           gsap.to(".h-mockup", {
-            y: -8,
-            duration: 3,
-            ease: "sine.inOut",
-            yoyo: true,
-            repeat: -1,
-            delay: 1.4,
+            y: -8, duration: 3, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 1.4,
           });
 
-          // ── Mouse parallax on mockup ───────────────────────────────────────
+          // Mouse parallax on mockup
           if (contextSafe) {
             const onMouseMove = contextSafe((e: Event) => {
               const me = e as MouseEvent;
               const el = containerRef.current;
               if (!el) return;
               const rect = el.getBoundingClientRect();
-              const nx = (me.clientX - rect.left - rect.width / 2) / (rect.width / 2);
-              const ny = (me.clientY - rect.top - rect.height / 2) / (rect.height / 2);
+              const nx = (me.clientX - rect.left - rect.width  / 2) / (rect.width  / 2);
+              const ny = (me.clientY - rect.top  - rect.height / 2) / (rect.height / 2);
               gsap.to(".h-mockup", {
-                rotationY: nx * 8,
-                rotationX: -ny * 4,
+                rotationY: nx * 8, rotationX: -ny * 4,
                 transformPerspective: 900,
-                duration: 0.8,
-                ease: "power2.out",
-                overwrite: "auto",
+                duration: 0.8, ease: "power2.out", overwrite: "auto",
               });
             });
 
             const onMouseLeave = contextSafe(() => {
               gsap.to(".h-mockup", {
-                rotationY: 0,
-                rotationX: 0,
-                duration: 0.8,
-                ease: "power2.out",
-                overwrite: "auto",
+                rotationY: 0, rotationX: 0,
+                duration: 0.8, ease: "power2.out", overwrite: "auto",
               });
             });
 
@@ -159,16 +155,52 @@ export function HeroSection() {
     <section
       ref={containerRef}
       className="relative min-h-[90dvh] overflow-hidden flex items-center"
+      onMouseMove={handleMouseMove}
     >
-      {/* Ambient orbs */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 left-1/4 h-96 w-96 rounded-full bg-leadby-500/15 blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-leadby-400/10 blur-3xl" />
+      {/* ── Cursor-tracking glow overlay ─────────────────────────────────── */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{
+          background: "transparent",
+        }}
+      >
+        <motion.div
+          className="pointer-events-none absolute h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{
+            left: glowX,
+            top:  glowY,
+            background:
+              "radial-gradient(circle, rgba(255,117,31,0.06) 0%, rgba(255,117,31,0.02) 50%, transparent 70%)",
+            filter: "blur(40px)",
+          }}
+        />
+      </motion.div>
+
+      {/* ── Ambient orbs ─────────────────────────────────────────────────── */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
+        <div
+          className="glow-orb animate-float absolute -top-32 left-1/4"
+          style={{
+            "--size": "380px",
+            "--color": "rgba(255,117,31,0.12)",
+            "--blur": "90px",
+          } as React.CSSProperties}
+        />
+        <div
+          className="glow-orb animate-float absolute bottom-0 right-1/4"
+          style={{
+            "--size": "300px",
+            "--color": "rgba(255,145,77,0.08)",
+            "--blur": "80px",
+            animationDelay: "−3s",
+          } as React.CSSProperties}
+        />
       </div>
 
-      <div className="relative mx-auto w-full max-w-6xl px-6 py-20 grid items-center gap-12 md:grid-cols-[1.2fr_0.8fr] md:py-28">
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-20 grid items-center gap-12 md:grid-cols-[1.2fr_0.8fr] md:py-28">
 
-        {/* ── Left: copy ───────────────────────────────────────────────────── */}
+        {/* ── Left: copy ──────────────────────────────────────────────────── */}
         <div>
           {/* Badge */}
           <div
@@ -185,7 +217,7 @@ export function HeroSection() {
             style={{ visibility: "hidden" }}
           >
             Multiplica las ventas B2B{" "}
-            <span className="text-leadby-gradient">sin aumentar</span> tu equipo comercial.
+            <span className="text-gradient">sin aumentar</span> tu equipo comercial.
           </h1>
 
           {/* Subtitle */}
@@ -197,14 +229,10 @@ export function HeroSection() {
             sincroniza con tu CRM. Tus comerciales solo cierran contratos.
           </p>
 
-          {/* Metrics row */}
+          {/* Metrics */}
           <div className="mt-10 flex flex-wrap items-start gap-x-8 gap-y-4">
             {METRICS.map((m, i) => (
-              <div
-                key={i}
-                className="h-metric flex flex-col"
-                style={{ visibility: "hidden" }}
-              >
+              <div key={i} className="h-metric flex flex-col" style={{ visibility: "hidden" }}>
                 <span
                   className="text-3xl font-bold text-leadby-500 tabular-nums"
                   data-countup
@@ -223,36 +251,37 @@ export function HeroSection() {
 
           {/* CTAs */}
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link
-              href="/contact"
-              className="h-cta inline-flex items-center gap-2 rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-white shadow-leadby transition-all hover:bg-leadby-600 hover:shadow-leadby"
-              style={{ visibility: "hidden" }}
-            >
-              Solicitar demo
-            </Link>
-            <button
-              onClick={() =>
-                document
-                  .getElementById("demo-video")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
-              className="h-cta inline-flex items-center gap-2 rounded-full border border-black/15 dark:border-white/15 px-6 py-3 text-sm font-semibold text-foreground transition-all hover:border-leadby-500/50 hover:text-leadby-500"
-              style={{ visibility: "hidden" }}
-            >
-              Ver cómo funciona ↓
-            </button>
+            <Magnetic strength={0.2}>
+              <Link
+                href="/contact"
+                className="h-cta inline-flex items-center gap-2 rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-white shadow-leadby transition-all hover:bg-leadby-600 animate-glow-pulse cursor-magnetic"
+                style={{ visibility: "hidden" }}
+              >
+                Solicitar demo
+                <span className="transition-transform group-hover:translate-x-0.5">→</span>
+              </Link>
+            </Magnetic>
+
+            <Magnetic strength={0.15}>
+              <button
+                onClick={() =>
+                  document.getElementById("demo-video")?.scrollIntoView({ behavior: "smooth" })
+                }
+                className="h-cta inline-flex items-center gap-2 rounded-full border border-black/15 dark:border-white/15 px-6 py-3 text-sm font-semibold text-foreground transition-all hover:border-leadby-500/50 hover:text-leadby-500 cursor-magnetic"
+                style={{ visibility: "hidden" }}
+              >
+                Ver cómo funciona ↓
+              </button>
+            </Magnetic>
           </div>
 
           {/* Trust bar */}
-          <div
-            className="h-trust mt-8 flex flex-wrap items-center gap-3"
-            style={{ visibility: "hidden" }}
-          >
+          <div className="h-trust mt-8 flex flex-wrap items-center gap-3" style={{ visibility: "hidden" }}>
             <span className="text-xs text-black/40 dark:text-white/40">Integrado con:</span>
             {TRUST_LOGOS.map((name) => (
               <span
                 key={name}
-                className="font-mono text-xs bg-black/5 dark:bg-white/5 border border-black/8 dark:border-white/8 px-2.5 py-1 rounded-full text-black/50 dark:text-white/50"
+                className="font-mono text-xs bg-black/5 dark:bg-white/5 border border-black/8 dark:border-white/8 px-2.5 py-1 rounded-full text-black/50 dark:text-white/50 transition-all hover:border-leadby-500/30 hover:text-leadby-500"
               >
                 {name}
               </span>
@@ -260,7 +289,7 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* ── Right: dashboard mockup ───────────────────────────────────────── */}
+        {/* ── Right: dashboard mockup ──────────────────────────────────────── */}
         <div
           className="h-mockup relative rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur-sm border border-leadby-500/20 shadow-[0_0_60px_rgba(255,117,31,0.12)] p-1"
           style={{ visibility: "hidden" }}
@@ -280,8 +309,8 @@ export function HeroSection() {
             <div className="grid grid-cols-3 gap-2">
               {[
                 { value: "47", label: "leads descubiertos", accent: true },
-                { value: "12", label: "correos enviados", accent: false },
-                { value: "3", label: "respuestas", accent: true },
+                { value: "12", label: "correos enviados",   accent: false },
+                { value: "3",  label: "respuestas",         accent: true },
               ].map((kpi, i) => (
                 <div
                   key={i}
@@ -291,9 +320,7 @@ export function HeroSection() {
                       : "border-black/5 dark:border-white/8 bg-black/[0.02] dark:bg-white/[0.03]"
                   }`}
                 >
-                  <div className="text-lg font-bold text-foreground tabular-nums">
-                    {kpi.value}
-                  </div>
+                  <div className="text-lg font-bold text-foreground tabular-nums">{kpi.value}</div>
                   <div className="text-[10px] text-black/50 dark:text-white/50 leading-tight mt-0.5">
                     {kpi.label}
                   </div>
@@ -304,33 +331,23 @@ export function HeroSection() {
             {/* Leads mini-table */}
             <div className="rounded-lg border border-black/5 dark:border-white/8 overflow-hidden">
               <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-2 px-3 py-1.5 bg-black/[0.03] dark:bg-white/[0.04] border-b border-black/5 dark:border-white/8">
-                <span className="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-wide">Empresa</span>
-                <span className="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-wide">Contacto</span>
-                <span className="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-wide hidden sm:block">Cargo</span>
-                <span className="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-wide">Acción</span>
+                {["Empresa", "Contacto", "Cargo", "Acción"].map((h) => (
+                  <span key={h} className="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-wide last:block">
+                    {h}
+                  </span>
+                ))}
               </div>
-
               {MOCK_LEADS.map((lead, i) => (
                 <div
                   key={i}
                   className="grid grid-cols-[1fr_auto_auto_auto] gap-x-2 items-center px-3 py-2 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-leadby-500/[0.03] transition-colors"
                 >
-                  <span className="text-[11px] font-medium text-foreground truncate">
-                    {lead.company}
-                  </span>
-                  <span className="text-[10px] text-black/60 dark:text-white/60 whitespace-nowrap">
-                    {lead.contact}
-                  </span>
-                  <span className="text-[10px] text-black/45 dark:text-white/45 whitespace-nowrap hidden sm:block">
-                    {lead.role}
-                  </span>
+                  <span className="text-[11px] font-medium text-foreground truncate">{lead.company}</span>
+                  <span className="text-[10px] text-black/60 dark:text-white/60 whitespace-nowrap">{lead.contact}</span>
+                  <span className="text-[10px] text-black/45 dark:text-white/45 whitespace-nowrap hidden sm:block">{lead.role}</span>
                   <div className="flex gap-1">
-                    <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-medium px-1.5 py-0.5 cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors">
-                      ✓
-                    </span>
-                    <span className="rounded-full bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-white/40 text-[9px] font-medium px-1.5 py-0.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-white/12 transition-colors">
-                      ✕
-                    </span>
+                    <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-medium px-1.5 py-0.5 cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors">✓</span>
+                    <span className="rounded-full bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-white/40 text-[9px] font-medium px-1.5 py-0.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-white/12 transition-colors">✕</span>
                   </div>
                 </div>
               ))}
@@ -339,13 +356,15 @@ export function HeroSection() {
             {/* AI badge */}
             <div className="flex items-center gap-2 rounded-lg border border-leadby-500/20 bg-leadby-500/5 px-3 py-2">
               <span className="animate-pulse text-leadby-500 text-sm">✦</span>
-              <span className="text-[11px] text-leadby-500 font-medium">
-                IA generando borrador...
-              </span>
+              <span className="text-[11px] text-leadby-500 font-medium">IA generando borrador...</span>
               <div className="ml-auto flex gap-0.5">
-                <span className="h-1 w-1 rounded-full bg-leadby-500/60 animate-bounce [animation-delay:0ms]" />
-                <span className="h-1 w-1 rounded-full bg-leadby-500/60 animate-bounce [animation-delay:150ms]" />
-                <span className="h-1 w-1 rounded-full bg-leadby-500/60 animate-bounce [animation-delay:300ms]" />
+                {[0, 150, 300].map((d) => (
+                  <span
+                    key={d}
+                    className="h-1 w-1 rounded-full bg-leadby-500/60 animate-bounce"
+                    style={{ animationDelay: `${d}ms` }}
+                  />
+                ))}
               </div>
             </div>
           </div>

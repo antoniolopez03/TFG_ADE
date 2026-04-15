@@ -1,4 +1,5 @@
 import { HeroSection } from "@/components/home/HeroSection";
+import { LogoTicker } from "@/components/home/LogoTicker";
 import { VideoDemoSection } from "@/components/home/VideoDemoSection";
 import { HowItWorksSection } from "@/components/home/HowItWorksSection";
 import { MetricsSection } from "@/components/home/MetricsSection";
@@ -20,6 +21,8 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
+      {/* Social proof ticker — shown immediately after the Hero fold */}
+      <LogoTicker />
       <VideoDemoSection />
       <HowItWorksSection />
       <MetricsSection />

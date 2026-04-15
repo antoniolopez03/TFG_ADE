@@ -23,42 +23,37 @@ export default async function ProspectingPage() {
   const orgId = membresia?.organizacion_id ?? null;
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Nueva Prospección</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Page header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Nueva Prospección
+        </h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Encuentra nuevos clientes potenciales para tu pipeline.
         </p>
       </div>
 
-      {/* Tarjetas de búsqueda */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Búsqueda Manual */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-6">
-          <div className="mb-5">
-            <h2 className="font-semibold text-gray-900 dark:text-white text-sm">
-              Búsqueda Manual
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Define sector, ubicación y tamaño para encontrar empresas y decisores.
-            </p>
-          </div>
+      {/* Search cards — headings are now inside each component */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {/* Manual search */}
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-800/70 bg-white dark:bg-gray-900/80 p-6 shadow-sm">
           <ManualSearchForm organizacionId={orgId} />
         </div>
 
-        {/* Búsqueda IA Lookalike */}
+        {/* AI Lookalike */}
         <LookalikeTrigger />
       </div>
 
-      {/* Búsquedas recientes */}
+      {/* Recent searches */}
       <div>
-        <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-4">
+        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">
           Búsquedas recientes
         </h2>
         {orgId ? (
           <SearchHistoryList organizacionId={orgId} />
         ) : (
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-8 text-center">
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-800/70 bg-white dark:bg-gray-900/80 p-8 text-center shadow-sm">
             <p className="text-sm text-gray-400 dark:text-gray-500">
               Aún no hay búsquedas registradas. ¡Inicia tu primera prospección!
             </p>
