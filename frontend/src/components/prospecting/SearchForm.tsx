@@ -8,6 +8,10 @@ interface SearchFormProps {
   organizacionId: string;
 }
 
+interface ProspectingErrorResponse {
+  error?: string;
+}
+
 const TAMANO_OPTIONS = ["1-10", "11-50", "51-200", "201-500", "500+"] as const;
 
 export function SearchForm({ organizacionId }: SearchFormProps) {
@@ -42,16 +46,37 @@ export function SearchForm({ organizacionId }: SearchFormProps) {
         }),
       });
 
-      const data = await res.json().catch(() => ({}));
-
       if (!res.ok) {
-        setError(data.error ?? "Error al iniciar la búsqueda.");
+        let message = "Error al iniciar la búsqueda.";
+
+        try {
+          const data = (await res.json()) as ProspectingErrorResponse;
+          if (typeof data.error === "string" && data.error.trim().length > 0) {
+            message = data.error.trim();
+          }
+        } catch {
+          if (res.status === 503) {
+            message =
+              "Los servidores de IA están experimentando alta demanda. Espera 30 segundos y vuelve a intentarlo.";
+          } else if (res.status === 429) {
+            message =
+              "Se alcanzó el límite de peticiones de IA. Espera unos segundos y vuelve a intentarlo.";
+          } else if (res.status >= 500) {
+            message = "Fallo interno al ejecutar la búsqueda. Inténtalo de nuevo en unos minutos.";
+          }
+        }
+
+        setError(message);
         return;
       }
 
       router.push("/leads");
-    } catch {
-      setError("Error de conexión. Inténtalo de nuevo.");
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        setError(error.message);
+      } else {
+        setError("Error de conexión. Inténtalo de nuevo.");
+      }
     } finally {
       setLoading(false);
     }
@@ -61,7 +86,11 @@ export function SearchForm({ organizacionId }: SearchFormProps) {
     <div className="max-w-2xl">
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 p-6 space-y-5">
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
+          >
             {error}
           </div>
         )}

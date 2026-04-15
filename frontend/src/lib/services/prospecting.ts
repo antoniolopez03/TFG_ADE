@@ -124,6 +124,14 @@ function resolveTamanoFromParametros(parametros: Record<string, unknown>): strin
   return toStringOrNull(parametros.tamano);
 }
 
+function resolveDominiosExcluidosFromParametros(parametros: Record<string, unknown>): string[] {
+  const normalized = toStringArray(parametros.dominiosExcluidos)
+    .map((dominio) => dominio.trim().toLowerCase())
+    .filter((dominio) => dominio.length > 0);
+
+  return Array.from(new Set(normalized));
+}
+
 function splitFullName(fullName?: string | null): { nombre: string | null; apellidos: string | null } {
   const normalized = toStringOrNull(fullName);
   if (!normalized) {
@@ -586,6 +594,7 @@ export async function executeApolloProspectingJob(
     const sector = toStringOrNull(input.parametros.sector);
     const ubicacion = resolveLocationFromParametros(input.parametros);
     const tamano = resolveTamanoFromParametros(input.parametros);
+    const dominiosExcluidos = resolveDominiosExcluidosFromParametros(input.parametros);
 
     if (!sector || !ubicacion) {
       throw new Error("Parámetros inválidos para prospección: sector y ubicación son obligatorios");
@@ -596,7 +605,7 @@ export async function executeApolloProspectingJob(
       ubicacion,
       tamano: tamano ?? undefined,
       perPage,
-    });
+    }, dominiosExcluidos);
 
     for (const person of people) {
       const result = await processApolloPerson({
