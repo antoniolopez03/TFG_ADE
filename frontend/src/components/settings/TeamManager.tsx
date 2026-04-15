@@ -1,24 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, UserPlus } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import {
+  MemberDetailsModal,
+  type TeamMemberDetails,
+} from "@/components/settings/MemberDetailsModal";
 
-interface Miembro {
-  id: string;
-  user_id: string;
-  nombre_completo: string | null;
-  cargo: string | null;
-  rol: string;
-  activo: boolean;
-  created_at: string;
-}
+type Miembro = TeamMemberDetails;
 
 interface TeamManagerProps {
   organizacionId: string;
   miembros: Miembro[];
   isAdmin: boolean;
+}
+
+function isInvitacionPendiente(miembro: Miembro): boolean {
+  return miembro.joined_at === null && miembro.invited_at !== null;
+}
+
+function isInteractiveRowTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  return Boolean(target.closest("button, a, input, textarea, select, [role='button']"));
+}
+
+function formatFecha(value: string | null): string {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return date.toLocaleDateString("es-ES");
 }
 
 export function TeamManager({
@@ -32,6 +54,7 @@ export function TeamManager({
   const [miembros, setMiembros] = useState<Miembro[]>(miembrosIniciales);
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [selectedMember, setSelectedMember] = useState<Miembro | null>(null);
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRol, setInviteRol] = useState<"admin" | "miembro">("miembro");
@@ -39,7 +62,23 @@ export function TeamManager({
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
 
-  async function handleChangeRol(miembroId: string, nuevoRol: string) {
+  const miembrosOrdenados = useMemo(() => {
+    return [...miembros].sort((a, b) => {
+      const aPendiente = isInvitacionPendiente(a);
+      const bPendiente = isInvitacionPendiente(b);
+
+      if (aPendiente !== bPendiente) {
+        return aPendiente ? 1 : -1;
+      }
+
+      const fechaA = new Date(a.joined_at ?? a.invited_at ?? a.created_at).getTime();
+      const fechaB = new Date(b.joined_at ?? b.invited_at ?? b.created_at).getTime();
+
+      return fechaA - fechaB;
+    });
+  }, [miembros]);
+
+  async function handleChangeRol(miembroId: string, nuevoRol: Miembro["rol"]) {
     setActionError(null);
     setUpdatingMemberId(miembroId);
 
@@ -52,6 +91,9 @@ export function TeamManager({
       setMiembros((prev) =>
         prev.map((m) => (m.id === miembroId ? { ...m, rol: nuevoRol } : m))
       );
+      setSelectedMember((prev) =>
+        prev?.id === miembroId ? { ...prev, rol: nuevoRol } : prev
+      );
     } else {
       setActionError("No se pudo actualizar el rol del miembro. Inténtalo de nuevo.");
     }
@@ -59,23 +101,63 @@ export function TeamManager({
     setUpdatingMemberId(null);
   }
 
-  async function handleToggleActivo(miembroId: string, activo: boolean) {
+  async function handleToggleActivo(miembro: Miembro) {
+    const siguienteEstado = !miembro.activo;
+
     setActionError(null);
-    setUpdatingMemberId(miembroId);
+    setUpdatingMemberId(miembro.id);
 
-    const { error } = await supabase
-      .from("miembros_equipo")
-      .update({ activo: !activo })
-      .eq("id", miembroId);
+    setMiembros((prev) =>
+      prev.map((m) => (m.id === miembro.id ? { ...m, activo: siguienteEstado } : m))
+    );
+    setSelectedMember((prev) =>
+      prev?.id === miembro.id ? { ...prev, activo: siguienteEstado } : prev
+    );
 
-    if (!error) {
+    try {
+      const response = await fetch("/api/team/update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId: miembro.id, activo: siguienteEstado }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        member?: { activo?: boolean };
+      };
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ?? "No se pudo actualizar el estado del miembro. Inténtalo de nuevo."
+        );
+      }
+
+      const estadoConfirmado =
+        typeof data.member?.activo === "boolean" ? data.member.activo : siguienteEstado;
+
       setMiembros((prev) =>
-        prev.map((m) =>
-          m.id === miembroId ? { ...m, activo: !activo } : m
-        )
+        prev.map((m) => (m.id === miembro.id ? { ...m, activo: estadoConfirmado } : m))
       );
-    } else {
-      setActionError("No se pudo actualizar el estado del miembro. Inténtalo de nuevo.");
+      setSelectedMember((prev) =>
+        prev?.id === miembro.id ? { ...prev, activo: estadoConfirmado } : prev
+      );
+
+      toast.success("Estado del miembro actualizado");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar el estado del miembro. Inténtalo de nuevo.";
+
+      setMiembros((prev) =>
+        prev.map((m) => (m.id === miembro.id ? { ...m, activo: miembro.activo } : m))
+      );
+      setSelectedMember((prev) =>
+        prev?.id === miembro.id ? { ...prev, activo: miembro.activo } : prev
+      );
+
+      setActionError(message);
+      toast.error(message);
     }
 
     setUpdatingMemberId(null);
@@ -130,7 +212,7 @@ export function TeamManager({
                 Estado
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                Alta
+                Alta / invitación
               </th>
               {isAdmin && (
                 <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
@@ -140,18 +222,49 @@ export function TeamManager({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-            {miembros.map((m) => (
-              <tr
-                key={m.id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-              >
+            {miembrosOrdenados.map((m) => {
+              const invitacionPendiente = isInvitacionPendiente(m);
+              const nombreMostrado =
+                m.nombre_completo?.trim() ||
+                (invitacionPendiente ? "Invitado pendiente" : "—");
+              const fechaReferencia =
+                (invitacionPendiente ? m.invited_at : m.joined_at) ?? m.created_at;
+
+              return (
+                <tr
+                  key={m.id}
+                  onClick={(event) => {
+                    if (isInteractiveRowTarget(event.target)) {
+                      return;
+                    }
+
+                    setSelectedMember(m);
+                  }}
+                  onKeyDown={(event) => {
+                    if (isInteractiveRowTarget(event.target)) {
+                      return;
+                    }
+
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedMember(m);
+                    }
+                  }}
+                  tabIndex={0}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-leadby-500/40"
+                >
                 <td className="px-4 py-3">
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {m.nombre_completo || "—"}
+                    {nombreMostrado}
                   </p>
+                  {invitacionPendiente && (
+                    <span className="mt-1 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
+                      Invitación pendiente
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                  {m.cargo || "—"}
+                  {invitacionPendiente ? "—" : m.cargo || "—"}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -161,7 +274,7 @@ export function TeamManager({
                         : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                     }`}
                   >
-                    {m.rol}
+                    {m.rol === "admin" ? "Admin" : "Miembro"}
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -176,22 +289,22 @@ export function TeamManager({
                   </span>
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
-                  {new Date(m.created_at).toLocaleDateString("es-ES")}
+                  {formatFecha(fechaReferencia)}
                 </td>
                 {isAdmin && (
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <select
                         value={m.rol}
-                        onChange={(e) => handleChangeRol(m.id, e.target.value)}
+                        onChange={(e) => handleChangeRol(m.id, e.target.value as Miembro["rol"])}
                         disabled={updatingMemberId === m.id}
                         className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60"
                       >
-                        <option value="miembro">miembro</option>
-                        <option value="admin">admin</option>
+                        <option value="miembro">Miembro</option>
+                        <option value="admin">Admin</option>
                       </select>
                       <button
-                        onClick={() => handleToggleActivo(m.id, m.activo)}
+                        onClick={() => handleToggleActivo(m)}
                         disabled={updatingMemberId === m.id}
                         className={`text-xs px-2.5 py-1 rounded-lg transition-colors disabled:opacity-60 ${
                           m.activo
@@ -208,8 +321,9 @@ export function TeamManager({
                     </div>
                   </td>
                 )}
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -225,14 +339,14 @@ export function TeamManager({
           <div className="flex items-center gap-2 mb-4">
             <UserPlus className="w-4 h-4 text-gray-400 dark:text-gray-500" />
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-              Invitar nuevo miembro
+              Invitar a un nuevo miembro
             </h3>
           </div>
 
           <form onSubmit={handleInvite} className="flex items-end gap-3">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Email
+                Correo electrónico
               </label>
               <input
                 type="email"
@@ -253,8 +367,8 @@ export function TeamManager({
                 onChange={(e) => setInviteRol(e.target.value as "admin" | "miembro")}
                 className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
-                <option value="miembro">miembro</option>
-                <option value="admin">admin</option>
+                <option value="miembro">Miembro</option>
+                <option value="admin">Admin</option>
               </select>
             </div>
 
@@ -284,6 +398,8 @@ export function TeamManager({
           )}
         </div>
       )}
+
+      <MemberDetailsModal member={selectedMember} onClose={() => setSelectedMember(null)} />
     </div>
   );
 }

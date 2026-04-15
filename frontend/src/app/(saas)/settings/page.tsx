@@ -75,7 +75,7 @@ export default async function SettingsPage({
       .single(),
     supabase
       .from("miembros_equipo")
-      .select("id, user_id, nombre_completo, cargo, rol, activo, created_at")
+      .select("id, user_id, nombre_completo, cargo, rol, activo, invited_at, joined_at, created_at")
       .eq("organizacion_id", membresia.organizacion_id)
       .order("created_at", { ascending: true }),
   ]);

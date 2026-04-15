@@ -73,13 +73,17 @@ export async function POST(request: NextRequest) {
 
   // Pre-crear entrada en miembros_equipo con activo=false hasta que acepte
   if (inviteData.user) {
+    const nowIso = new Date().toISOString();
+
     await serviceClient.from("miembros_equipo").insert({
       organizacion_id: membresia.organizacion_id,
       user_id: inviteData.user.id,
-      nombre_completo: email.split("@")[0],
-      cargo: "",
+      nombre_completo: email,
+      cargo: null,
       rol,
       activo: false,
+      invited_at: nowIso,
+      joined_at: null,
     });
   }
 
