@@ -84,13 +84,13 @@ export function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-[100dvh] overflow-hidden flex items-center bg-white dark:bg-black"
+      className="relative min-h-[70dvh] overflow-hidden flex items-center bg-white dark:bg-black"
     >
       {/* ── Animated background layer ─────────────────────────────────────── */}
       <HeroBackground />
 
       {/* ── Content ───────────────────────────────────────────────────────── */}
-      <div className="relative z-10 mx-auto w-full max-w-3xl px-6 py-40 text-center">
+      <div className="relative z-10 mx-auto w-full max-w-3xl px-6 pt-28 pb-20 md:pt-32 md:pb-24 text-center">
 
         {/* Badge */}
         <div
