@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export const GEMINI_PRO_MODEL = "gemini-2.5-pro";
+export const GEMINI_PRIMARY_MODEL = "gemini-2.5-pro";
+export const GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
+export const GEMINI_PRO_MODEL = GEMINI_PRIMARY_MODEL;
 const LOOKALIKE_GENERATION_CONFIG = {
   temperature: 0.25,
   topP: 0.85,
@@ -85,6 +87,12 @@ export interface GenerateEmailDraftResult {
   fallbackUsed: boolean;
 }
 
+export interface GeminiGenerationConfig {
+  temperature?: number;
+  topP?: number;
+  maxOutputTokens?: number;
+}
+
 function getGeminiApiKey(): string {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -105,15 +113,170 @@ export function createGeminiClient(): GoogleGenerativeAI {
 /**
  * Obtiene el modelo Pro de Gemini para tareas de redaccion y clasificacion B2B.
  */
-export function createGeminiProModel(generationConfig?: {
-  temperature?: number;
-  topP?: number;
-  maxOutputTokens?: number;
-}) {
+export function createGeminiProModel(generationConfig?: GeminiGenerationConfig) {
   return createGeminiClient().getGenerativeModel({
     model: GEMINI_PRO_MODEL,
     ...(generationConfig ? { generationConfig } : {}),
   });
+}
+
+function createGeminiModel(model: string, generationConfig?: GeminiGenerationConfig) {
+  return createGeminiClient().getGenerativeModel({
+    model,
+    ...(generationConfig ? { generationConfig } : {}),
+  });
+}
+
+async function callGemini(
+  model: string,
+  prompt: string,
+  generationConfig?: GeminiGenerationConfig
+): Promise<string> {
+  const response = await createGeminiModel(model, generationConfig).generateContent(prompt);
+  return response.response.text();
+}
+
+function toStatusNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function resolveGeminiErrorStatus(error: unknown): number | null {
+  if (!error || typeof error !== "object") {
+    return null;
+  }
+
+  const root = error as {
+    status?: unknown;
+    statusCode?: unknown;
+    code?: unknown;
+    response?: { status?: unknown; statusCode?: unknown; code?: unknown };
+    error?: { status?: unknown; statusCode?: unknown; code?: unknown };
+    cause?: unknown;
+  };
+
+  const candidates = [
+    root.status,
+    root.statusCode,
+    root.code,
+    root.response?.status,
+    root.response?.statusCode,
+    root.response?.code,
+    root.error?.status,
+    root.error?.statusCode,
+    root.error?.code,
+  ];
+
+  if (root.cause && typeof root.cause === "object") {
+    const cause = root.cause as { status?: unknown; statusCode?: unknown; code?: unknown };
+    candidates.push(cause.status, cause.statusCode, cause.code);
+  }
+
+  for (const candidate of candidates) {
+    const status = toStatusNumber(candidate);
+    if (status !== null) {
+      return status;
+    }
+  }
+
+  return null;
+}
+
+function resolveGeminiErrorMessage(error: unknown): string {
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (!error || typeof error !== "object") {
+    return "";
+  }
+
+  const unknownError = error as {
+    message?: unknown;
+    details?: unknown;
+    error?: { message?: unknown; details?: unknown };
+    cause?: unknown;
+  };
+
+  if (typeof unknownError.message === "string") {
+    return unknownError.message;
+  }
+
+  if (typeof unknownError.details === "string") {
+    return unknownError.details;
+  }
+
+  if (typeof unknownError.error?.message === "string") {
+    return unknownError.error.message;
+  }
+
+  if (typeof unknownError.error?.details === "string") {
+    return unknownError.error.details;
+  }
+
+  if (unknownError.cause instanceof Error) {
+    return unknownError.cause.message;
+  }
+
+  return "";
+}
+
+/**
+ * Detecta errores de indisponibilidad transitoria para activar fallback de modelo.
+ */
+export function isGeminiServiceUnavailableError(error: unknown): boolean {
+  const status = resolveGeminiErrorStatus(error);
+  const normalizedMessage = resolveGeminiErrorMessage(error).toLowerCase();
+  const message = normalizedMessage.replace(/[_-]+/g, " ");
+
+  if (status === 503 || status === 429) {
+    return true;
+  }
+
+  if (status === 500 && (message.includes("overloaded") || message.includes("unavailable"))) {
+    return true;
+  }
+
+  return (
+    message.includes("model is overloaded") ||
+    message.includes("service unavailable") ||
+    message.includes("quota exceeded") ||
+    message.includes("resource exhausted")
+  );
+}
+
+/**
+ * Ejecuta Gemini con modelo primario y fallback automatico ante errores de disponibilidad.
+ */
+export async function callGeminiWithFallback(
+  prompt: string,
+  generationConfig?: GeminiGenerationConfig
+): Promise<string> {
+  try {
+    return await callGemini(GEMINI_PRIMARY_MODEL, prompt, generationConfig);
+  } catch (error) {
+    if (!isGeminiServiceUnavailableError(error)) {
+      throw error;
+    }
+
+    console.warn(
+      `[Gemini] Modelo primario no disponible, usando fallback: ${GEMINI_FALLBACK_MODEL}`
+    );
+
+    return await callGemini(GEMINI_FALLBACK_MODEL, prompt, generationConfig);
+  }
 }
 
 function toNonEmptyString(value: unknown): string | null {
@@ -320,24 +483,21 @@ export async function generateLookalikeTerms(
     STRICT_SPANISH_PROMPT,
   ].join("\n");
 
-  try {
-    const response = await createGeminiProModel(LOOKALIKE_GENERATION_CONFIG).generateContent(prompt);
-    const rawText = response.response.text();
-    const payload = parseJsonObject(rawText);
-    const terms = normalizeTermArray(payload?.terminos ?? payload?.terms);
+  const rawText = await callGeminiWithFallback(prompt, LOOKALIKE_GENERATION_CONFIG);
+  const payload = parseJsonObject(rawText);
 
-    const merged = dedupeCaseInsensitive([...terms, ...fallbackTerms]).slice(0, maxTerms);
-
-    return {
-      terms: merged,
-      fallbackUsed: terms.length < maxTerms,
-    };
-  } catch {
-    return {
-      terms: fallbackTerms,
-      fallbackUsed: true,
-    };
+  if (!payload) {
+    throw new Error("Gemini devolvio una respuesta mal formada para terminos lookalike");
   }
+
+  const terms = normalizeTermArray(payload?.terminos ?? payload?.terms);
+
+  const merged = dedupeCaseInsensitive([...terms, ...fallbackTerms]).slice(0, maxTerms);
+
+  return {
+    terms: merged,
+    fallbackUsed: terms.length < maxTerms,
+  };
 }
 
 /**
@@ -366,31 +526,27 @@ export async function generateProspectEmailDraft(
     STRICT_SPANISH_PROMPT,
   ].join("\n");
 
-  try {
-    const response = await createGeminiProModel(EMAIL_GENERATION_CONFIG).generateContent(prompt);
-    const payload = parseJsonObject(response.response.text());
-    const subject =
-      toNonEmptyString(payload?.asunto) ??
-      toNonEmptyString(payload?.subject) ??
-      fallbackDraft.subject;
-    const bodyCandidate =
-      toNonEmptyString(payload?.cuerpo) ??
-      toNonEmptyString(payload?.body) ??
-      fallbackDraft.body;
-    const body = clampWords(bodyCandidate, maxWords);
+  const rawText = await callGeminiWithFallback(prompt, EMAIL_GENERATION_CONFIG);
+  const payload = parseJsonObject(rawText);
 
-    return {
-      subject,
-      body,
-      wordCount: countWords(body),
-      fallbackUsed: !toNonEmptyString(payload?.asunto) || !toNonEmptyString(payload?.cuerpo),
-    };
-  } catch {
-    return {
-      subject: fallbackDraft.subject,
-      body: fallbackDraft.body,
-      wordCount: countWords(fallbackDraft.body),
-      fallbackUsed: true,
-    };
+  if (!payload) {
+    throw new Error("Gemini devolvio una respuesta mal formada para borrador de email");
   }
+
+  const subject =
+    toNonEmptyString(payload?.asunto) ??
+    toNonEmptyString(payload?.subject) ??
+    fallbackDraft.subject;
+  const bodyCandidate =
+    toNonEmptyString(payload?.cuerpo) ??
+    toNonEmptyString(payload?.body) ??
+    fallbackDraft.body;
+  const body = clampWords(bodyCandidate, maxWords);
+
+  return {
+    subject,
+    body,
+    wordCount: countWords(body),
+    fallbackUsed: !toNonEmptyString(payload?.asunto) || !toNonEmptyString(payload?.cuerpo),
+  };
 }

@@ -300,6 +300,7 @@ export function LeadsClient({ leadsIniciales, organizacionId }: LeadsClientProps
           l.id === leadId
             ? {
                 ...l,
+                estado: "pendiente_aprobacion",
                 email_borrador:
                   typeof data.email_borrador === "string"
                     ? data.email_borrador
@@ -312,8 +313,9 @@ export function LeadsClient({ leadsIniciales, organizacionId }: LeadsClientProps
             : l
         )
       );
+      router.refresh();
     },
-    [organizacionId]
+    [organizacionId, router]
   );
 
   // ── Selection handlers ─────────────────────────────────────────────────────

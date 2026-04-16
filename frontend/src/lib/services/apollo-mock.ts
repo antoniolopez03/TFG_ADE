@@ -1,4 +1,4 @@
-import { createGeminiProModel } from "@/lib/services/gemini";
+import { callGeminiWithFallback } from "@/lib/services/gemini";
 
 export interface ApolloOrganization {
   id?: string;
@@ -293,14 +293,11 @@ export async function searchPeopleWithCompany(
   let generatedText = "";
 
   try {
-    const model = createGeminiProModel({
+    generatedText = await callGeminiWithFallback(prompt, {
       temperature: 0.3,
       topP: 0.9,
       maxOutputTokens: 4096,
     });
-
-    const generation = await model.generateContent(prompt);
-    generatedText = generation.response.text();
   } catch (error) {
     throw classifyGeminiError(error);
   }

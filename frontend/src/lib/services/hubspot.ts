@@ -75,7 +75,6 @@ export interface HubSpotContactInput {
   cargo?: string | null;
   telefono?: string | null;
   departamento?: string | null;
-  linkedinUrl?: string | null;
 }
 
 export interface CreateOrUpdateHubSpotCompanyOptions {
@@ -267,7 +266,6 @@ function buildContactProperties(contacto: HubSpotContactInput): Record<string, s
     email: toNonEmptyString(contacto.email),
     jobtitle: toNonEmptyString(contacto.cargo),
     phone: toNonEmptyString(contacto.telefono),
-    linkedin_url: toNonEmptyString(contacto.linkedinUrl),
   });
 }
 
