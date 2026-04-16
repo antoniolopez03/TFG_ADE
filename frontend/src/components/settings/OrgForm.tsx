@@ -1,13 +1,26 @@
 "use client";
 
-import { useState } from "react";
+/**
+ * OrgForm
+ *
+ * Phase 8 additions:
+ * – GSAP success animation on the Check icon: scale + elastic bounce
+ *   when `saved` transitions to true.
+ * – gsap.matchMedia() so reduced-motion users see the icon appear instantly.
+ * – All other logic is unchanged.
+ */
+
+import "@/lib/gsap/register";
+import { useState, useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import { Loader2, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const PLAN_BADGE: Record<string, string> = {
-  free: "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400",
+  free:    "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400",
   starter: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
-  pro: "bg-leadby-500/10 text-leadby-600 border border-leadby-500/20",
+  pro:     "bg-leadby-500/10 text-leadby-600 border border-leadby-500/20",
 };
 
 const INPUT_CLASS =
@@ -15,18 +28,52 @@ const INPUT_CLASS =
 
 interface OrgFormProps {
   organizacionId: string;
-  nombre: string;
-  plan: string;
-  isAdmin: boolean;
+  nombre:         string;
+  plan:           string;
+  isAdmin:        boolean;
 }
 
 export function OrgForm({ organizacionId, nombre, plan, isAdmin }: OrgFormProps) {
-  const supabase = createClient();
+  const supabase      = createClient();
   const [nombreValue, setNombreValue] = useState(nombre);
-  const [nif, setNif] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [nif,         setNif]         = useState("");
+  const [loading,     setLoading]     = useState(false);
+  const [saved,       setSaved]       = useState(false);
+  const [error,       setError]       = useState<string | null>(null);
+
+  // Ref for the check icon wrapper — GSAP targets this
+  const checkRef = useRef<HTMLSpanElement>(null);
+
+  // Animate check icon whenever `saved` becomes true
+  useGSAP(
+    () => {
+      if (!saved || !checkRef.current) return;
+
+      const mm = gsap.matchMedia();
+
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        // Bounce in from scale 0 with overshoot
+        gsap.fromTo(
+          checkRef.current,
+          { scale: 0, rotation: -30 },
+          {
+            scale: 1,
+            rotation: 0,
+            duration: 0.45,
+            ease: "back.out(2)",
+          }
+        );
+      });
+
+      mm.add("(prefers-reduced-motion: reduce)", () => {
+        // Just show it — no motion
+        gsap.set(checkRef.current, { scale: 1, rotation: 0 });
+      });
+
+      return () => mm.revert();
+    },
+    { dependencies: [saved] }
+  );
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -92,7 +139,9 @@ export function OrgForm({ organizacionId, nombre, plan, isAdmin }: OrgFormProps)
         </label>
         <div>
           <span
-            className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold capitalize ${PLAN_BADGE[plan] ?? PLAN_BADGE.free}`}
+            className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+              PLAN_BADGE[plan] ?? PLAN_BADGE.free
+            }`}
           >
             {plan}
           </span>
@@ -118,7 +167,10 @@ export function OrgForm({ organizacionId, nombre, plan, isAdmin }: OrgFormProps)
             </>
           ) : saved ? (
             <>
-              <Check className="w-4 h-4" />
+              {/* Wrapper gives GSAP a stable DOM node to target */}
+              <span ref={checkRef} className="inline-flex" style={{ transformOrigin: "center" }}>
+                <Check className="w-4 h-4" />
+              </span>
               Guardado
             </>
           ) : (

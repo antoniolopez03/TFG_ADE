@@ -1,33 +1,13 @@
 "use client";
 
-import "@/lib/gsap/register";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { HeaderSaaS } from "@/components/layout/HeaderSaaS";
+import { PageTransition } from "@/components/layout/PageTransition";
 
 export function SaaSLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const mainRef = useRef<HTMLElement>(null);
-
-  // Page-level fade-in on route changes
-  useGSAP(
-    () => {
-      const mm = gsap.matchMedia();
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.from(mainRef.current, {
-          y: 14,
-          autoAlpha: 0,
-          duration: 0.45,
-          ease: "power2.out",
-          clearProps: "all",
-        });
-      });
-    },
-    { scope: mainRef }
-  );
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[#0a0a0a]">
@@ -69,11 +49,16 @@ export function SaaSLayout({ children }: { children: React.ReactNode }) {
 
       <div className="flex flex-col flex-1 overflow-hidden w-full">
         <HeaderSaaS onMenuClick={() => setIsSidebarOpen(true)} />
-        <main
-          ref={mainRef}
-          className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8"
-        >
-          {children}
+        {/*
+         * PageTransition envuelve {children} y gestiona:
+         *  • Primera carga → fade-in + slide-up (GSAP).
+         *  • Cambio de ruta → wipe naranja (Fase 10, Plan UI/UX).
+         * El <main> mantiene overflow-y-auto para scroll interno de páginas.
+         */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <PageTransition>
+            {children}
+          </PageTransition>
         </main>
       </div>
     </div>

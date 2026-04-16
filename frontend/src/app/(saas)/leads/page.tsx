@@ -59,27 +59,9 @@ export default async function LeadsPage() {
   }));
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Gestión de Leads
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Revisa y envía los prospectos descubiertos por el motor de
-            prospección.
-          </p>
-        </div>
-        <span className="text-sm font-medium text-gray-400 bg-gray-100 dark:bg-gray-800 dark:text-gray-400 px-3 py-1.5 rounded-full">
-          {leadsNormalized.length} total
-        </span>
-      </div>
-
-      <LeadsClient
-        leadsIniciales={leadsNormalized}
-        organizacionId={orgId ?? ""}
-      />
-    </div>
+    <LeadsClient
+      leadsIniciales={leadsNormalized}
+      organizacionId={orgId ?? ""}
+    />
   );
 }
-

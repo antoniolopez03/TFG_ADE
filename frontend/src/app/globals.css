@@ -224,3 +224,40 @@ body {
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
   }
 }
+
+/* ── Phase 10: Skeleton shimmer ─────────────────────────────────────────────
+ *
+ * .skeleton — drop-in replacement for Tailwind's animate-pulse.
+ * Uses a moving gradient instead of opacity flicker for a premium feel
+ * (the gradient travels left-to-right like a light reflection).
+ *
+ * Dark-mode variant applies automatically when .dark is on <html>.
+ * Usage:  <div className="skeleton h-4 w-32 rounded" />
+ */
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f3f4f6 25%,
+    #e9eaec 50%,
+    #f3f4f6 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(
+    90deg,
+    #1f2937 25%,
+    #2d3748 50%,
+    #1f2937 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}

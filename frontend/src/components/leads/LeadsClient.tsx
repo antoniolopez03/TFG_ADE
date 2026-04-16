@@ -1,13 +1,22 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { Loader2, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { LeadsTable } from "./LeadsTable";
 import { EmailDrawer } from "./EmailDrawer";
 import { LeadDetailsModal } from "./LeadDetailsModal";
+import { CountUp } from "@/lib/animations/counter";
 import type { LeadConRelaciones } from "@/lib/types/app.types";
+
+// Register useGSAP plugin once
+gsap.registerPlugin(useGSAP);
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const BULK_CHUNK_SIZE = 10;
 const BULK_DELAY_MS = 15000;
@@ -34,17 +43,15 @@ interface DiscardLeadResult {
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 function chunkArray<T>(items: T[], chunkSize: number): T[][] {
-  if (chunkSize <= 0) {
-    return [items];
-  }
-
+  if (chunkSize <= 0) return [items];
   const chunks: T[][] = [];
   for (let index = 0; index < items.length; index += chunkSize) {
     chunks.push(items.slice(index, index + chunkSize));
   }
-
   return chunks;
 }
+
+// ─── Tabs config ──────────────────────────────────────────────────────────────
 
 interface Tab {
   label: string;
@@ -72,18 +79,21 @@ const TABS: Tab[] = [
   },
 ];
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 interface LeadsClientProps {
   leadsIniciales: LeadConRelaciones[];
   organizacionId: string;
 }
 
-export function LeadsClient({
-  leadsIniciales,
-  organizacionId,
-}: LeadsClientProps) {
+// ─── Component ───────────────────────────────────────────────────────────────
+
+export function LeadsClient({ leadsIniciales, organizacionId }: LeadsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabActivo = searchParams.get("tab") ?? "todos";
+
+  // ── State ─────────────────────────────────────────────────────────────────
 
   const [leads, setLeads] = useState<LeadConRelaciones[]>(leadsIniciales);
   const [drawerLead, setDrawerLead] = useState<LeadConRelaciones | null>(null);
@@ -97,52 +107,92 @@ export function LeadsClient({
     status: "idle",
   });
   const [bulkNotice, setBulkNotice] = useState<BulkNotice | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Refs for GSAP
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  // ── GSAP — header entrance timeline ───────────────────────────────────────
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+      tl.from(".leads-title", {
+        autoAlpha: 0,
+        y: 20,
+        duration: 0.5,
+      })
+        .from(
+          ".leads-subtitle",
+          { autoAlpha: 0, y: 14, duration: 0.4 },
+          "-=0.28"
+        )
+        .from(
+          ".leads-total-badge",
+          { autoAlpha: 0, scale: 0.85, duration: 0.35 },
+          "-=0.25"
+        );
+    },
+    { scope: headerRef }
+  );
+
+  // ── Sync leads with server ─────────────────────────────────────────────────
 
   useEffect(() => {
     setLeads(leadsIniciales);
   }, [leadsIniciales]);
 
+  // ── Derived state ──────────────────────────────────────────────────────────
+
   const tabConfig = TABS.find((t) => t.value === tabActivo) ?? TABS[0];
   const isPendingTab = tabActivo === "pendientes";
   const leadsFiltrados = useMemo(() => tabConfig.filter(leads), [tabConfig, leads]);
 
-  useEffect(() => {
-    const visibleIds = new Set(leadsFiltrados.map((lead) => lead.id));
-    setSelectedIds((prev) => {
-      const next = prev.filter((leadId) => visibleIds.has(leadId));
-      const isSameSelection =
-        next.length === prev.length && next.every((leadId, index) => leadId === prev[index]);
+  // Apply search query on top of tab filter
+  const leadsSearched = useMemo(() => {
+    if (!searchQuery.trim()) return leadsFiltrados;
+    const q = searchQuery.toLowerCase();
+    return leadsFiltrados.filter(
+      (l) =>
+        l.global_empresas?.nombre?.toLowerCase().includes(q) ||
+        l.global_contactos?.nombre?.toLowerCase().includes(q) ||
+        l.global_contactos?.apellidos?.toLowerCase().includes(q) ||
+        l.global_empresas?.sector?.toLowerCase().includes(q) ||
+        l.global_empresas?.dominio?.toLowerCase().includes(q)
+    );
+  }, [leadsFiltrados, searchQuery]);
 
-      return isSameSelection ? prev : next;
+  // Clear search when switching tabs
+  useEffect(() => {
+    setSearchQuery("");
+  }, [tabActivo]);
+
+  // Keep selectedIds in sync with visible leads
+  useEffect(() => {
+    const visibleIds = new Set(leadsFiltrados.map((l) => l.id));
+    setSelectedIds((prev) => {
+      const next = prev.filter((id) => visibleIds.has(id));
+      const same =
+        next.length === prev.length && next.every((id, idx) => id === prev[idx]);
+      return same ? prev : next;
     });
   }, [leadsFiltrados]);
 
   useEffect(() => {
-    if (!isPendingTab) {
-      setSelectedIds([]);
-    }
+    if (!isPendingTab) setSelectedIds([]);
   }, [isPendingTab]);
 
-  const selectableLeadIds = useMemo(
-    () => {
-      if (!isPendingTab) {
-        return [];
-      }
+  const selectableLeadIds = useMemo(() => {
+    if (!isPendingTab) return [];
+    return leadsFiltrados
+      .filter((l) => l.estado === "pendiente_aprobacion" && !l.borrador_email)
+      .map((l) => l.id);
+  }, [isPendingTab, leadsFiltrados]);
 
-      return leadsFiltrados
-        .filter((lead) => lead.estado === "pendiente_aprobacion" && !lead.borrador_email)
-        .map((lead) => lead.id);
-    },
-    [isPendingTab, leadsFiltrados]
-  );
-
-  const selectableLeadIdsSet = useMemo(
-    () => new Set(selectableLeadIds),
-    [selectableLeadIds]
-  );
+  const selectableLeadIdsSet = useMemo(() => new Set(selectableLeadIds), [selectableLeadIds]);
 
   const selectedEligibleIds = useMemo(
-    () => selectedIds.filter((leadId) => selectableLeadIdsSet.has(leadId)),
+    () => selectedIds.filter((id) => selectableLeadIdsSet.has(id)),
     [selectedIds, selectableLeadIdsSet]
   );
 
@@ -150,22 +200,25 @@ export function LeadsClient({
     selectableLeadIds.length > 0 &&
     selectedEligibleIds.length === selectableLeadIds.length;
 
+  const pendingCount = leads.filter(
+    (l) => l.estado === "pendiente_aprobacion" || l.estado === "aprobado"
+  ).length;
+
+  // ── Tab navigation ─────────────────────────────────────────────────────────
+
   function setTab(value: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", value);
     router.push(`?${params.toString()}`, { scroll: false });
   }
 
-  const markLeadsAsDiscarded = useCallback((leadIds: string[]) => {
-    if (leadIds.length === 0) {
-      return;
-    }
+  // ── Lead mutations ─────────────────────────────────────────────────────────
 
+  const markLeadsAsDiscarded = useCallback((leadIds: string[]) => {
+    if (leadIds.length === 0) return;
     const idsSet = new Set(leadIds);
     setLeads((prev) =>
-      prev.map((lead) =>
-        idsSet.has(lead.id) ? { ...lead, estado: "descartado" } : lead
-      )
+      prev.map((l) => (idsSet.has(l.id) ? { ...l, estado: "descartado" } : l))
     );
   }, []);
 
@@ -176,16 +229,12 @@ export function LeadsClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lead_id: leadId, organizacion_id: organizacionId }),
       });
-
-      if (res.ok) {
-        return { ok: true };
-      }
-
+      if (res.ok) return { ok: true };
       const data = await res.json().catch(() => ({}));
       return {
         ok: false,
         error:
-          typeof data.error === "string" && data.error.trim().length > 0
+          typeof data.error === "string" && data.error.trim()
             ? data.error
             : "No se pudo descartar el lead.",
       };
@@ -196,12 +245,11 @@ export function LeadsClient({
   const handleDiscard = useCallback(
     async (leadId: string) => {
       try {
-        const discarded = await discardLeadRequest(leadId);
-        if (!discarded.ok) {
-          toast.error(discarded.error ?? "No se pudo descartar el lead.");
+        const result = await discardLeadRequest(leadId);
+        if (!result.ok) {
+          toast.error(result.error ?? "No se pudo descartar el lead.");
           return;
         }
-
         markLeadsAsDiscarded([leadId]);
         toast.success("Lead descartado correctamente.");
         router.refresh();
@@ -239,190 +287,123 @@ export function LeadsClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lead_id: leadId, organizacion_id: organizacionId }),
       });
-
       const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.error ?? "No se pudo generar el borrador con IA.");
-      }
-
+      if (!res.ok) throw new Error(data.error ?? "No se pudo generar el borrador con IA.");
       setLeads((prev) =>
-        prev.map((lead) =>
-          lead.id === leadId
+        prev.map((l) =>
+          l.id === leadId
             ? {
-                ...lead,
+                ...l,
                 borrador_email:
                   typeof data.email_borrador === "string"
                     ? data.email_borrador
-                    : lead.borrador_email,
+                    : l.borrador_email,
                 email_asunto:
                   typeof data.email_asunto === "string"
                     ? data.email_asunto
-                    : lead.email_asunto,
+                    : l.email_asunto,
               }
-            : lead
+            : l
         )
       );
     },
     [organizacionId]
   );
 
+  // ── Selection handlers ─────────────────────────────────────────────────────
+
   const handleToggleSelect = useCallback(
     (leadId: string) => {
-      if (!isPendingTab || isProcessing || !selectableLeadIdsSet.has(leadId)) {
-        return;
-      }
-
+      if (!isPendingTab || isProcessing || !selectableLeadIdsSet.has(leadId)) return;
       setBulkNotice(null);
       setSelectedIds((prev) =>
-        prev.includes(leadId)
-          ? prev.filter((currentLeadId) => currentLeadId !== leadId)
-          : [...prev, leadId]
+        prev.includes(leadId) ? prev.filter((id) => id !== leadId) : [...prev, leadId]
       );
     },
     [isPendingTab, isProcessing, selectableLeadIdsSet]
   );
 
   const handleToggleSelectAll = useCallback(() => {
-    if (!isPendingTab || isProcessing || selectableLeadIds.length === 0) {
-      return;
-    }
-
+    if (!isPendingTab || isProcessing || selectableLeadIds.length === 0) return;
     setBulkNotice(null);
     setSelectedIds((prev) => {
-      if (allSelectableSelected) {
-        return prev.filter((leadId) => !selectableLeadIdsSet.has(leadId));
-      }
-
+      if (allSelectableSelected)
+        return prev.filter((id) => !selectableLeadIdsSet.has(id));
       const next = new Set(prev);
-      selectableLeadIds.forEach((leadId) => {
-        next.add(leadId);
-      });
-
+      selectableLeadIds.forEach((id) => next.add(id));
       return Array.from(next);
     });
   }, [allSelectableSelected, isPendingTab, isProcessing, selectableLeadIds, selectableLeadIdsSet]);
 
   const handleClearSelection = useCallback(() => {
-    if (isProcessing) {
-      return;
-    }
-
+    if (isProcessing) return;
     setSelectedIds([]);
   }, [isProcessing]);
 
-  const handleGenerateDraftsInBatches = useCallback(async () => {
-    if (isProcessing) {
-      return;
-    }
+  // ── Bulk generate ──────────────────────────────────────────────────────────
 
+  const handleGenerateDraftsInBatches = useCallback(async () => {
+    if (isProcessing) return;
     const idsToProcess = [...selectedEligibleIds];
     if (idsToProcess.length === 0) {
-      const message = "Selecciona al menos un lead pendiente para generar borradores.";
-      setBulkNotice({
-        type: "error",
-        message,
-      });
-      toast.error(message);
+      const msg = "Selecciona al menos un lead pendiente para generar borradores.";
+      setBulkNotice({ type: "error", message: msg });
+      toast.error(msg);
       return;
     }
-
     setBulkNotice(null);
     setIsProcessing(true);
     setBulkAction("generate");
     setProgress({ current: 0, total: idsToProcess.length, status: "processing" });
 
     const chunks = chunkArray(idsToProcess, BULK_CHUNK_SIZE);
-    let processedCount = 0;
-    let successCount = 0;
-    let failedCount = 0;
-    let firstErrorMessage: string | null = null;
+    let processed = 0, success = 0, failed = 0, firstErr: string | null = null;
 
     try {
-      let chunkIndex = 0;
-
+      let ci = 0;
       for (const chunk of chunks) {
-        setProgress({
-          current: processedCount,
-          total: idsToProcess.length,
-          status: "processing",
-        });
-
-        const results = await Promise.allSettled(
-          chunk.map((leadId) => handleGenerateDraft(leadId))
-        );
-
-        for (const result of results) {
-          processedCount += 1;
-          if (result.status === "fulfilled") {
-            successCount += 1;
-          } else {
-            failedCount += 1;
-            if (!firstErrorMessage) {
-              firstErrorMessage =
-                result.reason instanceof Error
-                  ? result.reason.message
-                  : "Error desconocido al generar borradores en lote.";
-            }
+        setProgress({ current: processed, total: idsToProcess.length, status: "processing" });
+        const results = await Promise.allSettled(chunk.map((id) => handleGenerateDraft(id)));
+        for (const r of results) {
+          processed++;
+          if (r.status === "fulfilled") success++;
+          else {
+            failed++;
+            if (!firstErr)
+              firstErr = r.reason instanceof Error ? r.reason.message : "Error desconocido.";
           }
         }
-
-        const isLastChunk = chunkIndex === chunks.length - 1;
+        const isLast = ci === chunks.length - 1;
         setProgress({
-          current: processedCount,
+          current: processed,
           total: idsToProcess.length,
-          status: isLastChunk ? "processing" : "waiting",
+          status: isLast ? "processing" : "waiting",
         });
-
-        if (!isLastChunk) {
-          await delay(BULK_DELAY_MS);
-        }
-
-        chunkIndex += 1;
+        if (!isLast) await delay(BULK_DELAY_MS);
+        ci++;
       }
-
       setSelectedIds([]);
-
-      if (successCount > 0 && failedCount === 0) {
+      if (success > 0 && failed === 0) {
         setBulkNotice({
           type: "success",
-          message: `Se generaron ${successCount} borrador${
-            successCount === 1 ? "" : "es"
-          } con IA.`,
+          message: `Se generaron ${success} borrador${success === 1 ? "" : "es"} con IA.`,
         });
-      } else if (successCount > 0) {
+      } else if (success > 0) {
         setBulkNotice({
           type: "success",
-          message: `Proceso completado: ${successCount} borrador${
-            successCount === 1 ? "" : "es"
-          } generado${successCount === 1 ? "" : "s"} y ${failedCount} fallo${
-            failedCount === 1 ? "" : "s"
-          }.`,
+          message: `Completado: ${success} generado${success === 1 ? "" : "s"}, ${failed} fallo${failed === 1 ? "" : "s"}.`,
         });
-        toast.error(
-          firstErrorMessage
-            ? `Operación masiva incompleta: ${firstErrorMessage}`
-            : "La operación masiva terminó con errores en algunos leads."
-        );
+        toast.error(firstErr ? `Incompleto: ${firstErr}` : "Terminó con errores en algunos leads.");
       } else {
-        const message = firstErrorMessage
-          ? `No se pudo generar ningún borrador. ${firstErrorMessage}`
-          : "No se pudo generar ningún borrador. Intenta de nuevo en unos minutos.";
-        setBulkNotice({
-          type: "error",
-          message,
-        });
-        toast.error(message);
+        const msg = firstErr ? `No se generó ningún borrador. ${firstErr}` : "No se generó ningún borrador. Inténtalo de nuevo.";
+        setBulkNotice({ type: "error", message: msg });
+        toast.error(msg);
       }
-
       router.refresh();
     } catch {
-      const message = "Error inesperado en la operación masiva de borradores.";
-      setBulkNotice({
-        type: "error",
-        message,
-      });
-      toast.error(message);
+      const msg = "Error inesperado en la operación masiva de borradores.";
+      setBulkNotice({ type: "error", message: msg });
+      toast.error(msg);
     } finally {
       setIsProcessing(false);
       setBulkAction(null);
@@ -430,113 +411,69 @@ export function LeadsClient({
     }
   }, [handleGenerateDraft, isProcessing, router, selectedEligibleIds]);
 
-  const handleDiscardSelectedInBulk = useCallback(async () => {
-    if (isProcessing) {
-      return;
-    }
+  // ── Bulk discard ───────────────────────────────────────────────────────────
 
+  const handleDiscardSelectedInBulk = useCallback(async () => {
+    if (isProcessing) return;
     const idsToProcess = [...selectedEligibleIds];
     if (idsToProcess.length === 0) {
-      const message = "Selecciona al menos un lead para descartar.";
-      setBulkNotice({
-        type: "error",
-        message,
-      });
-      toast.error(message);
+      const msg = "Selecciona al menos un lead para descartar.";
+      setBulkNotice({ type: "error", message: msg });
+      toast.error(msg);
       return;
     }
-
     setBulkNotice(null);
     setIsProcessing(true);
     setBulkAction("discard");
     setProgress({ current: 0, total: idsToProcess.length, status: "processing" });
 
     const chunks = chunkArray(idsToProcess, BULK_CHUNK_SIZE);
-    const discardedIds: string[] = [];
-    let processedCount = 0;
-    let failedCount = 0;
-    let firstErrorMessage: string | null = null;
+    const discarded: string[] = [];
+    let processed = 0, failed = 0, firstErr: string | null = null;
 
     try {
       for (const chunk of chunks) {
         const results = await Promise.allSettled(
-          chunk.map(async (leadId) => {
-            const discarded = await discardLeadRequest(leadId);
-            if (!discarded.ok) {
-              throw new Error(discarded.error ?? "No se pudo descartar el lead.");
-            }
-
-            return leadId;
+          chunk.map(async (id) => {
+            const r = await discardLeadRequest(id);
+            if (!r.ok) throw new Error(r.error ?? "No se pudo descartar.");
+            return id;
           })
         );
-
-        for (const result of results) {
-          processedCount += 1;
-          if (result.status === "fulfilled") {
-            discardedIds.push(result.value);
-          } else {
-            failedCount += 1;
-            if (!firstErrorMessage) {
-              firstErrorMessage =
-                result.reason instanceof Error
-                  ? result.reason.message
-                  : "Error desconocido al descartar leads en lote.";
-            }
+        for (const r of results) {
+          processed++;
+          if (r.status === "fulfilled") discarded.push(r.value);
+          else {
+            failed++;
+            if (!firstErr)
+              firstErr = r.reason instanceof Error ? r.reason.message : "Error desconocido.";
           }
         }
-
-        setProgress({
-          current: processedCount,
-          total: idsToProcess.length,
-          status: "processing",
-        });
+        setProgress({ current: processed, total: idsToProcess.length, status: "processing" });
       }
-
-      if (discardedIds.length > 0) {
-        markLeadsAsDiscarded(discardedIds);
-      }
+      if (discarded.length > 0) markLeadsAsDiscarded(discarded);
       setSelectedIds([]);
-
-      if (discardedIds.length > 0 && failedCount === 0) {
+      if (discarded.length > 0 && failed === 0) {
         setBulkNotice({
           type: "success",
-          message: `Se descartaron ${discardedIds.length} lead${
-            discardedIds.length === 1 ? "" : "s"
-          } correctamente.`,
+          message: `Se descartaron ${discarded.length} lead${discarded.length === 1 ? "" : "s"}.`,
         });
-      } else if (discardedIds.length > 0) {
+      } else if (discarded.length > 0) {
         setBulkNotice({
           type: "success",
-          message: `Proceso completado: ${discardedIds.length} lead${
-            discardedIds.length === 1 ? "" : "s"
-          } descartado${discardedIds.length === 1 ? "" : "s"} y ${failedCount} fallo${
-            failedCount === 1 ? "" : "s"
-          }.`,
+          message: `Completado: ${discarded.length} descartado${discarded.length === 1 ? "" : "s"}, ${failed} fallo${failed === 1 ? "" : "s"}.`,
         });
-        toast.error(
-          firstErrorMessage
-            ? `Operación masiva incompleta: ${firstErrorMessage}`
-            : "La operación masiva terminó con errores en algunos leads."
-        );
+        toast.error(firstErr ? `Incompleto: ${firstErr}` : "Terminó con errores.");
       } else {
-        const message = firstErrorMessage
-          ? `No se pudo descartar ningún lead. ${firstErrorMessage}`
-          : "No se pudo descartar ningún lead. Intenta de nuevo.";
-        setBulkNotice({
-          type: "error",
-          message,
-        });
-        toast.error(message);
+        const msg = firstErr ? `No se descartó ningún lead. ${firstErr}` : "No se descartó ningún lead. Inténtalo de nuevo.";
+        setBulkNotice({ type: "error", message: msg });
+        toast.error(msg);
       }
-
       router.refresh();
     } catch {
-      const message = "Error inesperado en la operación masiva de descarte.";
-      setBulkNotice({
-        type: "error",
-        message,
-      });
-      toast.error(message);
+      const msg = "Error inesperado en la operación masiva de descarte.";
+      setBulkNotice({ type: "error", message: msg });
+      toast.error(msg);
     } finally {
       setIsProcessing(false);
       setBulkAction(null);
@@ -544,135 +481,192 @@ export function LeadsClient({
     }
   }, [discardLeadRequest, isProcessing, markLeadsAsDiscarded, router, selectedEligibleIds]);
 
-  const pendingCount = leads.filter(
-    (l) => l.estado === "pendiente_aprobacion" || l.estado === "aprobado"
-  ).length;
-
   const progressMessage = useMemo(() => {
-    if (!isProcessing || progress.total === 0) {
-      return "";
-    }
-
-    if (bulkAction === "discard") {
-      return `Descartando leads... (${progress.current}/${progress.total})`;
-    }
-
-    if (progress.status === "waiting") {
-      return `Esperando para el siguiente lote... (${progress.current}/${progress.total})`;
-    }
-
-    return `Generando borradores... (${progress.current}/${progress.total})`;
+    if (!isProcessing || progress.total === 0) return "";
+    if (bulkAction === "discard")
+      return `Descartando leads… (${progress.current}/${progress.total})`;
+    if (progress.status === "waiting")
+      return `Esperando siguiente lote… (${progress.current}/${progress.total})`;
+    return `Generando borradores… (${progress.current}/${progress.total})`;
   }, [bulkAction, isProcessing, progress]);
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
-    <div>
-      {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 border-b border-gray-100 dark:border-gray-800 pb-0">
+    <div className="p-8">
+      {/* ── Header — GSAP entrance timeline ──────────────────────────── */}
+      <div ref={headerRef} className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="leads-title text-2xl font-bold text-gray-900 dark:text-white">
+            Gestión de Leads
+          </h1>
+          <p className="leads-subtitle text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Revisa y envía los prospectos descubiertos por el motor de prospección.
+          </p>
+        </div>
+        <span className="leads-total-badge text-sm font-medium text-gray-400 bg-gray-100 dark:bg-gray-800 dark:text-gray-400 px-3 py-1.5 rounded-full">
+          {leads.length} total
+        </span>
+      </div>
+
+      {/* ── Tabs — framer-motion layoutId sliding indicator ──────────── */}
+      <div className="relative flex items-center gap-1 mb-4 border-b border-gray-100 dark:border-gray-800">
         {TABS.map((tab) => {
           const isActive = tab.value === tabActivo;
           return (
             <button
               key={tab.value}
               onClick={() => setTab(tab.value)}
-              className={`px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center gap-2 ${
+              className={`relative px-4 py-2.5 text-sm font-medium transition-colors flex items-center gap-2 -mb-px ${
                 isActive
-                  ? "text-leadby-500 border-b-2 border-leadby-500 -mb-px"
+                  ? "text-leadby-500"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               }`}
             >
               {tab.label}
+
+              {/* Pending count badge */}
               {tab.value === "pendientes" && pendingCount > 0 && (
-                <span className="bg-leadby-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
+                <motion.span
+                  layout
+                  className="bg-leadby-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none"
+                >
                   {pendingCount}
-                </span>
+                </motion.span>
+              )}
+
+              {/* Sliding active indicator */}
+              {isActive && (
+                <motion.div
+                  layoutId="leads-tab-indicator"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-leadby-500 rounded-full"
+                  transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                />
               )}
             </button>
           );
         })}
-        <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 pb-2.5">
-          {leadsFiltrados.length} resultado
-          {leadsFiltrados.length !== 1 ? "s" : ""}
-        </span>
+
+        {/* ── Result counter — CountUp re-animates on count change ────── */}
+        <div className="ml-auto flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 pb-2.5">
+          <CountUp
+            key={`${tabActivo}-${leadsSearched.length}`}
+            to={leadsSearched.length}
+            duration={0.5}
+            className="tabular-nums"
+          />
+          <span>resultado{leadsSearched.length !== 1 ? "s" : ""}</span>
+        </div>
       </div>
 
+      {/* ── Search bar ────────────────────────────────────────────────── */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar por empresa, contacto o sector…"
+          className="w-full pl-9 pr-9 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-leadby-400 dark:focus:border-leadby-500 transition-colors"
+        />
+
+        {/* Animated clear button */}
+        <AnimatePresence>
+          {searchQuery && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.7 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              aria-label="Limpiar búsqueda"
+            >
+              <X className="w-3.5 h-3.5" />
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ── Bulk action panel (pendientes tab only) ───────────────────── */}
       {isPendingTab && (
         <div className="mb-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-              {selectedEligibleIds.length} lead
-              {selectedEligibleIds.length === 1 ? "" : "s"} seleccionado
-              {selectedEligibleIds.length === 1 ? "" : "s"}
-            </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-              Solo se pueden seleccionar leads en estado pendiente y sin borrador.
-            </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                {selectedEligibleIds.length} lead
+                {selectedEligibleIds.length === 1 ? "" : "s"} seleccionado
+                {selectedEligibleIds.length === 1 ? "" : "s"}
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                Solo se pueden seleccionar leads en estado pendiente y sin borrador.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleClearSelection}
+                disabled={isProcessing || selectedEligibleIds.length === 0}
+                className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Limpiar selección
+              </button>
+
+              <button
+                onClick={handleGenerateDraftsInBatches}
+                disabled={isProcessing || selectedEligibleIds.length === 0}
+                className="text-xs px-3 py-1.5 rounded-lg bg-leadby-500 text-white hover:bg-leadby-600 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+              >
+                {isProcessing && bulkAction === "generate" ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Procesando lotes…
+                  </>
+                ) : (
+                  "Generar todos los borradores"
+                )}
+              </button>
+
+              <button
+                onClick={handleDiscardSelectedInBulk}
+                disabled={isProcessing || selectedEligibleIds.length === 0}
+                className="text-xs px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+              >
+                {isProcessing && bulkAction === "discard" ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Descartando…
+                  </>
+                ) : (
+                  "Descartar todos"
+                )}
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleClearSelection}
-              disabled={isProcessing || selectedEligibleIds.length === 0}
-              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
+          {isProcessing && progressMessage && (
+            <p className="mt-3 text-xs text-leadby-600 dark:text-leadby-400">
+              {progressMessage}
+            </p>
+          )}
+
+          {bulkNotice && (
+            <p
+              className={`mt-3 text-xs ${
+                bulkNotice.type === "success"
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-red-500 dark:text-red-400"
+              }`}
             >
-              Limpiar selección
-            </button>
-
-            <button
-              onClick={handleGenerateDraftsInBatches}
-              disabled={isProcessing || selectedEligibleIds.length === 0}
-              className="text-xs px-3 py-1.5 rounded-lg bg-leadby-500 text-white hover:bg-leadby-600 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
-            >
-              {isProcessing && bulkAction === "generate" ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Procesando lotes...
-                </>
-              ) : (
-                "Generar todos los borradores"
-              )}
-            </button>
-
-            <button
-              onClick={handleDiscardSelectedInBulk}
-              disabled={isProcessing || selectedEligibleIds.length === 0}
-              className="text-xs px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
-            >
-              {isProcessing && bulkAction === "discard" ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Descartando...
-                </>
-              ) : (
-                "Descartar todos"
-              )}
-            </button>
-          </div>
-        </div>
-
-        {isProcessing && progressMessage && (
-          <p className="mt-3 text-xs text-leadby-600 dark:text-leadby-400">
-            {progressMessage}
-          </p>
-        )}
-
-        {bulkNotice && (
-          <p
-            className={`mt-3 text-xs ${
-              bulkNotice.type === "success"
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-500 dark:text-red-400"
-            }`}
-          >
-            {bulkNotice.message}
-          </p>
-        )}
+              {bulkNotice.message}
+            </p>
+          )}
         </div>
       )}
 
-      {/* Tabla */}
+      {/* ── Table ─────────────────────────────────────────────────────── */}
       <LeadsTable
-        leads={leadsFiltrados}
+        leads={leadsSearched}
         showBulkSelection={isPendingTab}
         selectedIds={selectedEligibleIds}
         selectableCount={selectableLeadIds.length}
@@ -686,12 +680,9 @@ export function LeadsClient({
         onGenerateDraft={handleGenerateDraft}
       />
 
-      <LeadDetailsModal
-        lead={detailsLead}
-        onClose={() => setDetailsLead(null)}
-      />
+      {/* ── Modals / Drawers ──────────────────────────────────────────── */}
+      <LeadDetailsModal lead={detailsLead} onClose={() => setDetailsLead(null)} />
 
-      {/* Email Drawer */}
       <EmailDrawer
         lead={drawerLead}
         onClose={() => setDrawerLead(null)}

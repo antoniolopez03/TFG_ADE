@@ -89,36 +89,6 @@ export function DifferentiatorsSection() {
 
 // ─── Animated SVG icons (framer-motion pathLength) ───────────────────────────
 
-/**
- * Wrapper that fires the path-draw animation once the icon enters the viewport.
- * Each icon composes one or more `<motion.path>` elements with `pathLength`.
- */
-function DrawIcon({
-  children,
-  viewBox = "0 0 48 48",
-}: {
-  children: React.ReactNode;
-  viewBox?: string;
-}) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, amount: 0.6 });
-
-  return (
-    <svg
-      ref={ref}
-      viewBox={viewBox}
-      fill="none"
-      className="h-14 w-14"
-      aria-hidden
-    >
-      {/* Render children as a render-prop so they receive isInView */}
-      {typeof children === "function"
-        ? (children as (v: boolean) => React.ReactNode)(isInView)
-        : children}
-    </svg>
-  );
-}
-
 /** Shared transition for every stroke path */
 const pathTransition = (delay = 0) => ({
   duration: 1.4,

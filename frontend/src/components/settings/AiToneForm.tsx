@@ -1,13 +1,26 @@
 "use client";
 
-import { useState } from "react";
+/**
+ * AiToneForm
+ *
+ * Phase 8 additions:
+ * – GSAP success animation on the Check icon: scale + elastic bounce
+ *   when `saved` transitions to true.
+ * – gsap.matchMedia() so reduced-motion users see the icon appear instantly.
+ * – All other logic is unchanged.
+ */
+
+import "@/lib/gsap/register";
+import { useState, useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import { Loader2, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const IDIOMAS = [
   { label: "Español", value: "es" },
-  { label: "Inglés", value: "en" },
-  { label: "Alemán", value: "de" },
+  { label: "Inglés",  value: "en" },
+  { label: "Alemán",  value: "de" },
 ];
 
 const INPUT_CLASS =
@@ -15,9 +28,9 @@ const INPUT_CLASS =
 
 interface AiToneFormProps {
   organizacionId: string;
-  tonoVoz: string;
-  idioma: string;
-  isAdmin: boolean;
+  tonoVoz:        string;
+  idioma:         string;
+  isAdmin:        boolean;
 }
 
 export function AiToneForm({
@@ -26,12 +39,44 @@ export function AiToneForm({
   idioma,
   isAdmin,
 }: AiToneFormProps) {
-  const supabase = createClient();
-  const [tono, setTono] = useState(tonoVoz);
-  const [idiomaValue, setIdiomaValue] = useState(idioma || "es");
-  const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const supabase        = createClient();
+  const [tono,          setTono]         = useState(tonoVoz);
+  const [idiomaValue,   setIdiomaValue]  = useState(idioma || "es");
+  const [loading,       setLoading]      = useState(false);
+  const [saved,         setSaved]        = useState(false);
+  const [error,         setError]        = useState<string | null>(null);
+
+  // Ref for the check icon wrapper — GSAP targets this
+  const checkRef = useRef<HTMLSpanElement>(null);
+
+  // Animate check icon whenever `saved` becomes true
+  useGSAP(
+    () => {
+      if (!saved || !checkRef.current) return;
+
+      const mm = gsap.matchMedia();
+
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.fromTo(
+          checkRef.current,
+          { scale: 0, rotation: -30 },
+          {
+            scale: 1,
+            rotation: 0,
+            duration: 0.45,
+            ease: "back.out(2)",
+          }
+        );
+      });
+
+      mm.add("(prefers-reduced-motion: reduce)", () => {
+        gsap.set(checkRef.current, { scale: 1, rotation: 0 });
+      });
+
+      return () => mm.revert();
+    },
+    { dependencies: [saved] }
+  );
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -116,7 +161,9 @@ export function AiToneForm({
             </>
           ) : saved ? (
             <>
-              <Check className="w-4 h-4" />
+              <span ref={checkRef} className="inline-flex" style={{ transformOrigin: "center" }}>
+                <Check className="w-4 h-4" />
+              </span>
               Guardado
             </>
           ) : (

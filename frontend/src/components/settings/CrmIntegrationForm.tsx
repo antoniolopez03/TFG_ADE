@@ -1,17 +1,116 @@
 "use client";
 
-import { useState } from "react";
+/**
+ * CrmIntegrationForm
+ *
+ * Additions for Phase 8:
+ * – Animated `<StatusDot>` component built with GSAP:
+ *   · Connected  → pulsing green ring (repeat -1, expands + fades)
+ *   · Disconnected → static red dot, no motion
+ * – Uses gsap.matchMedia() inside StatusDot so reduced-motion users
+ *   never see the ring expand.
+ * – All other logic is unchanged.
+ */
+
+import "@/lib/gsap/register";
+import { useRef, useState } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import { Loader2, Check, X, Eye, EyeOff } from "lucide-react";
+
+// ─── Animated status dot ──────────────────────────────────────────────────────
+
+interface StatusDotProps {
+  connected: boolean;
+}
+
+function StatusDot({ connected }: StatusDotProps) {
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const ringRef = useRef<HTMLSpanElement>(null);
+
+  useGSAP(
+    () => {
+      if (!ringRef.current || !connected) return;
+
+      const mm = gsap.matchMedia();
+
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        // Ring expands and fades out, repeat indefinitely
+        gsap.fromTo(
+          ringRef.current,
+          { scale: 1, autoAlpha: 0.75 },
+          {
+            scale: 2.4,
+            autoAlpha: 0,
+            duration: 1.2,
+            ease: "power1.out",
+            repeat: -1,
+            repeatDelay: 0.4,
+          }
+        );
+      });
+
+      return () => mm.revert();
+    },
+    { scope: wrapRef, dependencies: [connected] }
+  );
+
+  return (
+    <span
+      ref={wrapRef}
+      className="inline-flex items-center gap-2"
+      aria-label={connected ? "CRM conectado" : "CRM no configurado"}
+    >
+      {/* Dot wrapper */}
+      <span className="relative inline-flex h-2.5 w-2.5 flex-shrink-0">
+        {/* Pulsing ring — only rendered when connected */}
+        {connected && (
+          <span
+            ref={ringRef}
+            className="absolute inset-0 rounded-full bg-green-400"
+            aria-hidden="true"
+          />
+        )}
+        {/* Solid inner dot */}
+        <span
+          className={[
+            "relative inline-flex h-2.5 w-2.5 rounded-full",
+            connected
+              ? "bg-green-500"
+              : "bg-red-500",
+          ].join(" ")}
+        />
+      </span>
+
+      <span
+        className={[
+          "text-xs font-medium",
+          connected
+            ? "text-green-600 dark:text-green-400"
+            : "text-red-500 dark:text-red-400",
+        ].join(" ")}
+      >
+        {connected ? "Conectado" : "No configurado"}
+      </span>
+    </span>
+  );
+}
+
+// ─── Form constants ───────────────────────────────────────────────────────────
 
 const INPUT_CLASS =
   "border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white";
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 interface CrmIntegrationFormProps {
   organizacionId: string;
-  crmProveedor: string | null;
-  hasToken: boolean;
-  isAdmin: boolean;
+  crmProveedor:   string | null;
+  hasToken:       boolean;
+  isAdmin:        boolean;
 }
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function CrmIntegrationForm({
   organizacionId,
@@ -19,16 +118,15 @@ export function CrmIntegrationForm({
   hasToken,
   isAdmin,
 }: CrmIntegrationFormProps) {
-  const [hasTokenState, setHasTokenState] = useState(hasToken);
+  const [hasTokenState,  setHasTokenState]  = useState(hasToken);
   const [showTokenInput, setShowTokenInput] = useState(!hasToken);
-  const [token, setToken] = useState("");
-  const [showToken, setShowToken] = useState(false);
-  const [savingToken, setSavingToken] = useState(false);
-  const [tokenSaved, setTokenSaved] = useState(false);
-  const [tokenError, setTokenError] = useState<string | null>(null);
-
-  const [verifying, setVerifying] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<{
+  const [token,          setToken]          = useState("");
+  const [showToken,      setShowToken]      = useState(false);
+  const [savingToken,    setSavingToken]    = useState(false);
+  const [tokenSaved,     setTokenSaved]     = useState(false);
+  const [tokenError,     setTokenError]     = useState<string | null>(null);
+  const [verifying,      setVerifying]      = useState(false);
+  const [verifyResult,   setVerifyResult]   = useState<{
     ok: boolean;
     message: string;
   } | null>(null);
@@ -43,21 +141,20 @@ export function CrmIntegrationForm({
     setSavingToken(true);
     setTokenError(null);
 
-    let responseOk = false;
-    let errorMessage = "Error al guardar el token. Inténtalo de nuevo.";
+    let responseOk    = false;
+    let errorMessage  = "Error al guardar el token. Inténtalo de nuevo.";
 
     try {
-      const res = await fetch("/api/crm/token", {
-        method: "POST",
+      const res  = await fetch("/api/crm/token", {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body:    JSON.stringify({
           organizacion_id: organizacionId,
           token: token.trim(),
         }),
       });
 
       const data = await res.json().catch(() => ({}));
-
       responseOk = res.ok && data?.ok === true;
       if (!responseOk) {
         errorMessage = data?.error ?? data?.message ?? errorMessage;
@@ -84,8 +181,8 @@ export function CrmIntegrationForm({
     setVerifyResult(null);
 
     try {
-      const res = await fetch("/api/crm/verify", {
-        method: "POST",
+      const res  = await fetch("/api/crm/verify", {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
@@ -99,7 +196,15 @@ export function CrmIntegrationForm({
 
   return (
     <div className="space-y-6">
-      {/* Proveedor CRM */}
+      {/* ── Status indicator ── */}
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Estado de la integración
+        </span>
+        <StatusDot connected={hasTokenState} />
+      </div>
+
+      {/* ── Proveedor CRM ── */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Proveedor CRM
@@ -112,11 +217,15 @@ export function CrmIntegrationForm({
               readOnly
               className="accent-leadby-500"
             />
-            <span className="text-sm font-medium text-gray-900 dark:text-white">HubSpot</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-white">
+              HubSpot
+            </span>
           </label>
           <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
             <input type="radio" disabled className="accent-leadby-500" />
-            <span className="text-sm text-gray-500 dark:text-gray-400">Salesforce</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              Salesforce
+            </span>
             <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full">
               Próximamente
             </span>
@@ -124,7 +233,7 @@ export function CrmIntegrationForm({
         </div>
       </div>
 
-      {/* Token API */}
+      {/* ── Token API ── */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -181,7 +290,9 @@ export function CrmIntegrationForm({
               </button>
             </div>
             {tokenError && (
-              <p className="text-xs text-red-600 dark:text-red-400">{tokenError}</p>
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {tokenError}
+              </p>
             )}
             <div className="flex gap-2">
               <button
@@ -214,7 +325,7 @@ export function CrmIntegrationForm({
         )}
       </div>
 
-      {/* Verificar conexión */}
+      {/* ── Verificar conexión ── */}
       {isAdmin && (
         <div className="flex items-center gap-3">
           <button
@@ -234,11 +345,12 @@ export function CrmIntegrationForm({
 
           {verifyResult && (
             <span
-              className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg ${
+              className={[
+                "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg",
                 verifyResult.ok
                   ? "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400"
-                  : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400"
-              }`}
+                  : "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400",
+              ].join(" ")}
             >
               {verifyResult.ok ? (
                 <Check className="w-3.5 h-3.5" />
@@ -251,7 +363,7 @@ export function CrmIntegrationForm({
         </div>
       )}
 
-      {/* Banner DNS */}
+      {/* ── Banner DNS ── */}
       <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl p-4">
         <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-2">
           Configuración DNS requerida

@@ -226,7 +226,7 @@ export function BlogPageClient({ articles, categories }: BlogPageClientProps) {
             ref={gridRef}
             className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
           >
-            {filteredArticles.map((article, i) => {
+            {filteredArticles.map((article) => {
               const catStyle = getCategoryStyle(article.category);
               return (
                 <article

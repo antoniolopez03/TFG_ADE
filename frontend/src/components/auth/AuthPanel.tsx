@@ -151,7 +151,7 @@ export function AuthPanel() {
       {/* ── Quote ───────────────────────────────────────────────────────── */}
       <div className="ap-quote relative rounded-xl border border-white/8 bg-white/5 p-5 backdrop-blur-sm">
         <p className="text-sm italic leading-relaxed text-white/65">
-          "Antes tardábamos 2 semanas en llenar un pipeline. Ahora lo hacemos en una mañana."
+          &quot;Antes tardábamos 2 semanas en llenar un pipeline. Ahora lo hacemos en una mañana.&quot;
         </p>
         <p className="mt-3 text-xs font-semibold text-white/40">
           Director Comercial · Fabricante CNC · Madrid
