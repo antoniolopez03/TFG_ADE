@@ -4,31 +4,17 @@ import "@/lib/gsap/register";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { useRef, useCallback } from "react";
+import { useRef } from "react";
 import Link from "next/link";
-import {
-  motion,
-  useMotionValue,
-  useTransform,
-  useSpring,
-} from "framer-motion";
 import { Magnetic } from "@/lib/animations/magnetic";
+import { HeroBackground } from "@/components/landing/HeroBackground";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const METRICS = [
   { display: "−80%", to: 80, prefix: "−", suffix: "%", label: "Tiempo en prospección" },
   { display: "+35%", to: 35, prefix: "+", suffix: "%", label: "Oportunidades cualificadas" },
-  { display: "×10", to: 10, prefix: "×", suffix: "", label: "Tasa de respuesta vs. correo masivo" },
-];
-
-const TRUST_LOGOS = ["HubSpot", "Google Gemini", "Next.js API", "Supabase", "Resend"];
-
-const MOCK_LEADS = [
-  { company: "Técnicas del Henares S.L.", contact: "J. Ramírez", role: "Dir. Compras" },
-  { company: "Mecanizados Levante",       contact: "M. Pérez",   role: "Gerente" },
-  { company: "Distribuidora Ibérica CNC", contact: "A. García",  role: "Resp. Técnico" },
-  { company: "Industrias Castilla Norte", contact: "P. Llorente", role: "CEO" },
+  { display: "×10",  to: 10, prefix: "×", suffix: "",  label: "Tasa de respuesta vs. correo masivo" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -36,58 +22,40 @@ const MOCK_LEADS = [
 export function HeroSection() {
   const containerRef = useRef<HTMLElement>(null);
 
-  // ── Cursor-tracking glow ──────────────────────────────────────────────────
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springX = useSpring(mouseX, { stiffness: 80, damping: 20 });
-  const springY = useSpring(mouseY, { stiffness: 80, damping: 20 });
-  const glowX = useTransform(springX, (v) => `${v}px`);
-  const glowY = useTransform(springY, (v) => `${v}px`);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    mouseX.set(e.clientX - rect.left);
-    mouseY.set(e.clientY - rect.top);
-  }, [mouseX, mouseY]);
-
-  // ── GSAP entry + scroll animations ───────────────────────────────────────
   useGSAP(
     (_, contextSafe) => {
       const mm = gsap.matchMedia();
 
       mm.add(
         {
-          motion: "(prefers-reduced-motion: no-preference)",
-          noMotion: "(prefers-reduced-motion: reduce)",
+          motion:    "(prefers-reduced-motion: no-preference)",
+          noMotion:  "(prefers-reduced-motion: reduce)",
         },
         (ctx) => {
-          const { motion: hasMotion } = ctx.conditions as { motion: boolean; noMotion: boolean };
+          const { motion: hasMotion } = ctx.conditions as {
+            motion: boolean;
+            noMotion: boolean;
+          };
 
           if (!hasMotion) {
             gsap.set(
-              [".h-badge", ".h-headline", ".h-subtitle", ".h-metric", ".h-cta", ".h-trust", ".h-mockup"],
+              [".h-badge", ".h-headline", ".h-subtitle", ".h-metric", ".h-cta", ".h-trust"],
               { autoAlpha: 1, clearProps: "transform" }
             );
             return;
           }
 
-          // Entry timeline
+          // ── Entry timeline ──────────────────────────────────────────────
           const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.65 } });
 
           tl.from(".h-badge",    { y: -20, autoAlpha: 0 })
-            .from(".h-headline", { y: 40,  autoAlpha: 0 },              "-=0.3")
-            .from(".h-subtitle", { y: 30,  autoAlpha: 0 },              "-=0.4")
+            .from(".h-headline", { y: 40,  autoAlpha: 0 },               "-=0.3")
+            .from(".h-subtitle", { y: 30,  autoAlpha: 0 },               "-=0.4")
             .from(".h-metric",   { y: 20,  autoAlpha: 0, stagger: 0.1 }, "-=0.3")
-            .from(".h-cta",      { y: 20,  autoAlpha: 0, stagger: 0.08 }, "-=0.3")
-            .from(".h-trust",    { autoAlpha: 0, duration: 0.4 },        "-=0.2");
+            .from(".h-cta",      { y: 20,  autoAlpha: 0, stagger: 0.08 },"-=0.3")
+            .from(".h-trust",    { autoAlpha: 0, duration: 0.4 },         "-=0.2");
 
-          // Mockup enters independently
-          gsap.from(".h-mockup", {
-            y: 60, autoAlpha: 0, duration: 0.9, ease: "power3.out", delay: 0.5,
-          });
-
-          // CountUp animations
+          // ── CountUp on scroll ───────────────────────────────────────────
           const metricEls =
             containerRef.current?.querySelectorAll<HTMLElement>("[data-countup]") ?? [];
 
@@ -105,44 +73,6 @@ export function HeroSection() {
               },
             });
           });
-
-          // Gentle float on mockup
-          gsap.to(".h-mockup", {
-            y: -8, duration: 3, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 1.4,
-          });
-
-          // Mouse parallax on mockup
-          if (contextSafe) {
-            const onMouseMove = contextSafe((e: Event) => {
-              const me = e as MouseEvent;
-              const el = containerRef.current;
-              if (!el) return;
-              const rect = el.getBoundingClientRect();
-              const nx = (me.clientX - rect.left - rect.width  / 2) / (rect.width  / 2);
-              const ny = (me.clientY - rect.top  - rect.height / 2) / (rect.height / 2);
-              gsap.to(".h-mockup", {
-                rotationY: nx * 8, rotationX: -ny * 4,
-                transformPerspective: 900,
-                duration: 0.8, ease: "power2.out", overwrite: "auto",
-              });
-            });
-
-            const onMouseLeave = contextSafe(() => {
-              gsap.to(".h-mockup", {
-                rotationY: 0, rotationX: 0,
-                duration: 0.8, ease: "power2.out", overwrite: "auto",
-              });
-            });
-
-            const el = containerRef.current;
-            el?.addEventListener("mousemove", onMouseMove);
-            el?.addEventListener("mouseleave", onMouseLeave);
-
-            return () => {
-              el?.removeEventListener("mousemove", onMouseMove);
-              el?.removeEventListener("mouseleave", onMouseLeave);
-            };
-          }
         }
       );
 
@@ -154,221 +84,98 @@ export function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-[90dvh] overflow-hidden flex items-center"
-      onMouseMove={handleMouseMove}
+      className="relative min-h-[100dvh] overflow-hidden flex items-center bg-white dark:bg-black"
     >
-      {/* ── Cursor-tracking glow overlay ─────────────────────────────────── */}
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{
-          background: "transparent",
-        }}
-      >
-        <motion.div
-          className="pointer-events-none absolute h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{
-            left: glowX,
-            top:  glowY,
-            background:
-              "radial-gradient(circle, rgba(255,117,31,0.06) 0%, rgba(255,117,31,0.02) 50%, transparent 70%)",
-            filter: "blur(40px)",
-          }}
-        />
-      </motion.div>
+      {/* ── Animated background layer ─────────────────────────────────────── */}
+      <HeroBackground />
 
-      {/* ── Ambient orbs ─────────────────────────────────────────────────── */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
+      {/* ── Content ───────────────────────────────────────────────────────── */}
+      <div className="relative z-10 mx-auto w-full max-w-3xl px-6 py-40 text-center">
+
+        {/* Badge */}
         <div
-          className="glow-orb animate-float absolute -top-32 left-1/4"
-          style={{
-            "--size": "380px",
-            "--color": "rgba(255,117,31,0.12)",
-            "--blur": "90px",
-          } as React.CSSProperties}
-        />
-        <div
-          className="glow-orb animate-float absolute bottom-0 right-1/4"
-          style={{
-            "--size": "300px",
-            "--color": "rgba(255,145,77,0.08)",
-            "--blur": "80px",
-            animationDelay: "−3s",
-          } as React.CSSProperties}
-        />
-      </div>
-
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-20 grid items-center gap-12 md:grid-cols-[1.2fr_0.8fr] md:py-28">
-
-        {/* ── Left: copy ──────────────────────────────────────────────────── */}
-        <div>
-          {/* Badge */}
-          <div
-            className="h-badge mb-6 inline-flex items-center gap-2 rounded-full border border-leadby-500/40 bg-leadby-500/8 px-3 py-1 text-xs font-medium text-leadby-500"
-            style={{ visibility: "hidden" }}
-          >
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-leadby-500 animate-pulse" />
-            Prospección B2B · Sector Industrial
-          </div>
-
-          {/* H1 */}
-          <h1
-            className="h-headline text-balance text-5xl font-semibold leading-[1.08] md:text-7xl"
-            style={{ visibility: "hidden" }}
-          >
-            Multiplica las ventas B2B{" "}
-            <span className="text-gradient">sin aumentar</span> tu equipo comercial.
-          </h1>
-
-          {/* Subtitle */}
-          <p
-            className="h-subtitle mt-6 text-lg leading-relaxed text-black/65 dark:text-white/65 max-w-lg"
-            style={{ visibility: "hidden" }}
-          >
-            LeadBy automatiza la búsqueda de clientes, redacta los correos con IA y los
-            sincroniza con tu CRM. Tus comerciales solo cierran contratos.
-          </p>
-
-          {/* Metrics */}
-          <div className="mt-10 flex flex-wrap items-start gap-x-8 gap-y-4">
-            {METRICS.map((m, i) => (
-              <div key={i} className="h-metric flex flex-col" style={{ visibility: "hidden" }}>
-                <span
-                  className="text-3xl font-bold text-leadby-500 tabular-nums"
-                  data-countup
-                  data-to={m.to}
-                  data-prefix={m.prefix}
-                  data-suffix={m.suffix}
-                >
-                  {m.display}
-                </span>
-                <span className="mt-0.5 text-xs text-black/55 dark:text-white/55 max-w-[110px] leading-tight">
-                  {m.label}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* CTAs */}
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Magnetic strength={0.2}>
-              <Link
-                href="/contact"
-                className="h-cta inline-flex items-center gap-2 rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-white shadow-leadby transition-all hover:bg-leadby-600 animate-glow-pulse cursor-magnetic"
-                style={{ visibility: "hidden" }}
-              >
-                Solicitar demo
-                <span className="transition-transform group-hover:translate-x-0.5">→</span>
-              </Link>
-            </Magnetic>
-
-            <Magnetic strength={0.15}>
-              <button
-                onClick={() =>
-                  document.getElementById("demo-video")?.scrollIntoView({ behavior: "smooth" })
-                }
-                className="h-cta inline-flex items-center gap-2 rounded-full border border-black/15 dark:border-white/15 px-6 py-3 text-sm font-semibold text-foreground transition-all hover:border-leadby-500/50 hover:text-leadby-500 cursor-magnetic"
-                style={{ visibility: "hidden" }}
-              >
-                Ver cómo funciona ↓
-              </button>
-            </Magnetic>
-          </div>
-
-          {/* Trust bar */}
-          <div className="h-trust mt-8 flex flex-wrap items-center gap-3" style={{ visibility: "hidden" }}>
-            <span className="text-xs text-black/40 dark:text-white/40">Integrado con:</span>
-            {TRUST_LOGOS.map((name) => (
-              <span
-                key={name}
-                className="font-mono text-xs bg-black/5 dark:bg-white/5 border border-black/8 dark:border-white/8 px-2.5 py-1 rounded-full text-black/50 dark:text-white/50 transition-all hover:border-leadby-500/30 hover:text-leadby-500"
-              >
-                {name}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Right: dashboard mockup ──────────────────────────────────────── */}
-        <div
-          className="h-mockup relative rounded-2xl bg-white/80 dark:bg-white/5 backdrop-blur-sm border border-leadby-500/20 shadow-[0_0_60px_rgba(255,117,31,0.12)] p-1"
+          className="h-badge mb-6 inline-flex items-center gap-2 rounded-full border border-leadby-500/40 bg-leadby-500/10 px-3 py-1 text-xs font-medium text-leadby-600 dark:text-leadby-400"
           style={{ visibility: "hidden" }}
         >
-          {/* Window bar */}
-          <div className="flex items-center gap-1.5 rounded-t-xl border border-black/5 dark:border-white/8 bg-white/90 dark:bg-gray-900/90 px-4 py-2.5">
-            <span className="h-3 w-3 rounded-full bg-red-400" />
-            <span className="h-3 w-3 rounded-full bg-yellow-400" />
-            <span className="h-3 w-3 rounded-full bg-green-400" />
-            <span className="ml-3 flex-1 text-center text-[11px] text-black/40 dark:text-white/40 font-mono">
-              LeadBy Dashboard
-            </span>
-          </div>
-
-          <div className="rounded-b-xl border border-t-0 border-black/5 dark:border-white/8 bg-white/70 dark:bg-gray-950/80 p-3 space-y-3">
-            {/* KPI chips */}
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { value: "47", label: "leads descubiertos", accent: true },
-                { value: "12", label: "correos enviados",   accent: false },
-                { value: "3",  label: "respuestas",         accent: true },
-              ].map((kpi, i) => (
-                <div
-                  key={i}
-                  className={`rounded-lg border p-2.5 ${
-                    kpi.accent
-                      ? "border-leadby-500/20 bg-leadby-500/5"
-                      : "border-black/5 dark:border-white/8 bg-black/[0.02] dark:bg-white/[0.03]"
-                  }`}
-                >
-                  <div className="text-lg font-bold text-foreground tabular-nums">{kpi.value}</div>
-                  <div className="text-[10px] text-black/50 dark:text-white/50 leading-tight mt-0.5">
-                    {kpi.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Leads mini-table */}
-            <div className="rounded-lg border border-black/5 dark:border-white/8 overflow-hidden">
-              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-2 px-3 py-1.5 bg-black/[0.03] dark:bg-white/[0.04] border-b border-black/5 dark:border-white/8">
-                {["Empresa", "Contacto", "Cargo", "Acción"].map((h) => (
-                  <span key={h} className="text-[10px] font-semibold text-black/40 dark:text-white/40 uppercase tracking-wide last:block">
-                    {h}
-                  </span>
-                ))}
-              </div>
-              {MOCK_LEADS.map((lead, i) => (
-                <div
-                  key={i}
-                  className="grid grid-cols-[1fr_auto_auto_auto] gap-x-2 items-center px-3 py-2 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-leadby-500/[0.03] transition-colors"
-                >
-                  <span className="text-[11px] font-medium text-foreground truncate">{lead.company}</span>
-                  <span className="text-[10px] text-black/60 dark:text-white/60 whitespace-nowrap">{lead.contact}</span>
-                  <span className="text-[10px] text-black/45 dark:text-white/45 whitespace-nowrap hidden sm:block">{lead.role}</span>
-                  <div className="flex gap-1">
-                    <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-medium px-1.5 py-0.5 cursor-pointer hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors">✓</span>
-                    <span className="rounded-full bg-gray-100 dark:bg-white/8 text-gray-500 dark:text-white/40 text-[9px] font-medium px-1.5 py-0.5 cursor-pointer hover:bg-gray-200 dark:hover:bg-white/12 transition-colors">✕</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* AI badge */}
-            <div className="flex items-center gap-2 rounded-lg border border-leadby-500/20 bg-leadby-500/5 px-3 py-2">
-              <span className="animate-pulse text-leadby-500 text-sm">✦</span>
-              <span className="text-[11px] text-leadby-500 font-medium">IA generando borrador...</span>
-              <div className="ml-auto flex gap-0.5">
-                {[0, 150, 300].map((d) => (
-                  <span
-                    key={d}
-                    className="h-1 w-1 rounded-full bg-leadby-500/60 animate-bounce"
-                    style={{ animationDelay: `${d}ms` }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-leadby-600 dark:bg-leadby-400 animate-pulse" />
+          Prospección B2B con IA · Nueva era comercial
         </div>
+
+        {/* H1 */}
+        <h1
+          className="h-headline text-balance text-5xl font-bold leading-[1.08] text-gray-900 dark:text-white md:text-7xl"
+          style={{ visibility: "hidden" }}
+        >
+          La Nueva Era de la{" "}
+          <span className="text-leadby-500">Prospección B2B</span>
+        </h1>
+
+        {/* Subtitle */}
+        <p
+          className="h-subtitle mt-6 text-lg leading-relaxed text-gray-600 dark:text-white/60 max-w-xl mx-auto"
+          style={{ visibility: "hidden" }}
+        >
+          Deja que la IA identifique tus mejores clientes potenciales, redacte los correos
+          y los sincronice con tu CRM. Tu equipo solo cierra.
+        </p>
+
+        {/* Metrics */}
+        <div className="mt-10 flex flex-wrap items-start justify-center gap-x-10 gap-y-4">
+          {METRICS.map((m, i) => (
+            <div
+              key={i}
+              className="h-metric flex flex-col items-center"
+              style={{ visibility: "hidden" }}
+            >
+              <span
+                className="text-3xl font-bold text-leadby-500 tabular-nums"
+                data-countup
+                data-to={m.to}
+                data-prefix={m.prefix}
+                data-suffix={m.suffix}
+              >
+                {m.display}
+              </span>
+              <span className="mt-0.5 text-xs text-gray-400 dark:text-white/40 max-w-[120px] leading-tight text-center">
+                {m.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* CTAs */}
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <Magnetic strength={0.2}>
+            <Link
+              href="/contact"
+              className="h-cta inline-flex items-center gap-2 rounded-full bg-leadby-500 px-7 py-3.5 text-sm font-semibold text-white shadow-leadby transition-all hover:bg-leadby-600 animate-glow-pulse cursor-magnetic"
+              style={{ visibility: "hidden" }}
+            >
+              Empieza gratis — 14 días
+              <span aria-hidden>→</span>
+            </Link>
+          </Magnetic>
+
+          <Magnetic strength={0.15}>
+            <button
+              onClick={() =>
+                document.getElementById("demo-video")?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="h-cta inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-white/15 px-6 py-3 text-sm font-semibold text-gray-700 dark:text-white/80 transition-all hover:border-leadby-500/50 hover:text-leadby-500 dark:hover:text-leadby-400 cursor-magnetic"
+              style={{ visibility: "hidden" }}
+            >
+              Ver cómo funciona ↓
+            </button>
+          </Magnetic>
+        </div>
+
+        {/* Subtext */}
+        <p
+          className="h-trust mt-4 text-sm text-gray-400 dark:text-white/40"
+          style={{ visibility: "hidden" }}
+        >
+          Sin tarjeta de crédito · Cancela cuando quieras
+        </p>
 
       </div>
     </section>
