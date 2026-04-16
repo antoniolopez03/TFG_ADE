@@ -217,7 +217,7 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
   const isRunning = loading && searchStep >= 0;
 
   return (
-    <div ref={containerRef}>
+    <div ref={containerRef} className="flex flex-col h-full">
       {/* ── Heading ──────────────────────────────────────────────────── */}
       <div className="sf-heading mb-5">
         <h2 className="font-semibold text-gray-900 dark:text-white text-sm">
@@ -228,7 +228,7 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 gap-4">
 
         {/* ── Fields ───────────────────────────────────────────────────── */}
         <div className="sf-field grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -400,8 +400,14 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
           )}
         </AnimatePresence>
 
-        {/* ── Submit ───────────────────────────────────────────────────── */}
-        <div className="sf-submit">
+        {/* ── Submit + info note ───────────────────────────────────────── */}
+        <div className="sf-submit mt-auto flex flex-col gap-3">
+          {/* Info note — moved above the CTA per design spec */}
+          <p className="text-[11px] leading-relaxed text-gray-400 dark:text-gray-500">
+            LeadBy analiza tu sector con IA y genera una lista de empresas y
+            decisores relevantes. Los resultados aparecen en tu bandeja listos
+            para revisión.
+          </p>
           <Magnetic strength={0.12}>
             <button
               type="submit"
@@ -423,13 +429,6 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
           </Magnetic>
         </div>
       </form>
-
-      {/* ── Info note ────────────────────────────────────────────────── */}
-      <p className="mt-4 text-[11px] leading-relaxed text-gray-400 dark:text-gray-500">
-        LeadBy analiza tu sector con IA y genera una lista de empresas y
-        decisores relevantes. Los resultados aparecen en tu bandeja listos
-        para revisión.
-      </p>
     </div>
   );
 }

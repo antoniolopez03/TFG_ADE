@@ -6,6 +6,7 @@ import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 // ─── Static content ───────────────────────────────────────────────────────────
 
@@ -14,6 +15,12 @@ const BENEFITS = [
   "Cold emails generados con IA en segundos",
   "Sincronización automática con HubSpot",
 ];
+
+type AuthPanelVariant = "default" | "login";
+
+interface AuthPanelProps {
+  variant?: AuthPanelVariant;
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -30,8 +37,9 @@ const BENEFITS = [
  *
  * All animations respect `prefers-reduced-motion` via gsap.matchMedia().
  */
-export function AuthPanel() {
+export function AuthPanel({ variant = "default" }: AuthPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const isLoginVariant = variant === "login";
 
   useGSAP(
     () => {
@@ -110,24 +118,58 @@ export function AuthPanel() {
         />
       </div>
 
-      {/* ── Logo ────────────────────────────────────────────────────────── */}
-      <Link href="/" className="ap-logo relative flex items-center gap-3">
-        <Image
-          src="/LEADBY-Logo.png"
-          alt="LeadBy"
-          width={36}
-          height={36}
-          className="h-9 w-9"
-        />
-        <span className="text-sm font-semibold uppercase tracking-[0.2em] text-white">
-          LeadBy
-        </span>
-      </Link>
+      {/* ── Top-left action ─────────────────────────────────────────────── */}
+      {isLoginVariant ? (
+        <Link
+          href="/"
+          aria-label="Volver a la landing"
+          className="ap-logo relative flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white/90 transition-colors hover:bg-white/10"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+      ) : (
+        <Link href="/" className="ap-logo relative flex items-center gap-3">
+          <Image
+            src="/LEADBY-Auth.png"
+            alt="LeadBy"
+            width={36}
+            height={36}
+            className="h-9 w-9"
+          />
+          <span className="text-sm font-semibold uppercase tracking-[0.2em] text-white">
+            LeadBy
+          </span>
+        </Link>
+      )}
 
       {/* ── Main copy ───────────────────────────────────────────────────── */}
       <div className="relative flex flex-1 flex-col justify-center py-12">
-        <h2 className="ap-headline text-balance text-3xl font-semibold leading-tight text-white lg:text-4xl">
-          Tu próximo cliente<br />está a un clic.
+        {isLoginVariant && (
+          <div className="ap-headline mb-20 flex justify-center">
+            <Image
+              src="/LEADBY-Auth.png"
+              alt="LeadBy"
+              width={300}
+              height={300}
+              className="object-contain"
+            />
+          </div>
+        )}
+
+        <h2
+          className={
+            isLoginVariant
+              ? "ap-headline whitespace-nowrap text-2xl font-semibold leading-tight text-white lg:text-3xl"
+              : "ap-headline text-balance text-3xl font-semibold leading-tight text-white lg:text-4xl"
+          }
+        >
+          {isLoginVariant ? (
+            "Tu próximo cliente está a un clic."
+          ) : (
+            <>
+              Tu próximo cliente<br />está a un clic.
+            </>
+          )}
         </h2>
 
         {/* Animated accent line — scaleX from left */}

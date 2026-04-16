@@ -31,7 +31,6 @@ export default async function DashboardPage() {
     ]);
 
   let hubspotDealsWon = 0;
-  let hubspotRevenueWon = 0;
   let hubspotMetricsSource: "hubspot" | "sin_token" | "error" = "sin_token";
 
   if (orgId) {
@@ -46,10 +45,6 @@ export default async function DashboardPage() {
         });
 
         hubspotDealsWon = wonDeals.length;
-        hubspotRevenueWon = wonDeals.reduce(
-          (total, deal) => total + (deal.amount ?? 0),
-          0
-        );
         hubspotMetricsSource = "hubspot";
       }
     } catch (error) {
@@ -69,7 +64,6 @@ export default async function DashboardPage() {
       leadsEnviados={leadsEnviados ?? 0}
       leadsPendientes={leadsPendientes ?? 0}
       hubspotDealsWon={hubspotDealsWon}
-      hubspotRevenueWon={hubspotRevenueWon}
       hubspotMetricsSource={hubspotMetricsSource}
     />
   );

@@ -92,7 +92,7 @@ function LoginPageContent() {
   return (
     <div className="grid min-h-screen md:grid-cols-[45fr_55fr]">
       {/* ── Left: branding panel (hidden on mobile) ──────────────────── */}
-      <AuthPanel />
+      <AuthPanel variant="login" />
 
       {/* ── Right: form ──────────────────────────────────────────────── */}
       <div className="flex flex-col items-center justify-center bg-background px-6 py-12 md:px-10 lg:px-16">
