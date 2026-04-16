@@ -5,13 +5,6 @@ import type { LeadConRelaciones } from "@/lib/types/app.types";
 
 export const dynamic = "force-dynamic";
 
-type MaybeArray<T> = T | T[] | null | undefined;
-
-function normalizeOne<T>(value: MaybeArray<T>): T | null {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value ?? null;
-}
-
 export default async function LeadsPage() {
   const supabase = createClient();
   const {
@@ -30,33 +23,42 @@ export default async function LeadsPage() {
 
   const { data: leads } = orgId
     ? await supabase
-        .from("leads_prospectados")
+        .from("leads")
         .select(`
           id,
           organizacion_id,
           estado,
-          borrador_email,
+          fuente,
+          email_borrador,
           email_aprobado,
           email_asunto,
           email_enviado_at,
+          asignado_a,
+          notas,
           created_at,
-          global_empresas ( nombre, sector, dominio, ciudad, provincia, pais, telefono, linkedin_url, empleados_rango, ingresos_rango, tecnologias ),
-          global_contactos ( nombre, apellidos, cargo, email, telefono, linkedin_url, apollo_contact_id, email_status, seniority, departamento )
+          empresa_nombre,
+          empresa_dominio,
+          empresa_sector,
+          empresa_empleados_rango,
+          empresa_facturacion_rango,
+          empresa_ciudad,
+          empresa_pais,
+          empresa_telefono,
+          empresa_linkedin_url,
+          empresa_descripcion,
+          contacto_nombre_completo,
+          contacto_cargo,
+          contacto_departamento,
+          contacto_email,
+          contacto_telefono,
+          contacto_linkedin_url
         `)
         .eq("organizacion_id", orgId)
         .order("created_at", { ascending: false })
         .limit(100)
     : { data: [] };
 
-  const leadsNormalized: LeadConRelaciones[] = (leads ?? []).map((lead) => ({
-    ...lead,
-    global_empresas: normalizeOne(
-      lead.global_empresas as MaybeArray<LeadConRelaciones["global_empresas"]>
-    ),
-    global_contactos: normalizeOne(
-      lead.global_contactos as MaybeArray<LeadConRelaciones["global_contactos"]>
-    ),
-  }));
+  const leadsNormalized: LeadConRelaciones[] = (leads ?? []) as LeadConRelaciones[];
 
   return (
     <LeadsClient

@@ -41,7 +41,7 @@ export interface MockSearchCriteria {
   perPage?: number;
 }
 
-const DEFAULT_PER_PAGE = 10;
+const DEFAULT_PER_PAGE = 5;
 
 export type ApolloMockAiErrorCode = "SERVIDOR_SATURADO" | "LIMITE_PETICIONES" | "FALLO_IA";
 

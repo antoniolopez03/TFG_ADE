@@ -1,11 +1,11 @@
 -- ==============================================
 -- 04_vault_helpers.sql
--- Funciones RPC para gestión de secretos via Supabase Vault
+-- Funciones RPC para gestión del token HubSpot via Supabase Vault
 -- Llamadas por las API Routes de Next.js con Service Role Key
 -- ==============================================
 
 -- ============================================================
--- Guardar el token API de HubSpot de un tenant en Vault
+-- Guardar el token HubSpot de un tenant en Vault
 -- Retorna el UUID del secreto (se guarda en configuracion_tenant)
 -- Llamar durante el onboarding del tenant
 -- ============================================================
@@ -29,7 +29,6 @@ BEGIN
         'HubSpot API Token - ' || p_nombre_empresa
     ) INTO v_secret_id;
 
-    -- Guardar referencia UUID en configuracion_tenant (upsert)
     INSERT INTO configuracion_tenant (organizacion_id, hubspot_token_vault_id)
     VALUES (p_organizacion_id, v_secret_id)
     ON CONFLICT (organizacion_id)
@@ -46,8 +45,8 @@ COMMENT ON FUNCTION guardar_hubspot_token IS
     'en configuracion_tenant. Llamar durante el onboarding. Requiere Service Role Key.';
 
 -- ============================================================
--- Recuperar el token API de HubSpot de un tenant
--- vault.decrypted_secrets descifra en memoria
+-- Recuperar el token HubSpot de un tenant
+-- El descifrado ocurre exclusivamente en memoria
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION obtener_hubspot_token(p_organizacion_id UUID)
@@ -69,11 +68,10 @@ END;
 $$;
 
 COMMENT ON FUNCTION obtener_hubspot_token IS
-    'Recupera y descifra el token HubSpot del tenant desde Vault. '
-    'El descifrado ocurre exclusivamente en memoria. Requiere Service Role Key.';
+    'Recupera y descifra el token HubSpot del tenant desde Vault. Requiere Service Role Key.';
 
 -- ============================================================
--- Rotar (actualizar) el token de HubSpot sin cambiar el UUID
+-- Rotar el token HubSpot sin cambiar el UUID de referencia
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION rotar_hubspot_token(
@@ -101,24 +99,23 @@ END;
 $$;
 
 COMMENT ON FUNCTION rotar_hubspot_token IS
-    'Actualiza el token HubSpot en Vault manteniendo el mismo UUID de referencia. '
+    'Actualiza el token HubSpot en Vault manteniendo el mismo UUID. '
     'Usar para rotación periódica de credenciales. Requiere Service Role Key.';
 
 -- ============================================================
--- NOTA DE USO EN LAS API ROUTES DE NEXT.JS:
+-- USO EN API ROUTES DE NEXT.JS (server-side con Service Role Key):
 --
--- Guardar durante onboarding (server-side):
---   const { data } = await supabase.rpc('guardar_hubspot_token', {
+-- Guardar durante onboarding:
+--   await supabase.rpc('guardar_hubspot_token', {
 --     p_organizacion_id: organizacionId,
 --     p_token: hubspotToken,
 --     p_nombre_empresa: nombreEmpresa
 --   })
 --
--- Recuperar antes de llamar a HubSpot API (server-side):
+-- Recuperar antes de llamar a HubSpot API:
 --   const { data: token } = await supabase.rpc('obtener_hubspot_token', {
 --     p_organizacion_id: organizacionId
 --   })
 --
--- Estas funciones SOLO se llaman desde API Routes server-side con SUPABASE_SERVICE_ROLE_KEY.
--- NUNCA desde componentes cliente de React.
+-- NUNCA llamar desde componentes cliente de React.
 -- ============================================================

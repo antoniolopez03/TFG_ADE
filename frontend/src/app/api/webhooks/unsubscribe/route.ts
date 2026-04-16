@@ -60,20 +60,10 @@ async function registerOptOut(options: RegisterOptOutOptions): Promise<void> {
 
   const normalizedEmail = options.payload.email.trim().toLowerCase();
 
-  const { data: contacto } = await serviceClient
-    .from("global_contactos")
-    .select("id")
-    .ilike("email", normalizedEmail)
-    .limit(1)
-    .maybeSingle();
-
-  const contactoId = contacto?.id ? String(contacto.id) : null;
-
   const { error: optOutError } = await serviceClient.from("email_opt_outs").upsert(
     {
       organizacion_id: options.payload.orgId,
       lead_id: options.payload.leadId,
-      contacto_id: contactoId,
       email: normalizedEmail,
       reason: options.reason,
       source: options.source,
@@ -89,7 +79,7 @@ async function registerOptOut(options: RegisterOptOutOptions): Promise<void> {
   }
 
   const { data: leadData } = await serviceClient
-    .from("leads_prospectados")
+    .from("leads")
     .select("id, metadata")
     .eq("id", options.payload.leadId)
     .eq("organizacion_id", options.payload.orgId)
@@ -103,7 +93,7 @@ async function registerOptOut(options: RegisterOptOutOptions): Promise<void> {
   const unsubscribeMetadata = toRecord(metadataActual.unsubscribe);
 
   await serviceClient
-    .from("leads_prospectados")
+    .from("leads")
     .update({
       metadata: {
         ...metadataActual,

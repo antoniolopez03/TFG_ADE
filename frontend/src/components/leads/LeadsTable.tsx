@@ -226,11 +226,7 @@ export function LeadsTable({
         <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
           <AnimatePresence mode="sync">
             {leads.map((lead, i) => {
-              const empresa = lead.global_empresas;
-              const contacto = lead.global_contactos;
-              const contactoNombre = [contacto?.nombre, contacto?.apellidos]
-                .filter(Boolean)
-                .join(" ");
+              const contactoNombre = lead.contacto_nombre_completo ?? "";
               const isDiscardingThis = discardingId === lead.id;
               const confirmingDiscard = confirmDiscardId === lead.id;
               const isGeneratingDraftThis = generatingDraftId === lead.id;
@@ -238,13 +234,11 @@ export function LeadsTable({
                 draftError?.leadId === lead.id ? draftError.message : null;
               const isSelected = selectedIds.includes(lead.id);
               const canSelectForBulk =
-                lead.estado === "pendiente_aprobacion" && !lead.borrador_email;
+                (lead.estado === "nuevo" || lead.estado === "pendiente_aprobacion") &&
+                !lead.email_borrador;
               const canReviewDraft =
-                Boolean(lead.borrador_email) &&
-                (lead.estado === "pendiente_aprobacion" || lead.estado === "aprobado");
-              const tecnologias = Array.isArray(empresa?.tecnologias)
-                ? empresa.tecnologias.filter((t): t is string => typeof t === "string")
-                : [];
+                Boolean(lead.email_borrador) &&
+                (lead.estado === "nuevo" || lead.estado === "pendiente_aprobacion" || lead.estado === "aprobado");
 
               return (
                 <motion.tr
@@ -269,7 +263,7 @@ export function LeadsTable({
                         onChange={() => onToggleSelect(lead.id)}
                         disabled={isProcessingBulk || !canSelectForBulk}
                         className="mt-1 h-4 w-4 rounded border-gray-300 text-leadby-500 focus:ring-leadby-500 disabled:cursor-not-allowed"
-                        aria-label={`Seleccionar lead ${empresa?.nombre ?? lead.id}`}
+                        aria-label={`Seleccionar lead ${lead.empresa_nombre ?? lead.id}`}
                       />
                     </td>
                   )}
@@ -277,11 +271,11 @@ export function LeadsTable({
                   {/* Empresa */}
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900 dark:text-white">
-                      {empresa?.nombre ?? "—"}
+                      {lead.empresa_nombre ?? "—"}
                     </p>
-                    {empresa?.dominio && (
+                    {lead.empresa_dominio && (
                       <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-                        {empresa.dominio}
+                        {lead.empresa_dominio}
                       </p>
                     )}
                   </td>
@@ -289,40 +283,29 @@ export function LeadsTable({
                   {/* Sector */}
                   <td className="px-4 py-3">
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {empresa?.sector ?? "—"}
+                      {lead.empresa_sector ?? "—"}
                     </p>
-                    {empresa?.ingresos_rango && (
+                    {lead.empresa_facturacion_rango && (
                       <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-                        Ingresos: {empresa.ingresos_rango}
-                      </p>
-                    )}
-                    {tecnologias.length > 0 && (
-                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 truncate max-w-[220px]">
-                        Tech: {tecnologias.slice(0, 2).join(", ")}
-                        {tecnologias.length > 2 ? "…" : ""}
+                        Facturación: {lead.empresa_facturacion_rango}
                       </p>
                     )}
                   </td>
 
                   {/* Contacto */}
                   <td className="px-4 py-3">
-                    {contacto ? (
+                    {lead.contacto_nombre_completo || lead.contacto_email || lead.contacto_cargo ? (
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
                           {contactoNombre || "—"}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {contacto.cargo ?? "—"}
+                            {lead.contacto_cargo ?? "—"}
                           </p>
-                          {contacto.seniority && (
-                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 uppercase">
-                              {contacto.seniority}
-                            </span>
-                          )}
-                          {contacto.linkedin_url && (
+                          {lead.contacto_linkedin_url && (
                             <a
-                              href={contacto.linkedin_url}
+                              href={lead.contacto_linkedin_url}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -330,9 +313,9 @@ export function LeadsTable({
                             </a>
                           )}
                         </div>
-                        {contacto.email_status && (
+                        {lead.contacto_email && (
                           <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-                            Email: {contacto.email_status}
+                            {lead.contacto_email}
                           </p>
                         )}
                       </div>
@@ -379,7 +362,8 @@ export function LeadsTable({
                         )}
 
                         {/* Generar borrador IA */}
-                        {lead.estado === "pendiente_aprobacion" && !lead.borrador_email && (
+                        {(lead.estado === "nuevo" || lead.estado === "pendiente_aprobacion") &&
+                          !lead.email_borrador && (
                           <button
                             onClick={() => handleGenerateDraft(lead.id)}
                             disabled={isGeneratingDraftThis || isProcessingBulk}

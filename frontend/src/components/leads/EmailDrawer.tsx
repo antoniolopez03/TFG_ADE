@@ -28,7 +28,7 @@ export function EmailDrawer({
   useEffect(() => {
     if (lead) {
       setAsunto(lead.email_asunto ?? "");
-      setCuerpo(lead.email_aprobado ?? lead.borrador_email ?? "");
+      setCuerpo(lead.email_aprobado ?? lead.email_borrador ?? "");
       setError(null);
     }
   }, [lead]);
@@ -40,11 +40,7 @@ export function EmailDrawer({
     selectedLead.estado === "pendiente_aprobacion" || selectedLead.estado === "aprobado";
   const isLoading = actionLoading !== null;
 
-  const empresa = selectedLead.global_empresas;
-  const contacto = selectedLead.global_contactos;
-  const contactoNombre = [contacto?.nombre, contacto?.apellidos]
-    .filter(Boolean)
-    .join(" ");
+  const contactoNombre = selectedLead.contacto_nombre_completo ?? "";
 
   function getNormalizedEmailContent() {
     const asuntoNormalizado = asunto.trim();
@@ -156,16 +152,16 @@ export function EmailDrawer({
         <div className="flex items-start justify-between p-6 border-b border-gray-100 dark:border-gray-800">
           <div className="flex-1 min-w-0">
             <p className="font-bold text-gray-900 dark:text-white text-base truncate">
-              {empresa?.nombre ?? "Empresa desconocida"}
+              {selectedLead.empresa_nombre ?? "Empresa desconocida"}
             </p>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                 {contactoNombre || "Sin contacto"}
-                {contacto?.cargo ? ` · ${contacto.cargo}` : ""}
+                {selectedLead.contacto_cargo ? ` · ${selectedLead.contacto_cargo}` : ""}
               </p>
-              {contacto?.linkedin_url && (
+              {selectedLead.contacto_linkedin_url && (
                 <a
-                  href={contacto.linkedin_url}
+                  href={selectedLead.contacto_linkedin_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-leadby-400 hover:text-leadby-500 flex-shrink-0"

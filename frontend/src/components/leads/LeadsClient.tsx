@@ -65,7 +65,10 @@ const TABS: Tab[] = [
     label: "Pendientes",
     value: "pendientes",
     filter: (l) =>
-      l.filter((x) => x.estado === "pendiente_aprobacion" || x.estado === "aprobado"),
+      l.filter(
+        (x) =>
+          x.estado === "nuevo" || x.estado === "pendiente_aprobacion" || x.estado === "aprobado"
+      ),
   },
   {
     label: "Enviados",
@@ -154,11 +157,11 @@ export function LeadsClient({ leadsIniciales, organizacionId }: LeadsClientProps
     const q = searchQuery.toLowerCase();
     return leadsFiltrados.filter(
       (l) =>
-        l.global_empresas?.nombre?.toLowerCase().includes(q) ||
-        l.global_contactos?.nombre?.toLowerCase().includes(q) ||
-        l.global_contactos?.apellidos?.toLowerCase().includes(q) ||
-        l.global_empresas?.sector?.toLowerCase().includes(q) ||
-        l.global_empresas?.dominio?.toLowerCase().includes(q)
+        l.empresa_nombre?.toLowerCase().includes(q) ||
+        l.contacto_nombre_completo?.toLowerCase().includes(q) ||
+        l.contacto_email?.toLowerCase().includes(q) ||
+        l.empresa_sector?.toLowerCase().includes(q) ||
+        l.empresa_dominio?.toLowerCase().includes(q)
     );
   }, [leadsFiltrados, searchQuery]);
 
@@ -185,7 +188,10 @@ export function LeadsClient({ leadsIniciales, organizacionId }: LeadsClientProps
   const selectableLeadIds = useMemo(() => {
     if (!isPendingTab) return [];
     return leadsFiltrados
-      .filter((l) => l.estado === "pendiente_aprobacion" && !l.borrador_email)
+      .filter(
+        (l) =>
+          (l.estado === "nuevo" || l.estado === "pendiente_aprobacion") && !l.email_borrador
+      )
       .map((l) => l.id);
   }, [isPendingTab, leadsFiltrados]);
 
@@ -201,7 +207,7 @@ export function LeadsClient({ leadsIniciales, organizacionId }: LeadsClientProps
     selectedEligibleIds.length === selectableLeadIds.length;
 
   const pendingCount = leads.filter(
-    (l) => l.estado === "pendiente_aprobacion" || l.estado === "aprobado"
+    (l) => l.estado === "nuevo" || l.estado === "pendiente_aprobacion" || l.estado === "aprobado"
   ).length;
 
   // ── Tab navigation ─────────────────────────────────────────────────────────
@@ -272,7 +278,7 @@ export function LeadsClient({ leadsIniciales, organizacionId }: LeadsClientProps
     (leadId: string) => {
       setLeads((prev) =>
         prev.map((l) =>
-          l.id === leadId ? { ...l, estado: "enviado", borrador_email: null } : l
+          l.id === leadId ? { ...l, estado: "enviado", email_borrador: null } : l
         )
       );
       router.refresh();
@@ -294,10 +300,10 @@ export function LeadsClient({ leadsIniciales, organizacionId }: LeadsClientProps
           l.id === leadId
             ? {
                 ...l,
-                borrador_email:
+                email_borrador:
                   typeof data.email_borrador === "string"
                     ? data.email_borrador
-                    : l.borrador_email,
+                    : l.email_borrador,
                 email_asunto:
                   typeof data.email_asunto === "string"
                     ? data.email_asunto

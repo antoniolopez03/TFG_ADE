@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { error: updateError } = await supabase
-    .from("leads_prospectados")
+    .from("leads")
     .update({ estado: "descartado" })
     .eq("id", lead_id)
     .eq("organizacion_id", organizacion_id);

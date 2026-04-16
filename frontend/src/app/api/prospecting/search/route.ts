@@ -33,18 +33,11 @@ function isApolloMockAiErrorLike(error: unknown): error is {
   return hasKnownName && hasKnownCode && hasKnownStatus && hasPublicMessage;
 }
 
-interface LeadProspectedWithCompanyRow {
-  global_empresas:
-    | {
-        dominio: string | null;
-      }
-    | Array<{
-        dominio: string | null;
-      }>
-    | null;
+interface ExistingLeadRow {
+  empresa_dominio: string | null;
 }
 
-function extractDominiosExcluidos(rows: LeadProspectedWithCompanyRow[] | null): string[] {
+function extractDominiosExcluidos(rows: ExistingLeadRow[] | null): string[] {
   if (!rows || rows.length === 0) {
     return [];
   }
@@ -52,21 +45,8 @@ function extractDominiosExcluidos(rows: LeadProspectedWithCompanyRow[] | null): 
   const uniqueDomains = new Set<string>();
 
   for (const row of rows) {
-    const empresa = row.global_empresas;
-
-    if (Array.isArray(empresa)) {
-      for (const item of empresa) {
-        const dominio = typeof item?.dominio === "string" ? item.dominio.trim().toLowerCase() : "";
-
-        if (dominio) {
-          uniqueDomains.add(dominio);
-        }
-      }
-
-      continue;
-    }
-
-    const dominio = typeof empresa?.dominio === "string" ? empresa.dominio.trim().toLowerCase() : "";
+    const dominio =
+      typeof row.empresa_dominio === "string" ? row.empresa_dominio.trim().toLowerCase() : "";
     if (dominio) {
       uniqueDomains.add(dominio);
     }
@@ -148,8 +128,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const { data: prospectadosConEmpresa, error: prospectadosError } = await supabase
-      .from("leads_prospectados")
-      .select("global_empresas!inner(dominio)")
+      .from("leads")
+      .select("empresa_dominio")
       .eq("organizacion_id", organizacionId);
 
     if (prospectadosError) {
@@ -157,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     dominiosExcluidos = extractDominiosExcluidos(
-      (prospectadosConEmpresa ?? null) as LeadProspectedWithCompanyRow[] | null
+      (prospectadosConEmpresa ?? null) as ExistingLeadRow[] | null
     );
   } catch (error) {
     console.error("Error obteniendo dominios excluidos para mock Apollo", {

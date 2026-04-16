@@ -35,7 +35,7 @@ const TAMANO_OPTIONS = ["1-10", "11-50", "51-200", "201-500", "500+"] as const;
 const SEARCH_STEPS = [
   { icon: Radio,             label: "Contactando Apollo.io…" },
   { icon: SlidersHorizontal, label: "Filtrando duplicados…" },
-  { icon: Sparkles,          label: "Enriqueciendo con IA…" },
+  { icon: Sparkles,          label: "Preparando borradores con IA…" },
   { icon: CheckCircle2,      label: "¡Leads listos!" },
 ] as const;
 

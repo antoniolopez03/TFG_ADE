@@ -5,9 +5,7 @@
 -- ==============================================
 
 -- ============================================================
--- FUNCIÓN HELPER: Obtener organizaciones del usuario actual
--- SECURITY DEFINER: corre como postgres, evita que el usuario
--- necesite permisos directos sobre miembros_equipo
+-- FUNCIONES HELPER
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION get_user_organizacion_ids()
@@ -26,10 +24,6 @@ $$;
 COMMENT ON FUNCTION get_user_organizacion_ids IS
     'Devuelve los UUIDs de organizaciones del usuario autenticado. '
     'Usada en todas las políticas RLS para evitar joins repetidos.';
-
--- ============================================================
--- FUNCIÓN HELPER: Verificar si el usuario es admin de una org
--- ============================================================
 
 CREATE OR REPLACE FUNCTION es_admin_de_org(org_id UUID)
 RETURNS BOOLEAN
@@ -51,13 +45,11 @@ $$;
 -- HABILITAR RLS EN TODAS LAS TABLAS
 -- ============================================================
 
-ALTER TABLE organizaciones        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE miembros_equipo       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE configuracion_tenant  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE global_empresas       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE global_contactos      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE trabajos_busqueda     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE leads_prospectados    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizaciones       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE miembros_equipo      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE configuracion_tenant ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leads                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_opt_outs       ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- POLÍTICAS: organizaciones
@@ -74,7 +66,7 @@ CREATE POLICY "Admins pueden actualizar su organización"
     USING (es_admin_de_org(id))
     WITH CHECK (es_admin_de_org(id));
 
--- INSERT solo via service role (onboarding de nuevos tenants desde API Route)
+-- INSERT solo via service role (onboarding de nuevos tenants)
 
 -- ============================================================
 -- POLÍTICAS: miembros_equipo
@@ -119,71 +111,28 @@ CREATE POLICY "Admins pueden actualizar configuración"
 -- INSERT solo via service role durante onboarding
 
 -- ============================================================
--- POLÍTICAS: global_empresas
--- Lectura: todos los usuarios autenticados (catálogo compartido)
--- Escritura: solo service role (API Routes server-side con SUPABASE_SERVICE_ROLE_KEY)
--- ============================================================
-
-CREATE POLICY "Usuarios autenticados pueden ver empresas globales"
-    ON global_empresas FOR SELECT
-    TO authenticated
-    USING (true);
-
--- No hay políticas INSERT/UPDATE/DELETE para authenticated.
--- Las API Routes de Next.js usan SUPABASE_SERVICE_ROLE_KEY para escribir.
-
--- ============================================================
--- POLÍTICAS: global_contactos
--- Idéntico a global_empresas: lectura libre, escritura solo service role
--- ============================================================
-
-CREATE POLICY "Usuarios autenticados pueden ver contactos globales"
-    ON global_contactos FOR SELECT
-    TO authenticated
-    USING (true);
-
--- ============================================================
--- POLÍTICAS: trabajos_busqueda
--- ============================================================
-
-CREATE POLICY "Ver mis búsquedas"
-    ON trabajos_busqueda FOR SELECT
-    TO authenticated
-    USING (organizacion_id IN (SELECT get_user_organizacion_ids()));
-
-CREATE POLICY "Crear búsquedas en mi organización"
-    ON trabajos_busqueda FOR INSERT
-    TO authenticated
-    WITH CHECK (
-        organizacion_id IN (SELECT get_user_organizacion_ids())
-        AND created_by = auth.uid()
-    );
-
--- UPDATE solo via service role (las API Routes actualizan estado y resultados)
-
--- ============================================================
--- POLÍTICAS: leads_prospectados
+-- POLÍTICAS: leads
 -- Aislamiento estricto: un tenant nunca ve leads de otro
 -- ============================================================
 
 CREATE POLICY "Ver leads de mi organización"
-    ON leads_prospectados FOR SELECT
+    ON leads FOR SELECT
     TO authenticated
     USING (organizacion_id IN (SELECT get_user_organizacion_ids()));
 
 CREATE POLICY "Crear leads en mi organización"
-    ON leads_prospectados FOR INSERT
+    ON leads FOR INSERT
     TO authenticated
     WITH CHECK (organizacion_id IN (SELECT get_user_organizacion_ids()));
 
 CREATE POLICY "Actualizar leads de mi organización"
-    ON leads_prospectados FOR UPDATE
+    ON leads FOR UPDATE
     TO authenticated
     USING (organizacion_id IN (SELECT get_user_organizacion_ids()))
     WITH CHECK (organizacion_id IN (SELECT get_user_organizacion_ids()));
 
 CREATE POLICY "Admins pueden eliminar leads de su organización"
-    ON leads_prospectados FOR DELETE
+    ON leads FOR DELETE
     TO authenticated
     USING (
         organizacion_id IN (SELECT get_user_organizacion_ids())
@@ -191,9 +140,20 @@ CREATE POLICY "Admins pueden eliminar leads de su organización"
     );
 
 -- ============================================================
+-- POLÍTICAS: email_opt_outs
+-- Lectura: usuarios del tenant. Escritura: solo service role.
+-- ============================================================
+
+CREATE POLICY "Ver opt-outs de mi organización"
+    ON email_opt_outs FOR SELECT
+    TO authenticated
+    USING (organizacion_id IN (SELECT get_user_organizacion_ids()));
+
+-- INSERT/UPDATE via service role (bajas desde enlaces públicos de email)
+
+-- ============================================================
 -- IMPORTANTE: SUPABASE_SERVICE_ROLE_KEY
 -- Bypasa TODAS las políticas RLS.
--- Usar ÚNICAMENTE en:
---   - API Routes de Next.js (server-side) tras verificar auth del usuario
+-- Usar ÚNICAMENTE en API Routes de Next.js (server-side)
 -- NUNCA en código cliente ni con prefijo NEXT_PUBLIC_
 -- ============================================================

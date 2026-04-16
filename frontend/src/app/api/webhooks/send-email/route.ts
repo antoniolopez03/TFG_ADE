@@ -1,4 +1,4 @@
-﻿import {
+import {
   createHubSpotDeal,
   createHubSpotEmailEngagement,
   createOrUpdateHubSpotCompany,
@@ -10,29 +10,6 @@ import { sendEmailViaResend } from "@/lib/services/resend";
 import { createUnsubscribeToken } from "@/lib/services/unsubscribe";
 import { createClient, createServiceClient } from "@/lib/supabase/request-client";
 import { NextRequest, NextResponse } from "next/server";
-
-/**
- * API Route: Envio de email revisado.
- *
- * Este es el endpoint del HUMAN-IN-THE-LOOP.
- * Solo se activa cuando el comercial ha revisado el borrador,
- * posiblemente lo ha editado, y pulsa "Confirmar y Enviar".
- *
- * Validaciones criticas antes de ejecutar el envio real:
- * - El lead debe estar en estado 'pendiente_aprobacion' (o 'aprobado' legacy)
- * - El email_aprobado debe estar presente y no vacio
- * - El usuario debe tener acceso a la organizacion
- */
-
-type MaybeArray<T> = T | T[] | null | undefined;
-
-function normalizeOne<T>(value: MaybeArray<T>): T | null {
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-
-  return value ?? null;
-}
 
 function toRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -46,6 +23,29 @@ function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function splitFullName(fullName: string | null): { nombre: string | null; apellidos: string | null } {
+  if (!fullName || fullName.trim().length === 0) {
+    return { nombre: null, apellidos: null };
+  }
+
+  const parts = fullName.trim().split(" ").filter(Boolean);
+  if (parts.length === 0) {
+    return { nombre: null, apellidos: null };
+  }
+
+  if (parts.length === 1) {
+    return { nombre: parts[0], apellidos: null };
+  }
+
+  return {
+    nombre: parts[0],
+    apellidos: parts.slice(1).join(" "),
+  };
+}
+
+/**
+ * API Route: Envío de email revisado (Human-in-the-Loop).
+ */
 export async function POST(request: NextRequest) {
   const supabase = createClient();
   const {
@@ -86,7 +86,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Verificar membresia
   const { data: membresia } = await supabase
     .from("miembros_equipo")
     .select("id")
@@ -99,10 +98,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
-  // Verificar estado del lead - DEBE estar en 'aprobado'.
-  // Esta validacion previene doble-envio aunque el frontend sea manipulado.
   const { data: lead } = await supabase
-    .from("leads_prospectados")
+    .from("leads")
     .select(
       `
       id,
@@ -110,8 +107,19 @@ export async function POST(request: NextRequest) {
       metadata,
       hubspot_contact_id,
       hubspot_deal_id,
-      global_contactos (email, nombre, apellidos, cargo, telefono, departamento),
-      global_empresas (nombre, dominio, sector, ciudad, pais, telefono, descripcion)
+      empresa_nombre,
+      empresa_dominio,
+      empresa_sector,
+      empresa_ciudad,
+      empresa_pais,
+      empresa_telefono,
+      empresa_descripcion,
+      contacto_nombre_completo,
+      contacto_email,
+      contacto_cargo,
+      contacto_telefono,
+      contacto_departamento,
+      contacto_linkedin_url
     `
     )
     .eq("id", lead_id)
@@ -127,16 +135,14 @@ export async function POST(request: NextRequest) {
       {
         error:
           `Estado invalido para envio: '${lead.estado}'. ` +
-          "Solo se puede enviar desde 'pendiente_aprobacion'.",
+          "Solo se puede enviar desde 'pendiente_aprobacion' o 'aprobado'.",
       },
       { status: 409 }
     );
   }
 
-  const contacto = normalizeOne(lead.global_contactos as MaybeArray<Record<string, unknown>>);
-  const empresa = normalizeOne(lead.global_empresas as MaybeArray<Record<string, unknown>>);
-
-  const contactoEmail = typeof contacto?.email === "string" ? normalizeEmail(contacto.email) : "";
+  const contactoEmail =
+    typeof lead.contacto_email === "string" ? normalizeEmail(lead.contacto_email) : "";
 
   if (!contactoEmail) {
     return NextResponse.json(
@@ -157,8 +163,7 @@ export async function POST(request: NextRequest) {
   if (optOutError) {
     return NextResponse.json(
       {
-        error:
-          "No se pudo verificar el estado de baja RGPD. Ejecuta el script database/05_email_opt_outs.sql y reintenta.",
+        error: "No se pudo verificar el estado de baja RGPD.",
       },
       { status: 500 }
     );
@@ -199,11 +204,10 @@ export async function POST(request: NextRequest) {
   let hubSpotCompanyId = "";
 
   if (!hubSpotContactId) {
-    if (!empresa || !contacto) {
+    if (!lead.empresa_nombre) {
       return NextResponse.json(
         {
-          error:
-            "No se puede sincronizar el lead con HubSpot porque faltan datos de empresa o contacto.",
+          error: "No se puede sincronizar el lead con HubSpot porque faltan datos de empresa.",
         },
         { status: 409 }
       );
@@ -213,38 +217,35 @@ export async function POST(request: NextRequest) {
       const company = await createOrUpdateHubSpotCompany({
         accessToken: hubSpotToken,
         empresa: {
-          nombre: typeof empresa.nombre === "string" ? empresa.nombre : null,
-          dominio: typeof empresa.dominio === "string" ? empresa.dominio : null,
-          sector: typeof empresa.sector === "string" ? empresa.sector : null,
-          ciudad: typeof empresa.ciudad === "string" ? empresa.ciudad : null,
-          pais: typeof empresa.pais === "string" ? empresa.pais : null,
-          telefono: typeof empresa.telefono === "string" ? empresa.telefono : null,
-          descripcion: typeof empresa.descripcion === "string" ? empresa.descripcion : null,
+          nombre: lead.empresa_nombre,
+          dominio: lead.empresa_dominio,
+          sector: lead.empresa_sector,
+          ciudad: lead.empresa_ciudad,
+          pais: lead.empresa_pais,
+          telefono: lead.empresa_telefono,
+          descripcion: lead.empresa_descripcion,
         },
       });
 
+      const contactoNombre = splitFullName(lead.contacto_nombre_completo);
       const contact = await createOrUpdateHubSpotContact({
         accessToken: hubSpotToken,
         companyId: company.id,
         contacto: {
-          nombre: typeof contacto.nombre === "string" ? contacto.nombre : null,
-          apellidos: typeof contacto.apellidos === "string" ? contacto.apellidos : null,
-          email: typeof contacto.email === "string" ? contacto.email : null,
-          cargo: typeof contacto.cargo === "string" ? contacto.cargo : null,
-          telefono: typeof contacto.telefono === "string" ? contacto.telefono : null,
-          departamento: typeof contacto.departamento === "string" ? contacto.departamento : null,
+          nombre: contactoNombre.nombre,
+          apellidos: contactoNombre.apellidos,
+          email: lead.contacto_email,
+          cargo: lead.contacto_cargo,
+          telefono: lead.contacto_telefono,
+          departamento: lead.contacto_departamento,
+          linkedinUrl: lead.contacto_linkedin_url,
         },
       });
 
-      const companyName =
-        (typeof empresa.nombre === "string" && empresa.nombre.trim()) ||
-        (typeof empresa.dominio === "string" && empresa.dominio.trim()) ||
-        "Empresa";
+      const companyName = lead.empresa_nombre || lead.empresa_dominio || "Empresa";
 
       const contactName =
-        [contacto.nombre, contacto.apellidos]
-          .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-          .join(" ") || "Contacto";
+        lead.contacto_nombre_completo || lead.contacto_email || "Contacto";
 
       const deal = await createHubSpotDeal({
         accessToken: hubSpotToken,
@@ -296,11 +297,8 @@ export async function POST(request: NextRequest) {
       html: buildLeadByEmailHtml({
         bodyText: email_aprobado,
         unsubscribeUrl,
-        recipientName:
-          [contacto?.nombre, contacto?.apellidos]
-            .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
-            .join(" ") || null,
-        companyName: typeof empresa?.nombre === "string" ? empresa.nombre : null,
+        recipientName: lead.contacto_nombre_completo,
+        companyName: lead.empresa_nombre,
       }),
       text: `${email_aprobado.trim()}\n\nBaja: ${unsubscribeUrl}`,
     });
@@ -340,7 +338,7 @@ export async function POST(request: NextRequest) {
   const metadataSendEmail = toRecord(metadataActual.send_email);
 
   const { error: updateError } = await supabase
-    .from("leads_prospectados")
+    .from("leads")
     .update({
       estado: "enviado",
       email_aprobado: email_aprobado.trim(),
@@ -397,4 +395,3 @@ export async function POST(request: NextRequest) {
     { status: 202 }
   );
 }
-

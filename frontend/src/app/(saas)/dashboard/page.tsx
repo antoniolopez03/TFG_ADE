@@ -25,9 +25,9 @@ export default async function DashboardPage() {
   const orgId = membresia?.organizacion_id;
   const [{ count: totalLeads }, { count: leadsEnviados }, { count: leadsPendientes }] =
     await Promise.all([
-      supabase.from("leads_prospectados").select("*", { count: "exact", head: true }).eq("organizacion_id", orgId ?? ""),
-      supabase.from("leads_prospectados").select("*", { count: "exact", head: true }).eq("organizacion_id", orgId ?? "").eq("estado", "enviado"),
-      supabase.from("leads_prospectados").select("*", { count: "exact", head: true }).eq("organizacion_id", orgId ?? "").eq("estado", "pendiente_aprobacion"),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("organizacion_id", orgId ?? ""),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("organizacion_id", orgId ?? "").eq("estado", "enviado"),
+      supabase.from("leads").select("*", { count: "exact", head: true }).eq("organizacion_id", orgId ?? "").eq("estado", "pendiente_aprobacion"),
     ]);
 
   let hubspotDealsWon = 0;

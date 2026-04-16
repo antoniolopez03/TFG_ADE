@@ -13,6 +13,13 @@ type StatusConfig = {
 };
 
 const ESTADO_MAP: Record<LeadEstado, StatusConfig> = {
+  /** Slate — recién creado, pendiente de generar borrador */
+  nuevo: {
+    label: "Nuevo",
+    badgeClass:
+      "bg-slate-50 dark:bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-500/20",
+    dotClass: "bg-slate-400",
+  },
   /** Amber — pulsing dot to draw attention */
   pendiente_aprobacion: {
     label: "Pendiente",
