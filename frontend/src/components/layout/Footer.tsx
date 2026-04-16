@@ -4,17 +4,11 @@ import { Reveal } from "@/lib/animations/reveal";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-const PRODUCT_LINKS = [
-  { href: "/(saas)/dashboard", label: "Dashboard" },
-  { href: "/(saas)/prospecting", label: "Motor de prospección" },
-  { href: "/(saas)/leads", label: "Bandeja de leads" },
-  { href: "/precios", label: "Precios" },
-];
-
 const COMPANY_LINKS = [
   { href: "/sobre-nosotros", label: "Sobre Nosotros" },
   { href: "/blog", label: "Blog & Recursos" },
   { href: "/contact", label: "Contacto" },
+  { href: "/precios", label: "Precios" },
 ];
 
 const LEGAL_LINKS = [
@@ -32,14 +26,14 @@ export function Footer() {
     <footer className="border-t border-black/8 dark:border-white/8 pt-16 pb-8">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal direction="up" threshold={0.05}>
-          {/* ── 4-column grid ───────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-10 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
+          {/* ── 3-column grid ───────────────────────────────────────────── */}
+          <div className="grid grid-cols-2 gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
 
             {/* Brand column */}
             <div className="col-span-2 md:col-span-1">
               <Link href="/" className="inline-flex items-center gap-2.5 mb-5">
                 <Image
-                  src="/LEADBY-Logo.png"
+                  src="/Logo.png"
                   alt="LeadBy"
                   width={36}
                   height={36}
@@ -55,9 +49,6 @@ export function Footer() {
                 TFG · Universidad Complutense de Madrid · 2025–2026
               </p>
             </div>
-
-            {/* Producto */}
-            <FooterColumn title="Producto" links={PRODUCT_LINKS} />
 
             {/* Empresa */}
             <FooterColumn title="Empresa" links={COMPANY_LINKS} />

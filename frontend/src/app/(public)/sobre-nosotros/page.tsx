@@ -1,4 +1,3 @@
-import Image from "next/image";
 import type { Metadata } from "next";
 import { BannerPortal } from "@/components/layout/BannerPortal";
 import { Reveal } from "@/lib/animations/reveal";
@@ -111,12 +110,10 @@ export default function AboutPage() {
       <DifferentiatorsSection />
 
       {/* ── El Autor ────────────────────────────────────────────────────── */}
-      <section className="py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="grid items-center gap-12 md:grid-cols-[1.05fr_0.95fr]">
-
-            {/* Copy */}
-            <div>
+      <section className="pt-20 pb-10">
+        <div className="mx-auto max-w-4xl px-6">
+          {/* Copy */}
+          <div>
               <Reveal direction="left" threshold={0.1}>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.26em] text-leadby-500">
                   El Autor
@@ -134,11 +131,6 @@ export default function AboutPage() {
                   <p>
                     Antonio López Belinchón, estudiante del Doble Grado en Ingeniería Informática y
                     ADE en la Facultad de Ciencias Económicas y Empresariales de la UCM.
-                  </p>
-                  <p>
-                    Bajo la dirección de Javier Sanz Viejo, este proyecto busca ser un puente entre
-                    la teoría académica y la optimización de procesos en el tejido industrial
-                    español.
                   </p>
                 </div>
               </Reveal>
@@ -162,28 +154,11 @@ export default function AboutPage() {
                 </div>
               </Reveal>
             </div>
-
-            {/* Photo */}
-            <Reveal direction="right" delay={0.15} threshold={0.1}>
-              <div className="rounded-2xl border border-leadby-500/60 bg-white/70 p-3 shadow-leadby backdrop-blur dark:bg-white/5 transition-transform duration-500 hover:scale-[1.01]">
-                <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-leadby-500/40">
-                  <Image
-                    src="/Foto-Antonio.jpeg"
-                    alt="Antonio Lopez Belinchon"
-                    fill
-                    className="object-cover grayscale transition-all duration-700 hover:grayscale-0"
-                    sizes="(min-width: 768px) 40vw, 90vw"
-                    priority
-                  />
-                </div>
-              </div>
-            </Reveal>
-          </div>
         </div>
       </section>
 
       {/* ── Compliance / RGPD ────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-t border-black/5 py-20 dark:border-white/8">
+      <section className="relative overflow-hidden border-t border-black/5 pt-10 pb-20 dark:border-white/8">
         <div
           aria-hidden
           className="glow-orb pointer-events-none absolute left-0 top-0"

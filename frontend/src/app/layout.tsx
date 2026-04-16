@@ -85,6 +85,9 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+  icons: { 
+    icon: '/Logo-Cuadrado.png' 
+  },
 };
 
 export default function RootLayout({

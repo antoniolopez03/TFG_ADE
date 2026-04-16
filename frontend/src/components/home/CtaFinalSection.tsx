@@ -23,7 +23,7 @@ export function CtaFinalSection() {
           const { motion } = ctx.conditions as { motion: boolean; noMotion: boolean };
 
           if (!motion) {
-            gsap.set([".cfa-card", ".cfa-headline", ".cfa-desc", ".cfa-btn"], {
+            gsap.set([".cfa-card", ".cfa-headline", ".cfa-desc"], {
               autoAlpha: 1,
               clearProps: "transform",
             });
@@ -46,12 +46,7 @@ export function CtaFinalSection() {
             ease: "back.out(1.4)",
           })
             .from(".cfa-headline", { y: 18, autoAlpha: 0, duration: 0.45 }, "-=0.35")
-            .from(".cfa-desc", { y: 12, autoAlpha: 0, duration: 0.4 }, "-=0.25")
-            .from(
-              ".cfa-btn",
-              { y: 10, scale: 0.92, autoAlpha: 0, stagger: 0.1, ease: "back.out(1.7)", duration: 0.38 },
-              "-=0.15"
-            );
+            .from(".cfa-desc", { y: 12, autoAlpha: 0, duration: 0.4 }, "-=0.25");
 
           // Breathing glow
           gsap.to(".cfa-card", {
@@ -92,16 +87,14 @@ export function CtaFinalSection() {
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
-              href="/sobre-nosotros"
+              href="/contact"
               className="cfa-btn inline-flex items-center gap-2 rounded-full bg-leadby-500 px-7 py-3.5 text-sm font-semibold text-white shadow-leadby transition-all hover:bg-leadby-600"
-              style={{ visibility: "hidden" }}
             >
-              Solicitar demo gratuita
+              Hablar con un experto
             </Link>
             <Link
               href="/precios"
               className="cfa-btn inline-flex items-center gap-2 rounded-full border border-leadby-500/40 px-7 py-3.5 text-sm font-semibold text-leadby-500 transition-all hover:border-leadby-500 hover:bg-leadby-50/60 dark:hover:bg-white/5"
-              style={{ visibility: "hidden" }}
             >
               Ver precios →
             </Link>

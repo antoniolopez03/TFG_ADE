@@ -8,23 +8,23 @@ import { Reveal } from "@/lib/animations/reveal";
 
 const ITEMS = [
   {
-    title: "Coste Cero por Lead",
+    title: "Coste Fijo por Lead",
     description:
-      "Descubres y calificas leads sin pagar por contacto. La plataforma cobra solo cuando generas resultados reales, alineando el incentivo con el tuyo.",
+      "Descubres y calificas leads sin sobrecargos por contacto, sin sorpresas, con un único pago mensual.",
     icon: ZeroCostIcon,
     delay: 0,
   },
   {
     title: "Data Moat",
     description:
-      "275 M+ contactos verificados con datos de empresa, cargo e intent signals. Una ventaja competitiva que crece con cada búsqueda.",
+      "275 M+ contactos verificados con datos de empresa, cargo y contactos. Una ventaja competitiva que crece con cada búsqueda.",
     icon: DataMoatIcon,
     delay: 0.12,
   },
   {
     title: "Human-in-the-Loop",
     description:
-      "La IA propone, tú decides. Cada lead y cada email pasa por tu revisión antes de salir. Control total sin perder la velocidad de la automatización.",
+      "La IA propone, tú decides. Cada lead y cada email pasa por tu revisión antes de salir. Control total sin perder la velocidad.",
     icon: HumanLoopIcon,
     delay: 0.24,
   },

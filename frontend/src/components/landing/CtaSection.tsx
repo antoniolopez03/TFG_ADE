@@ -27,7 +27,7 @@ export function CtaSection() {
 
           if (!motion) {
             gsap.set(
-              [".cta-card", ".cta-headline", ".cta-desc", ".cta-btn"],
+              [".cta-card", ".cta-headline", ".cta-desc"],
               { autoAlpha: 1, clearProps: "transform" }
             );
             return;
@@ -62,20 +62,6 @@ export function CtaSection() {
             ".cta-desc",
             { y: 12, autoAlpha: 0, duration: 0.4, ease: "power2.out" },
             "-=0.25"
-          );
-
-          // Buttons stagger in with back ease
-          tl.from(
-            ".cta-btn",
-            {
-              y: 10,
-              scale: 0.9,
-              autoAlpha: 0,
-              stagger: 0.1,
-              duration: 0.38,
-              ease: "back.out(1.7)",
-            },
-            "-=0.15"
           );
 
           // Subtle breathing glow on the card — infinite
@@ -117,18 +103,16 @@ export function CtaSection() {
             multiplicar la productividad de tu equipo de ventas desde el primer
             mes.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/contact"
-              className="cta-btn cursor-magnetic inline-flex items-center justify-center rounded-full bg-leadby-500 px-6 py-3 text-sm font-semibold text-foreground shadow-leadby transition-colors hover:bg-leadby-600"
-              style={{ visibility: "hidden" }}
-            >
-              Agenda una demostración
-            </Link>
+          <Link
+            href="/contact"
+            className="cta-btn mt-8 inline-flex items-center justify-center rounded-full bg-leadby-500 px-8 py-4 text-base font-semibold text-white shadow-leadby transition-all duration-300 hover:-translate-y-1 hover:bg-leadby-600 hover:shadow-xl"
+          >
+            Contactar ahora
+          </Link>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/precios"
               className="cta-btn inline-flex items-center justify-center rounded-full border border-leadby-500/40 px-6 py-3 text-sm font-semibold text-leadby-500 transition-colors hover:border-leadby-500 hover:bg-leadby-50/60 dark:hover:bg-white/5"
-              style={{ visibility: "hidden" }}
             >
               Ver precios
             </Link>

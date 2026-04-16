@@ -23,7 +23,7 @@ export function HeroSection() {
   const containerRef = useRef<HTMLElement>(null);
 
   useGSAP(
-    (_, contextSafe) => {
+    (_, _contextSafe) => {
       const mm = gsap.matchMedia();
 
       mm.add(
@@ -168,15 +168,6 @@ export function HeroSection() {
             </button>
           </Magnetic>
         </div>
-
-        {/* Subtext */}
-        <p
-          className="h-trust mt-4 text-sm text-gray-400 dark:text-white/40"
-          style={{ visibility: "hidden" }}
-        >
-          Sin tarjeta de crédito · Cancela cuando quieras
-        </p>
-
       </div>
     </section>
   );

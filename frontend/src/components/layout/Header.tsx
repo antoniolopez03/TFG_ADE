@@ -69,10 +69,10 @@ export function Header() {
           <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }}>
             <Link href="/" className="flex items-center gap-2.5">
               <Image
-                src="/LEADBY-Logo.png"
+                src="/Logo.png"
                 alt="LeadBy"
-                width={40}
-                height={40}
+                width={200}
+                height={200}
                 className="h-10 w-10 flex-shrink-0 object-contain"
                 priority
               />

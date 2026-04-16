@@ -60,9 +60,7 @@ export function LogoTicker() {
       </div>
 
       {/* Accessible hidden text */}
-      <span className="sr-only">
-        Integrado con {LOGOS.map((l) => l.label).join(", ")}
-      </span>
+      <span className="sr-only">Marquesina de plataformas compatibles</span>
     </div>
   );
 }

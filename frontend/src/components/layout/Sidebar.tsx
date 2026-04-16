@@ -63,7 +63,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                 transition={{ duration: 0.25 }}
               >
                 <Image
-                  src="/LEADBY-Logo.png"
+                  src="/Logo.png"
                   alt="LeadBy"
                   fill
                   className="object-contain"
