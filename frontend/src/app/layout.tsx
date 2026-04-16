@@ -5,6 +5,7 @@ import Script from "next/script";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { AnimatedBackground } from "@/components/ui/AnimatedBackground";
+import { CursorEffect } from "@/components/landing/CursorEffect";
 
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
@@ -96,6 +97,7 @@ export default function RootLayout({
       <body className={`${geistMono.variable} ${chakraPetch.variable} antialiased`}>
         <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
         <AnimatedBackground />
+        <CursorEffect />
         <div className="flex min-h-screen flex-col bg-background text-foreground font-sans">
           <div id="global-banner" />
           {children}

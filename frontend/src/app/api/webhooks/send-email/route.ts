@@ -238,7 +238,6 @@ export async function POST(request: NextRequest) {
           cargo: lead.contacto_cargo,
           telefono: lead.contacto_telefono,
           departamento: lead.contacto_departamento,
-          linkedinUrl: lead.contacto_linkedin_url,
         },
       });
 

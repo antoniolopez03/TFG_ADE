@@ -2,8 +2,8 @@
  * Cursor utilities for LeadBy animations.
  *
  * The full custom cursor (orange arrow + halo, ripple on click, magnetic pull)
- * is already implemented in `CursorEffect` and mounted globally in the public
- * layout — you don't need to mount it again.
+ * is already implemented in `CursorEffect` and mounted in the root app layout
+ * for all routes — you don't need to mount it again.
  *
  * This module exposes:
  *
