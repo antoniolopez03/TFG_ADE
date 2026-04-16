@@ -19,7 +19,7 @@ const NAV_LINKS = [
   { href: "/", label: "Inicio" },
   { href: "/sobre-nosotros", label: "Sobre Nosotros" },
   { href: "/precios", label: "Precios" },
-  { href: "/blog", label: "Recursos" },
+  { href: "/blog", label: "Blog" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────

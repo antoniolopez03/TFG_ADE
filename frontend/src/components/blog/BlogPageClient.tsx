@@ -6,6 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useMemo, useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import type { BlogArticleSummary, BlogCategory } from "@/lib/content/blog";
 import { TextSplit } from "@/lib/animations/text-split";
@@ -254,13 +255,16 @@ export function BlogPageClient({ articles, categories }: BlogPageClientProps) {
                       "dark:from-leadby-500/20 dark:via-leadby-400/10 dark:to-black/30",
                     ].join(" ")}
                   >
-                    {/*
-                     * Inner scale target: `group-hover:scale-105` zooms this div
-                     * while the parent clips it — pure CSS compositor transform.
-                     */}
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,117,31,0.35),_transparent_60%)] transition-transform duration-500 group-hover:scale-105" />
-                    <div className="absolute bottom-4 left-4 rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-leadby-600 backdrop-blur dark:bg-black/40 dark:text-leadby-200">
-                      LeadBy Insight
+                    <Image
+                      src={article.coverImage}
+                      alt={article.coverImageAlt}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(min-width: 1024px) 30vw, (min-width: 768px) 45vw, 92vw"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
+                    <div className="absolute bottom-4 left-4 rounded-full bg-white/85 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-leadby-700 backdrop-blur dark:bg-black/45 dark:text-leadby-200">
+                      {article.category}
                     </div>
                   </div>
 

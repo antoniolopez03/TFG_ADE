@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -21,10 +22,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!article) return { title: "Artículo no encontrado" };
 
   const articleUrl = `/blog/${article.slug}`;
+  const metadataImage = article.coverImage.startsWith("http")
+    ? article.coverImage
+    : `${appUrl}${article.coverImage}`;
 
   return {
     title: article.title,
     description: article.excerpt,
+    authors: [{ name: article.author }],
     alternates: {
       canonical: articleUrl,
     },
@@ -35,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: articleUrl,
       images: [
         {
-          url: "/images/og-cover.svg",
+          url: metadataImage,
           width: 1200,
           height: 630,
           alt: article.title,
@@ -46,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       card: "summary_large_image",
       title: article.title,
       description: article.excerpt,
-      images: ["/images/og-cover.svg"],
+      images: [metadataImage],
     },
   };
 }
@@ -65,6 +70,13 @@ export default async function ArticlePage({ params }: Props) {
     datePublished: article.dateTime,
     dateModified: article.dateTime,
     articleSection: article.category,
+    image: article.coverImage.startsWith("http")
+      ? article.coverImage
+      : `${appUrl}${article.coverImage}`,
+    author: {
+      "@type": "Person",
+      name: article.author,
+    },
     url: `${appUrl}/blog/${article.slug}`,
     publisher: {
       "@type": "Organization",
@@ -106,12 +118,20 @@ export default async function ArticlePage({ params }: Props) {
         <p className="mt-4 text-lg leading-relaxed text-black/60 dark:text-white/60">{article.excerpt}</p>
       </header>
 
-      {/* Hero gradient placeholder */}
+      {/* Hero cover image */}
       <div className="mx-auto max-w-4xl px-6">
         <div
           className={`relative aspect-[21/9] overflow-hidden rounded-2xl border border-leadby-500/20 bg-gradient-to-br ${article.gradient} dark:from-leadby-500/20 dark:via-leadby-400/10 dark:to-black/30`}
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,117,31,0.35),_transparent_60%)]" />
+          <Image
+            src={article.coverImage}
+            alt={article.coverImageAlt}
+            fill
+            className="object-cover"
+            sizes="(min-width: 1024px) 60vw, 92vw"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
           <div className="absolute bottom-4 left-4 rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-leadby-600 backdrop-blur dark:bg-black/40 dark:text-leadby-200">
             LeadBy Insight
           </div>
@@ -142,9 +162,16 @@ export default async function ArticlePage({ params }: Props) {
                   <div
                     className={`relative aspect-[16/9] overflow-hidden rounded-xl border border-leadby-500/20 bg-gradient-to-br ${related.gradient} dark:from-leadby-500/20 dark:via-leadby-400/10 dark:to-black/30`}
                   >
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,117,31,0.35),_transparent_60%)]" />
-                    <div className="absolute bottom-4 left-4 rounded-full bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-leadby-600 backdrop-blur dark:bg-black/40 dark:text-leadby-200">
-                      LeadBy Insight
+                    <Image
+                      src={related.coverImage}
+                      alt={related.coverImageAlt}
+                      fill
+                      className="object-cover"
+                      sizes="(min-width: 1024px) 25vw, (min-width: 768px) 45vw, 92vw"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                    <div className="absolute bottom-4 left-4 rounded-full bg-white/85 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-leadby-700 backdrop-blur dark:bg-black/45 dark:text-leadby-200">
+                      {related.category}
                     </div>
                   </div>
 

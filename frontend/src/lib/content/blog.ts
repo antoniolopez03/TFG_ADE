@@ -10,16 +10,21 @@ import remarkHtml from "remark-html";
 import { z } from "zod";
 
 const BLOG_DIR = path.join(process.cwd(), "content", "blog");
+const DEFAULT_GRADIENT = "from-leadby-500/15 via-rose-400/10 to-leadby-100/20";
+const DEFAULT_AUTHOR = "Equipo LeadBy";
 
 const frontmatterSchema = z.object({
   slug: z.string().trim().min(1),
   category: z.string().trim().min(1),
-  dateLabel: z.string().trim().min(1),
   dateTime: z.string().trim().min(1),
   title: z.string().trim().min(1),
   excerpt: z.string().trim().min(1),
   readingTime: z.string().trim().min(1),
-  gradient: z.string().trim().min(1),
+  dateLabel: z.string().trim().min(1).optional(),
+  gradient: z.string().trim().min(1).optional(),
+  coverImage: z.string().trim().min(1).optional(),
+  coverImageAlt: z.string().trim().min(1).optional(),
+  author: z.string().trim().min(1).optional(),
 });
 
 const categoryIdMap: Record<string, string> = {
@@ -42,6 +47,9 @@ export interface BlogArticleSummary {
   excerpt: string;
   readingTime: string;
   gradient: string;
+  coverImage: string;
+  coverImageAlt: string;
+  author: string;
 }
 
 export interface BlogArticle extends BlogArticleSummary {
@@ -62,16 +70,79 @@ function getCategoryId(label: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+function estimateReadingTime(markdownBody: string): string {
+  const words = markdownBody.trim().split(/\s+/).filter(Boolean).length;
+  const minutes = Math.max(1, Math.round(words / 220));
+  return `${minutes} min lectura`;
+}
+
+function normalizeFrontmatterInput(
+  input: unknown,
+  fallback: { slug?: string; readingTime?: string } = {}
+): Record<string, unknown> {
+  if (!input || typeof input !== "object") {
+    return {
+      slug: fallback.slug,
+      readingTime: fallback.readingTime,
+    };
+  }
+
+  const data = input as Record<string, unknown>;
+
+  return {
+    slug: data.slug ?? fallback.slug,
+    category: data.category,
+    dateTime: data.dateTime ?? data.date,
+    dateLabel: data.dateLabel,
+    title: data.title,
+    excerpt: data.excerpt ?? data.description,
+    readingTime: data.readingTime ?? fallback.readingTime,
+    gradient: data.gradient,
+    coverImage: data.coverImage ?? data.image,
+    coverImageAlt: data.coverImageAlt ?? data.imageAlt,
+    author: data.author,
+  };
+}
+
+function formatDateLabel(dateTime: string): string {
+  const parsed = new Date(dateTime);
+  if (Number.isNaN(parsed.getTime())) {
+    return dateTime;
+  }
+
+  return parsed.toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function resolveCoverImagePath(coverImage: string | undefined, slug: string): string {
+  if (!coverImage) {
+    return `/images/blog/${slug}.jpg`;
+  }
+
+  if (/^https?:\/\//i.test(coverImage) || coverImage.startsWith("/")) {
+    return coverImage;
+  }
+
+  return `/images/blog/${coverImage.replace(/^\/+/, "")}`;
+}
+
 function toSummary(data: z.infer<typeof frontmatterSchema>): BlogArticleSummary {
   return {
     slug: data.slug,
     category: data.category,
-    dateLabel: data.dateLabel,
+    dateLabel: formatDateLabel(data.dateTime),
     dateTime: data.dateTime,
     title: data.title,
     excerpt: data.excerpt,
     readingTime: data.readingTime,
-    gradient: data.gradient,
+    gradient: data.gradient ?? DEFAULT_GRADIENT,
+    coverImage: resolveCoverImagePath(data.coverImage, data.slug),
+    coverImageAlt: data.coverImageAlt ?? `Imagen destacada del artículo ${data.title}`,
+    author: data.author ?? DEFAULT_AUTHOR,
   };
 }
 
@@ -89,8 +160,14 @@ export const getAllBlogSummaries = cache(async (): Promise<BlogArticleSummary[]>
     markdownFiles.map(async (fileName) => {
       const filePath = path.join(BLOG_DIR, fileName);
       const raw = await fs.readFile(filePath, "utf8");
-      const { data } = matter(raw);
-      const parsed = frontmatterSchema.parse(data);
+      const { data, content } = matter(raw);
+      const slugFromFileName = fileName.replace(/\.md$/i, "");
+      const parsed = frontmatterSchema.parse(
+        normalizeFrontmatterInput(data, {
+          slug: slugFromFileName,
+          readingTime: estimateReadingTime(content),
+        })
+      );
       return toSummary(parsed);
     })
   );
@@ -114,7 +191,12 @@ export const getBlogArticleBySlug = cache(async (slug: string): Promise<BlogArti
   }
 
   const { data, content } = matter(raw);
-  const parsed = frontmatterSchema.safeParse(data);
+  const parsed = frontmatterSchema.safeParse(
+    normalizeFrontmatterInput(data, {
+      slug: safeSlug,
+      readingTime: estimateReadingTime(content),
+    })
+  );
 
   if (!parsed.success) {
     return null;
