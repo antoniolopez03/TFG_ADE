@@ -90,7 +90,7 @@ export function SettingsTabs({ activeTab }: SettingsTabsProps) {
   return (
     <div
       ref={containerRef}
-      className="settings-reveal relative flex items-center gap-0 border-b border-gray-100 dark:border-gray-800 mb-6"
+      className="settings-reveal relative flex flex-shrink-0 items-center gap-0 border-b border-gray-100 dark:border-gray-800 mb-6"
     >
       {/* Sliding orange indicator line */}
       <div
@@ -109,7 +109,7 @@ export function SettingsTabs({ activeTab }: SettingsTabsProps) {
             onClick={() => setTab(tab.value)}
             aria-current={isActive ? "page" : undefined}
             className={[
-              "px-5 py-3 text-sm font-medium transition-colors relative",
+              "px-5 py-3 text-sm font-medium transition-colors relative flex-shrink-0",
               isActive
                 ? "text-leadby-500"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200",

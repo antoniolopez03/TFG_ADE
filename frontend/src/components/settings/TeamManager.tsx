@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -61,6 +61,7 @@ export function TeamManager({
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const inviteEmailInputRef = useRef<HTMLInputElement>(null);
 
   const miembrosOrdenados = useMemo(() => {
     return [...miembros].sort((a, b) => {
@@ -193,149 +194,177 @@ export function TeamManager({
     }
   }
 
+  function handleFocusInviteInput() {
+    inviteEmailInputRef.current?.focus();
+    inviteEmailInputRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-gray-800">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                Nombre
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                Cargo
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                Rol
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                Estado
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                Alta / invitación
-              </th>
-              {isAdmin && (
+    <div className="flex flex-1 w-full min-h-0 flex-col">
+      <div className="mb-4 flex-shrink-0 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Gestión del equipo
+          </h3>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Gestiona roles, estado e invitaciones de los miembros.
+          </p>
+        </div>
+
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={handleFocusInviteInput}
+            className="bg-leadby-500 hover:bg-leadby-600 text-white font-medium px-3.5 py-2 rounded-lg transition-colors text-xs flex items-center gap-2 flex-shrink-0"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            Añadir miembro
+          </button>
+        )}
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar">
+        <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800 custom-scrollbar">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  Nombre
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  Cargo
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  Rol
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  Estado
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  Alta / invitación
+                </th>
                 <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
                   Acciones
                 </th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-            {miembrosOrdenados.map((m) => {
-              const invitacionPendiente = isInvitacionPendiente(m);
-              const nombreMostrado =
-                m.nombre_completo?.trim() ||
-                (invitacionPendiente ? "Invitado pendiente" : "—");
-              const fechaReferencia =
-                (invitacionPendiente ? m.invited_at : m.joined_at) ?? m.created_at;
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+              {miembrosOrdenados.map((m) => {
+                const invitacionPendiente = isInvitacionPendiente(m);
+                const nombreMostrado =
+                  m.nombre_completo?.trim() ||
+                  (invitacionPendiente ? "Invitado pendiente" : "—");
+                const fechaReferencia =
+                  (invitacionPendiente ? m.invited_at : m.joined_at) ?? m.created_at;
 
-              return (
-                <tr
-                  key={m.id}
-                  onClick={(event) => {
-                    if (isInteractiveRowTarget(event.target)) {
-                      return;
-                    }
+                return (
+                  <tr
+                    key={m.id}
+                    onClick={(event) => {
+                      if (isInteractiveRowTarget(event.target)) {
+                        return;
+                      }
 
-                    setSelectedMember(m);
-                  }}
-                  onKeyDown={(event) => {
-                    if (isInteractiveRowTarget(event.target)) {
-                      return;
-                    }
-
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
                       setSelectedMember(m);
-                    }
-                  }}
-                  tabIndex={0}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-leadby-500/40"
-                >
-                <td className="px-4 py-3">
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {nombreMostrado}
-                  </p>
-                  {invitacionPendiente && (
-                    <span className="mt-1 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
-                      Invitación pendiente
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                  {invitacionPendiente ? "—" : m.cargo || "—"}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                      m.rol === "admin"
-                        ? "bg-leadby-500/10 text-leadby-600 border border-leadby-500/20"
-                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-                    }`}
+                    }}
+                    onKeyDown={(event) => {
+                      if (isInteractiveRowTarget(event.target)) {
+                        return;
+                      }
+
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedMember(m);
+                      }
+                    }}
+                    tabIndex={0}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-leadby-500/40"
                   >
-                    {m.rol === "admin" ? "Admin" : "Miembro"}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                      m.activo
-                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                        : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
-                    }`}
-                  >
-                    {m.activo ? "Activo" : "Inactivo"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
-                  {formatFecha(fechaReferencia)}
-                </td>
-                {isAdmin && (
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {nombreMostrado}
+                      </p>
+                      {invitacionPendiente && (
+                        <span className="mt-1 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300">
+                          Invitación pendiente
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                      {invitacionPendiente ? "—" : m.cargo || "—"}
+                    </td>
+                    <td className="px-4 py-3">
                       <select
                         value={m.rol}
                         onChange={(e) => handleChangeRol(m.id, e.target.value as Miembro["rol"])}
-                        disabled={updatingMemberId === m.id}
-                        className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-60"
+                        disabled={!isAdmin || updatingMemberId === m.id}
+                        className={[
+                          "text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 disabled:opacity-60",
+                          m.rol === "admin"
+                            ? "border-leadby-500/30 bg-leadby-500/10 text-leadby-700 dark:text-leadby-300"
+                            : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
+                        ].join(" ")}
                       >
                         <option value="miembro">Miembro</option>
                         <option value="admin">Admin</option>
                       </select>
-                      <button
-                        onClick={() => handleToggleActivo(m)}
-                        disabled={updatingMemberId === m.id}
-                        className={`text-xs px-2.5 py-1 rounded-lg transition-colors disabled:opacity-60 ${
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
                           m.activo
-                            ? "text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
-                            : "text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/30"
+                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                            : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
                         }`}
                       >
-                        {updatingMemberId === m.id
-                          ? "Actualizando..."
-                          : m.activo
-                          ? "Desactivar"
-                          : "Activar"}
-                      </button>
-                    </div>
-                  </td>
-                )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                        {m.activo ? "Activo" : "Inactivo"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
+                      {formatFecha(fechaReferencia)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {isAdmin ? (
+                        <button
+                          onClick={() => handleToggleActivo(m)}
+                          disabled={updatingMemberId === m.id}
+                          className={`text-xs px-2.5 py-1 rounded-lg transition-colors disabled:opacity-60 ${
+                            m.activo
+                              ? "text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                              : "text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/30"
+                          }`}
+                        >
+                          {updatingMemberId === m.id
+                            ? "Actualizando..."
+                            : m.activo
+                            ? "Desactivar"
+                            : "Activar"}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          Solo admin
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {actionError && (
-        <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-800/50 rounded-lg px-4 py-2">
+        <p className="mt-4 flex-shrink-0 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-800/50 rounded-lg px-4 py-2">
           {actionError}
         </p>
       )}
 
       {isAdmin && (
-        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 p-5">
+        <div className="mt-4 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 p-5">
           <div className="flex items-center gap-2 mb-4">
             <UserPlus className="w-4 h-4 text-gray-400 dark:text-gray-500" />
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -349,6 +378,7 @@ export function TeamManager({
                 Correo electrónico
               </label>
               <input
+                ref={inviteEmailInputRef}
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}

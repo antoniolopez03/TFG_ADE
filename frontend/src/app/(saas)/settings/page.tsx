@@ -46,26 +46,29 @@ export default async function SettingsPage({
       ? searchParams.tab
       : "organizacion"
   ) as SettingsTab;
+  const isEquipoTab = tab === "equipo";
 
   // ── No organisation membership ──────────────────────────────────────────────
   if (!membresia) {
     return (
       <SettingsAnimatedLayout>
-        <div className="p-8 max-w-3xl">
-          <div className="settings-reveal mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Configuración
-            </h1>
-          </div>
-          <div className="settings-reveal bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-8 text-center">
-            <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-              Sin organización activa
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Tu cuenta no está asociada a ninguna organización activa. Contacta
-              con un administrador para que te invite al equipo.
-            </p>
+        <div className="w-full overflow-hidden p-8">
+          <div className="w-full">
+            <div className="settings-reveal mb-8">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Configuración
+              </h1>
+            </div>
+            <div className="settings-reveal bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-8 text-center">
+              <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-3" />
+              <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                Sin organización activa
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Tu cuenta no está asociada a ninguna organización activa. Contacta
+                con un administrador para que te invite al equipo.
+              </p>
+            </div>
           </div>
         </div>
       </SettingsAnimatedLayout>
@@ -97,11 +100,16 @@ export default async function SettingsPage({
     | undefined;
 
   return (
-    <SettingsAnimatedLayout>
-      <div className="p-8 max-w-3xl">
+    <SettingsAnimatedLayout fullHeight={isEquipoTab}>
+      <div
+        className={[
+          "w-full p-8 flex flex-col",
+          isEquipoTab ? "h-full overflow-hidden" : "",
+        ].join(" ")}
+      >
 
         {/* ── Header ── */}
-        <div className="settings-reveal mb-8 flex items-center justify-between">
+        <div className="settings-reveal mb-8 flex-shrink-0 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Configuración
@@ -114,7 +122,7 @@ export default async function SettingsPage({
 
         {/* ── Non-admin read-only banner ── */}
         {!esAdmin && (
-          <div className="settings-reveal mb-6 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl px-4 py-3">
+          <div className="settings-reveal mb-6 flex-shrink-0 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl px-4 py-3">
             <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
             <p className="text-sm text-amber-700 dark:text-amber-300">
               Solo los administradores pueden modificar la configuración. Estás
@@ -123,66 +131,79 @@ export default async function SettingsPage({
           </div>
         )}
 
-        {/* ── Tabs (contains its own settings-reveal class) ── */}
-        <SettingsTabs activeTab={tab} />
+        <div
+          className={[
+            "flex flex-col",
+            isEquipoTab ? "flex-1 min-h-0 overflow-hidden" : "",
+          ].join(" ")}
+        >
+          {/* ── Tabs (contains its own settings-reveal class) ── */}
+          <SettingsTabs activeTab={tab} />
 
-        {/* ── Tab content card ── */}
-        <div className="settings-reveal bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-6 transition-colors hover:border-gray-200 dark:hover:border-gray-700">
+          {/* ── Tab content card ── */}
+          <div
+            className={[
+              "settings-reveal bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-6 transition-colors hover:border-gray-200 dark:hover:border-gray-700 flex flex-col",
+              isEquipoTab ? "flex-1 min-h-0 overflow-hidden" : "",
+            ].join(" ")}
+          >
 
-          {tab === "organizacion" && (
-            <>
-              <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5">
-                Información de la organización
-              </h2>
-              <OrgForm
-                organizacionId={membresia.organizacion_id}
-                nombre={org?.nombre ?? ""}
-                plan={org?.plan ?? "free"}
-                isAdmin={esAdmin}
-              />
-            </>
-          )}
+            {tab === "organizacion" && (
+              <>
+                <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5 flex-shrink-0">
+                  Información de la organización
+                </h2>
+                <div className="flex-1 min-h-0">
+                  <OrgForm
+                    organizacionId={membresia.organizacion_id}
+                    nombre={org?.nombre ?? ""}
+                    plan={org?.plan ?? "free"}
+                    isAdmin={esAdmin}
+                  />
+                </div>
+              </>
+            )}
 
-          {tab === "crm" && (
-            <>
-              <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5">
-                Integración CRM
-              </h2>
-              <CrmIntegrationForm
-                organizacionId={membresia.organizacion_id}
-                crmProveedor={config?.crm_proveedor ?? null}
-                hasToken={!!config?.hubspot_token_vault_id}
-                isAdmin={esAdmin}
-              />
-            </>
-          )}
+            {tab === "crm" && (
+              <>
+                <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5 flex-shrink-0">
+                  Integración CRM
+                </h2>
+                <div className="flex-1 min-h-0">
+                  <CrmIntegrationForm
+                    organizacionId={membresia.organizacion_id}
+                    crmProveedor={config?.crm_proveedor ?? null}
+                    hasToken={!!config?.hubspot_token_vault_id}
+                    isAdmin={esAdmin}
+                  />
+                </div>
+              </>
+            )}
 
-          {tab === "ia" && (
-            <>
-              <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5">
-                Preferencias de IA
-              </h2>
-              <AiToneForm
-                organizacionId={membresia.organizacion_id}
-                tonoVoz={preferenciasIa?.tono_voz ?? ""}
-                idioma={preferenciasIa?.idioma ?? "es"}
-                isAdmin={esAdmin}
-              />
-            </>
-          )}
+            {tab === "ia" && (
+              <>
+                <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5 flex-shrink-0">
+                  Preferencias de IA
+                </h2>
+                <div className="flex-1 min-h-0">
+                  <AiToneForm
+                    organizacionId={membresia.organizacion_id}
+                    tonoVoz={preferenciasIa?.tono_voz ?? ""}
+                    idioma={preferenciasIa?.idioma ?? "es"}
+                    isAdmin={esAdmin}
+                  />
+                </div>
+              </>
+            )}
 
-          {tab === "equipo" && (
-            <>
-              <h2 className="font-semibold text-gray-900 dark:text-white text-sm mb-5">
-                Gestión del equipo
-              </h2>
+            {tab === "equipo" && (
               <TeamManager
                 organizacionId={membresia.organizacion_id}
                 miembros={equipo}
                 isAdmin={esAdmin}
               />
-            </>
-          )}
+            )}
+          </div>
         </div>
 
       </div>

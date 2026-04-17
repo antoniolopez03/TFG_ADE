@@ -20,9 +20,10 @@ import gsap from "gsap";
 
 interface Props {
   children: ReactNode;
+  fullHeight?: boolean;
 }
 
-export function SettingsAnimatedLayout({ children }: Props) {
+export function SettingsAnimatedLayout({ children, fullHeight = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -61,5 +62,15 @@ export function SettingsAnimatedLayout({ children }: Props) {
     { scope: containerRef }
   );
 
-  return <div ref={containerRef}>{children}</div>;
+  return (
+    <div
+      ref={containerRef}
+      className={[
+        "w-full overflow-hidden",
+        fullHeight ? "h-full" : "",
+      ].join(" ")}
+    >
+      {children}
+    </div>
+  );
 }
