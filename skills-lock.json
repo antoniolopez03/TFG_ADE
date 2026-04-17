@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "cold-email": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "computedHash": "bd2738a0d28bad7e344de0712feb718637c1259ee91ae48fb1f6895f64f3204c"
+    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",
