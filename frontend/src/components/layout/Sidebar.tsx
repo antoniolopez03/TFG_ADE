@@ -47,8 +47,7 @@ export function Sidebar({ onClose }: SidebarProps) {
 
   return (
     <>
-      <aside className="w-60 min-h-full bg-white dark:bg-gray-950 flex flex-col border-r border-gray-200 dark:border-gray-800/60">
-
+      <aside className="w-60 min-h-full bg-gray-100 dark:bg-gray-900 flex flex-col border-r border-gray-200 dark:border-gray-800/60">
         {/* ── Logo ────────────────────────────────────────────────────── */}
         <div className="px-5 py-5 border-b border-gray-200 dark:border-gray-800/60">
           <div className="flex items-center justify-between">

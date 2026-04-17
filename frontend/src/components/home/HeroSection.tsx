@@ -115,8 +115,7 @@ export function HeroSection() {
           className="h-subtitle mt-6 text-lg leading-relaxed text-gray-600 dark:text-white/60 max-w-xl mx-auto"
           style={{ visibility: "hidden" }}
         >
-          Deja que la IA identifique tus mejores clientes potenciales, redacte los correos
-          y los sincronice con tu CRM. Tu equipo solo cierra.
+          Basta de tareas manuales, deja que la IA encuentre a tus clientes ideales, redacte los correos y actualice tu CRM automáticamente. Devuélvele a tu equipo el tiempo para vender.
         </p>
 
         {/* Metrics */}

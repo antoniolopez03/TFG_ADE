@@ -319,7 +319,7 @@ export function DashboardClient({
         {METRICS.map(({ label, valor, icon: Icon, iconBg, iconCls, sub, isStatic }) => (
           <div
             key={label}
-            className="dash-metric-card rounded-2xl border border-white/10 bg-white/5 p-6 transition-[transform] duration-300 hover:-translate-y-1 cursor-default"
+            className="dash-metric-card rounded-2xl border border-gray-200 dark:border-gray-800/70 bg-white dark:bg-gray-900 p-6 shadow-sm transition-[transform] duration-300 hover:-translate-y-1 cursor-default"
             onMouseEnter={handleCardEnter}
             onMouseLeave={handleCardLeave}
           >
@@ -328,15 +328,15 @@ export function DashboardClient({
               <div className={`metric-icon-badge flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
                 <Icon className={`h-5 w-5 ${iconCls}`} />
               </div>
-              <span className="text-sm text-white/50">{label}</span>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</span>
             </div>
 
             {/* Large number */}
             {isStatic ? (
-              <p className="metric-value text-4xl font-bold text-white">—</p>
+              <p className="metric-value text-4xl font-bold text-gray-900 dark:text-white">—</p>
             ) : (
               <p
-                className="metric-value dash-count text-4xl font-bold text-white tabular-nums"
+                className="metric-value dash-count text-4xl font-bold text-gray-900 dark:text-white tabular-nums"
                 data-target={valor}
               >
                 {valor}
@@ -344,7 +344,7 @@ export function DashboardClient({
             )}
 
             {/* Secondary text */}
-            <p className="mt-1 text-xs text-white/40">{sub}</p>
+            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{sub}</p>
           </div>
         ))}
       </div>

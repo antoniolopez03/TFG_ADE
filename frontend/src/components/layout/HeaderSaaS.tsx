@@ -62,8 +62,7 @@ export function HeaderSaaS({ onMenuClick }: HeaderSaaSProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 h-16 flex items-center justify-between px-4 md:px-6 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#111111] flex-shrink-0">
-      {/* Left */}
+    <header className="sticky top-0 z-40 h-16 flex items-center justify-between px-4 md:px-6 border-b border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 flex-shrink-0">  {/* Left */}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -94,8 +93,7 @@ export function HeaderSaaS({ onMenuClick }: HeaderSaaSProps) {
           </button>
 
           {open && (
-            <div className="absolute right-0 top-full mt-2 w-60 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg overflow-hidden z-50">
-              {/* User info */}
+            <div className="absolute right-0 top-full mt-2 w-60 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 shadow-lg overflow-hidden z-50">  {/* User info */}
               <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-leadby-500/10 flex items-center justify-center flex-shrink-0">
