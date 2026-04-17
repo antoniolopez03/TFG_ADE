@@ -6,12 +6,11 @@ export const GEMINI_PRO_MODEL = GEMINI_PRIMARY_MODEL;
 const LOOKALIKE_GENERATION_CONFIG = {
   temperature: 0.25,
   topP: 0.85,
-  maxOutputTokens: 512,
+ 
 };
 const EMAIL_GENERATION_CONFIG = {
   temperature: 0.65,
   topP: 0.92,
-  maxOutputTokens: 1024,
 };
 const DEFAULT_LOOKALIKE_TERMS = [
   "saas b2b espana",

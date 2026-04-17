@@ -296,7 +296,6 @@ export async function searchPeopleWithCompany(
     generatedText = await callGeminiWithFallback(prompt, {
       temperature: 0.3,
       topP: 0.9,
-      maxOutputTokens: 4096,
     });
   } catch (error) {
     throw classifyGeminiError(error);
