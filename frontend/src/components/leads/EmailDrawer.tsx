@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, ExternalLink, Loader2, Send, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { X, ExternalLink, Loader2, Send, Trash2, Eye, Code2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils/cn";
+import { buildEmailPreviewDocument, hasHtmlTags } from "@/lib/utils/email-preview";
 import type { LeadConRelaciones } from "@/lib/types/app.types";
 
 interface EmailDrawerProps {
@@ -20,6 +22,9 @@ export function EmailDrawer({
 }: EmailDrawerProps) {
   const [asunto, setAsunto] = useState("");
   const [cuerpo, setCuerpo] = useState("");
+  const [modoVistaCuerpo, setModoVistaCuerpo] = useState<"preview" | "html">("preview");
+  const [previewHeight, setPreviewHeight] = useState(340);
+  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
   const [actionLoading, setActionLoading] = useState<"discard" | "send" | null>(
     null
   );
@@ -30,8 +35,39 @@ export function EmailDrawer({
       setAsunto(lead.email_asunto ?? "");
       setCuerpo(lead.email_aprobado ?? lead.email_borrador ?? "");
       setError(null);
+      setModoVistaCuerpo("preview");
     }
   }, [lead]);
+
+  const syncPreviewHeight = useCallback(() => {
+    const frame = previewFrameRef.current;
+    if (!frame) {
+      return;
+    }
+
+    const doc = frame.contentDocument;
+    if (!doc) {
+      return;
+    }
+
+    const bodyHeight = doc.body?.scrollHeight ?? 0;
+    const htmlHeight = doc.documentElement?.scrollHeight ?? 0;
+    const nextHeight = Math.max(bodyHeight, htmlHeight, 200);
+
+    setPreviewHeight((current) => (current === nextHeight ? current : nextHeight));
+  }, []);
+
+  useEffect(() => {
+    if (modoVistaCuerpo !== "preview") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      syncPreviewHeight();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [cuerpo, modoVistaCuerpo, syncPreviewHeight]);
 
   if (!lead) return null;
   const selectedLead = lead;
@@ -39,6 +75,7 @@ export function EmailDrawer({
   const canSend =
     selectedLead.estado === "pendiente_aprobacion" || selectedLead.estado === "aprobado";
   const isLoading = actionLoading !== null;
+  const cuerpoTieneHtml = hasHtmlTags(cuerpo);
 
   const contactoNombre = selectedLead.contacto_nombre_completo ?? "";
 
@@ -201,19 +238,66 @@ export function EmailDrawer({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Cuerpo del correo (generado por IA)
               </label>
-              <span className="text-xs font-medium bg-leadby-500/10 text-leadby-600 border border-leadby-500/20 px-2 py-0.5 rounded-full">
-                Editable
-              </span>
+              <div className="inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setModoVistaCuerpo("preview")}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors",
+                    modoVistaCuerpo === "preview"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                  )}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Vista previa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModoVistaCuerpo("html")}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors",
+                    modoVistaCuerpo === "html"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                  )}
+                >
+                  <Code2 className="w-3.5 h-3.5" />
+                  HTML
+                </button>
+              </div>
             </div>
-            <textarea
-              value={cuerpo}
-              onChange={(e) => setCuerpo(e.target.value)}
-              rows={12}
-              className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 w-full resize-none font-mono bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
-              placeholder="El borrador generado por IA aparecerá aquí..."
-            />
+
+            {modoVistaCuerpo === "preview" ? (
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white">
+                {cuerpo.trim() ? (
+                  <iframe
+                    title="Vista previa del correo"
+                    sandbox=""
+                    srcDoc={buildEmailPreviewDocument(cuerpo)}
+                    ref={previewFrameRef}
+                    onLoad={syncPreviewHeight}
+                    className="w-full pointer-events-none"
+                    style={{ height: `${previewHeight}px` }}
+                  />
+                ) : (
+                  <div className="h-[160px] flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 px-4 text-center bg-white dark:bg-gray-900">
+                    El borrador está vacío. Cambia a la pestaña HTML para escribirlo.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <textarea
+                value={cuerpo}
+                onChange={(e) => setCuerpo(e.target.value)}
+                rows={12}
+                className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 w-full resize-none font-mono bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                placeholder="El borrador generado por IA aparecerá aquí..."
+              />
+            )}
             <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 text-right">
               {cuerpo.length} caracteres
+              {cuerpoTieneHtml ? " · Contenido HTML detectado" : ""}
             </p>
           </div>
 

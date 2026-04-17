@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Edit3, CheckCircle, Clock, XCircle, Loader2, Sparkles } from "lucide-react";
+import {
+  Send,
+  Edit3,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Loader2,
+  Sparkles,
+  Eye,
+  Code2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
+import { buildEmailPreviewDocument, hasHtmlTags } from "@/lib/utils/email-preview";
 import type { LeadEstado } from "@/lib/types/app.types";
 
 interface EmailApprovalPanelProps {
@@ -41,8 +52,30 @@ export function EmailApprovalPanel({
   const [error, setError] = useState<string | null>(null);
   const [estadoActual, setEstadoActual] = useState(estado);
   const [enviado, setEnviado] = useState(estado === "enviado");
+  const [modoVistaCuerpo, setModoVistaCuerpo] = useState<"preview" | "html">("preview");
+  const [previewHeight, setPreviewHeight] = useState(360);
+  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
   const borradorDisponible = emailBorradorActual ?? emailBorrador;
   const canSend = estadoActual === "pendiente_aprobacion" || estadoActual === "aprobado";
+  const cuerpoTieneHtml = hasHtmlTags(contenido);
+
+  const syncPreviewHeight = useCallback(() => {
+    const frame = previewFrameRef.current;
+    if (!frame) {
+      return;
+    }
+
+    const doc = frame.contentDocument;
+    if (!doc) {
+      return;
+    }
+
+    const bodyHeight = doc.body?.scrollHeight ?? 0;
+    const htmlHeight = doc.documentElement?.scrollHeight ?? 0;
+    const nextHeight = Math.max(bodyHeight, htmlHeight, 220);
+
+    setPreviewHeight((current) => (current === nextHeight ? current : nextHeight));
+  }, []);
 
   useEffect(() => {
     setEmailBorradorActual(emailBorrador);
@@ -50,7 +83,20 @@ export function EmailApprovalPanel({
     setAsunto(asuntoInicial ?? "");
     setEstadoActual(estado);
     setEnviado(estado === "enviado");
+    setModoVistaCuerpo("preview");
   }, [emailAprobado, emailBorrador, asuntoInicial, estado]);
+
+  useEffect(() => {
+    if (modoVistaCuerpo !== "preview") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      syncPreviewHeight();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [contenido, modoVistaCuerpo, syncPreviewHeight]);
 
   async function handleGenerarBorrador() {
     setGeneratingDraft(true);
@@ -246,17 +292,68 @@ export function EmailApprovalPanel({
 
       {/* Cuerpo del email */}
       <div className="mb-4">
-        <label className="block text-xs font-medium text-gray-600 mb-1">
-          Cuerpo del email
-        </label>
-        <textarea
-          value={contenido}
-          onChange={(e) => setContenido(e.target.value)}
-          rows={12}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono resize-y"
-        />
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-xs font-medium text-gray-600">Cuerpo del email</label>
+          <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+            <button
+              type="button"
+              onClick={() => setModoVistaCuerpo("preview")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors",
+                modoVistaCuerpo === "preview"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              Vista previa
+            </button>
+            <button
+              type="button"
+              onClick={() => setModoVistaCuerpo("html")}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors",
+                modoVistaCuerpo === "html"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              <Code2 className="w-3.5 h-3.5" />
+              HTML
+            </button>
+          </div>
+        </div>
+
+        {modoVistaCuerpo === "preview" ? (
+          <div className="w-full border border-gray-200 rounded-lg overflow-hidden bg-white">
+            {contenido.trim() ? (
+              <iframe
+                title="Vista previa del borrador"
+                sandbox=""
+                srcDoc={buildEmailPreviewDocument(contenido)}
+                ref={previewFrameRef}
+                onLoad={syncPreviewHeight}
+                className="w-full pointer-events-none"
+                style={{ height: `${previewHeight}px` }}
+              />
+            ) : (
+              <div className="h-[180px] flex items-center justify-center text-sm text-gray-500 px-4 text-center">
+                El borrador está vacío. Cambia a la pestaña HTML para escribir el contenido.
+              </div>
+            )}
+          </div>
+        ) : (
+          <textarea
+            value={contenido}
+            onChange={(e) => setContenido(e.target.value)}
+            rows={12}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono resize-y"
+          />
+        )}
+
         <p className="mt-1 text-xs text-gray-400">
-          {contenido.length} caracteres · ~{Math.round(contenido.split(" ").length)} palabras
+          {contenido.length} caracteres · ~{Math.round(contenido.split(/\s+/).filter(Boolean).length)} palabras
+          {cuerpoTieneHtml ? " · Contenido HTML detectado" : ""}
         </p>
       </div>
 

@@ -1,9 +1,60 @@
+import sanitizeHtml from "sanitize-html";
+
 interface BuildLeadByEmailHtmlOptions {
   bodyText: string;
   unsubscribeUrl: string;
   recipientName?: string | null;
   companyName?: string | null;
 }
+
+const EMAIL_BODY_ALLOWED_TAGS: sanitizeHtml.IOptions["allowedTags"] = [
+  "p",
+  "br",
+  "strong",
+  "b",
+  "em",
+  "i",
+  "ul",
+  "ol",
+  "li",
+  "a",
+  "span",
+  "div",
+];
+
+const EMAIL_BODY_ALLOWED_ATTRIBUTES: sanitizeHtml.IOptions["allowedAttributes"] = {
+  a: ["href", "target", "rel", "style"],
+  p: ["style"],
+  ul: ["style"],
+  ol: ["style"],
+  li: ["style"],
+  div: ["style"],
+  span: ["style"],
+  strong: ["style"],
+  em: ["style"],
+};
+
+const EMAIL_BODY_ALLOWED_STYLES: sanitizeHtml.IOptions["allowedStyles"] = {
+  "*": {
+    "text-align": [/^(left|right|center|justify)$/i],
+    color: [/^#[0-9a-f]{3,8}$/i, /^rgb\((?:\s*\d+\s*,){2}\s*\d+\s*\)$/i],
+    "font-weight": [/^(normal|bold|[1-9]00)$/i],
+  },
+  p: {
+    margin: [/^(?:\d+px|0)(?:\s+(?:\d+px|0)){0,3}$/i],
+  },
+  a: {
+    "background-color": [/^#[0-9a-f]{3,8}$/i, /^rgb\((?:\s*\d+\s*,){2}\s*\d+\s*\)$/i],
+    color: [/^#[0-9a-f]{3,8}$/i, /^rgb\((?:\s*\d+\s*,){2}\s*\d+\s*\)$/i],
+    padding: [/^(?:\d+px|0)(?:\s+(?:\d+px|0)){0,3}$/i],
+    "border-radius": [/^\d+px$/i],
+    "text-decoration": [/^(none|underline)$/i],
+    display: [/^(inline-block|inline)$/i],
+    "font-size": [/^\d+px$/i],
+    "line-height": [/^\d+(?:\.\d+)?(?:px|%)?$/i],
+    border: [/^\d+px\s+(?:solid|dashed|none)\s+#[0-9a-f]{3,8}$/i],
+  },
+};
 
 function escapeHtml(value: string): string {
   return value
@@ -14,16 +65,59 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function toBodyHtml(text: string): string {
+function sanitizeBodyHtml(rawHtml: string): string {
+  return sanitizeHtml(rawHtml, {
+    allowedTags: EMAIL_BODY_ALLOWED_TAGS,
+    allowedAttributes: EMAIL_BODY_ALLOWED_ATTRIBUTES,
+    allowedStyles: EMAIL_BODY_ALLOWED_STYLES,
+    allowedSchemes: ["http", "https", "mailto"],
+    allowedSchemesByTag: {
+      a: ["http", "https", "mailto"],
+    },
+    transformTags: {
+      a: (_tagName, attribs) => {
+        const href = typeof attribs.href === "string" ? attribs.href.trim() : "";
+        const safeHref = /^(https?:\/\/|mailto:)/i.test(href) ? href : "#";
+
+        return {
+          tagName: "a",
+          attribs: {
+            ...attribs,
+            href: safeHref,
+            target: "_blank",
+            rel: "noopener noreferrer",
+          },
+        };
+      },
+    },
+  }).trim();
+}
+
+function hasHtmlTags(value: string): boolean {
+  return /<\/?[a-z][^>]*>/i.test(value);
+}
+
+function toLegacyParagraphHtml(text: string): string {
   return text
     .split(/\n{2,}/)
     .map((paragraph) => paragraph.trim())
     .filter((paragraph) => paragraph.length > 0)
     .map(
       (paragraph) =>
-        `<p style=\"margin:0 0 16px; font-family:Arial, Helvetica, sans-serif; font-size:16px; line-height:1.6; color:#374151;\">${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`
+        `<p style="margin:0 0 16px; font-family:Arial, Helvetica, sans-serif; font-size:16px; line-height:1.6; color:#374151;">${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`
     )
     .join("");
+}
+
+function toBodyHtml(text: string): string {
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  const rawBody = hasHtmlTags(trimmed) ? trimmed : toLegacyParagraphHtml(trimmed);
+  return sanitizeBodyHtml(rawBody);
 }
 
 /**

@@ -296,10 +296,25 @@ function normalizeMaxTerms(value?: number): number {
 }
 
 function countWords(text: string): number {
-  return text
+  const visibleText = text
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+
+  return visibleText
     .trim()
     .split(/\s+/)
     .filter(Boolean).length;
+}
+
+function clampPlainTextWords(text: string, maxWords: number): string {
+  return clampWords(text, maxWords);
 }
 
 function clampWords(text: string, maxWords: number): string {
@@ -313,6 +328,10 @@ function clampWords(text: string, maxWords: number): string {
   }
 
   return words.slice(0, maxWords).join(" ");
+}
+
+function hasHtmlTags(value: string): boolean {
+  return /<\/?[a-z][^>]*>/i.test(value);
 }
 
 function dedupeCaseInsensitive(values: string[]): string[] {
@@ -440,21 +459,31 @@ function buildFallbackEmailDraft(
   const contactFirstName = toNonEmptyString(input.contacto?.nombre) ?? "equipo";
   const contactRole = toNonEmptyString(input.contacto?.cargo) ?? "responsable comercial";
   const valueProp = toNonEmptyString(input.preferenciasIa?.propuesta_valor);
+  const city = toNonEmptyString(input.empresa.ciudad) ?? "tu ciudad";
 
   const subject = `Idea para ${companyName}`;
 
-  const lines = [
-    `Hola ${contactFirstName},`,
-    `he visto que lideras ${contactRole} en ${companyName}.`,
+  const body = [
+    `<p>Hola ${contactFirstName},</p>`,
+    `<p>Enhorabuena por la reciente expansion de ${companyName} en ${city}; es una senal clara del momento que estais viviendo.</p>`,
+    `<p>He visto que lideras ${contactRole} y creo que puede encajaros esto: <strong>acelerar la prospeccion sin perder personalizacion</strong>.</p>`,
     valueProp
-      ? `En LeadBy ayudamos a equipos B2B con ${valueProp}.`
-      : "En LeadBy ayudamos a equipos B2B a generar mas oportunidades comerciales con prospeccion asistida por IA.",
-    "Si te encaja, puedo compartirte en una llamada corta como lo aplicamos en equipos similares al tuyo.",
-    "Un saludo,",
-    "Equipo LeadBy",
-  ];
+      ? `<ul><li>${valueProp}</li><li>Mensajes 1:1 adaptados por empresa y contacto</li><li>Flujo integrado con CRM para seguimiento comercial</li></ul>`
+      : "<ul><li>Prospeccion B2B con enfoque en cuentas de alto potencial</li><li>Mensajes 1:1 adaptados por empresa y contacto</li><li>Flujo integrado con CRM para seguimiento comercial</li></ul>",
+    '<p style="text-align:center; margin:24px 0 0;"><a href="https://leadby.app/demo" style="background-color:#0f766e; color:#ffffff; padding:12px 20px; border-radius:8px; text-decoration:none; display:inline-block; font-size:14px; font-weight:700;">Agendar 15 minutos</a></p>',
+    "<p>Un saludo,<br />Equipo LeadBy</p>",
+  ].join("");
 
-  const body = clampWords(lines.join(" "), maxWords);
+  if (countWords(body) > maxWords) {
+    return {
+      subject,
+      body: clampWords(
+        `Hola ${contactFirstName}, en LeadBy ayudamos a equipos B2B a generar mas oportunidades con prospeccion personalizada. Si te encaja, compartimos ejemplos en una llamada corta. Un saludo, Equipo LeadBy.`,
+        maxWords
+      ),
+    };
+  }
+
   return { subject, body };
 }
 
@@ -510,14 +539,26 @@ export async function generateProspectEmailDraft(
   const fallbackDraft = buildFallbackEmailDraft(input, maxWords);
 
   const prompt = [
-    "Eres un SDR senior B2B especializado en cold email personalizado.",
+    "Actua como copywriter B2B senior y SDR enterprise.",
     `Idioma obligatorio: ${language}.`,
+    "Objetivo: redactar un cold email hiperpersonalizado usando el marco AIDA (Atencion, Interes, Deseo, Accion).",
     "Devuelve SOLO JSON valido con este formato exacto:",
     '{"asunto":"...","cuerpo":"..."}',
     "Reglas obligatorias:",
-    "- El cuerpo debe tener maximo 150 palabras.",
-    "- Debe incluir una propuesta concreta y un CTA suave.",
-    "- No inventes datos no proporcionados.",
+    "- No escribas ningun texto fuera del JSON.",
+    "- El asunto debe ser breve y especifico (maximo 9 palabras).",
+    "- El campo cuerpo debe ser HTML valido (NO texto plano).",
+    "- El cuerpo debe incluir etiquetas <p>, <strong>, <ul>, <li> y <a>.",
+    "- Estructura el mensaje siguiendo AIDA de forma clara en el orden natural del texto.",
+    "- ICEBREAKER FAKE PARA MVP: inventa una noticia reciente, positiva y muy realista sobre la empresa del prospecto para abrir el primer parrafo.",
+    "- Ese icebreaker inventado debe sonar plausible y coherente con el sector, ciudad y pais disponibles.",
+    "- Incluye una lista <ul> con 2 o 3 beneficios concretos.",
+    "- Incluye un CTA final con un boton HTML centrado y profesional.",
+    "- El boton debe ser un <a> con estilos inline y texto EXACTO: Agendar 15 minutos.",
+    "- El boton debe usar esta URL: https://leadby.app/demo",
+    "- Usa el boton dentro de un <p style=\"text-align:center; margin:24px 0 0;\">...</p>.",
+    "- Maximo 150 palabras de texto visible (sin contar etiquetas HTML).",
+    "- No inventes datos no proporcionados fuera del icebreaker ficticio.",
     "- No uses lenguaje exagerado ni promesas absolutas.",
     `Preferencias del tenant: ${JSON.stringify(input.preferenciasIa ?? {})}`,
     `Contexto empresa: ${JSON.stringify(input.empresa)}`,
@@ -540,7 +581,9 @@ export async function generateProspectEmailDraft(
     toNonEmptyString(payload?.cuerpo) ??
     toNonEmptyString(payload?.body) ??
     fallbackDraft.body;
-  const body = clampWords(bodyCandidate, maxWords);
+  const body = hasHtmlTags(bodyCandidate)
+    ? bodyCandidate.trim()
+    : clampPlainTextWords(bodyCandidate, maxWords);
 
   return {
     subject,
