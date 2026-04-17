@@ -17,6 +17,7 @@ import {
   Radio,
 } from "lucide-react";
 import { Magnetic } from "@/lib/animations/magnetic";
+import { ProspectingAnimation } from "./ProspectingAnimation";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -54,12 +55,14 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
   const progressTween = useRef<gsap.core.Tween | null>(null);
   const stepTimers    = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const [sector,     setSector]     = useState("");
-  const [ubicacion,  setUbicacion]  = useState("");
-  const [tamano,     setTamano]     = useState("");
-  const [loading,    setLoading]    = useState(false);
-  const [searchStep, setSearchStep] = useState(-1);   // -1 = idle
-  const [error,      setError]      = useState<string | null>(null);
+  const [sector,        setSector]        = useState("");
+  const [ubicacion,     setUbicacion]     = useState("");
+  const [tamano,        setTamano]        = useState("");
+  const [loading,       setLoading]       = useState(false);
+  const [searchStep,    setSearchStep]    = useState(-1);   // -1 = idle
+  const [error,         setError]         = useState<string | null>(null);
+  const [showAnimation, setShowAnimation] = useState(false);
+  const [jobComplete,   setJobComplete]   = useState(false);
 
   // ── Animate progress bar with GSAP scaleX on step change ─────────────────
   useEffect(() => {
@@ -172,8 +175,10 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
     setLoading(true);
     setError(null);
     setSearchStep(0);
+    setShowAnimation(true);
+    setJobComplete(false);
 
-    // Advance stepper steps while the API is in-flight
+    // Advance stepper steps while the API is in-flight (visible behind overlay)
     stepTimers.current.push(
       setTimeout(() => setSearchStep(1), 1400),
       setTimeout(() => setSearchStep(2), 2800)
@@ -200,13 +205,14 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
         );
       }
 
-      // Jump to "done" step and navigate after a brief pause
+      // Signal the animation overlay that the job is ready
       stepTimers.current.forEach(clearTimeout);
       setSearchStep(SEARCH_STEPS.length - 1);
-      await new Promise((r) => setTimeout(r, 600));
-      router.push("/leads");
+      setJobComplete(true);
+      // Navigation is handled by ProspectingAnimation's onComplete
     } catch (err) {
       stepTimers.current.forEach(clearTimeout);
+      setShowAnimation(false);
       setError(err instanceof Error ? err.message : "Error de conexión.");
       setSearchStep(-1);
     } finally {
@@ -429,6 +435,14 @@ export function ManualSearchForm({ organizacionId }: ManualSearchFormProps) {
           </Magnetic>
         </div>
       </form>
+
+      {/* Animation overlay — mounts when search starts, navigates on complete */}
+      {showAnimation && (
+        <ProspectingAnimation
+          isJobComplete={jobComplete}
+          onComplete={() => router.push("/leads")}
+        />
+      )}
     </div>
   );
 }

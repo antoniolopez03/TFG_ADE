@@ -5,6 +5,8 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ProspectingAnimation } from "./ProspectingAnimation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
@@ -30,6 +32,7 @@ const FASES = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function LookalikeTrigger() {
+  const router        = useRouter();
   const containerRef  = useRef<HTMLDivElement>(null);
   const progressRef   = useRef<HTMLDivElement>(null);
   const progressTween = useRef<gsap.core.Tween | null>(null);
@@ -42,6 +45,8 @@ export function LookalikeTrigger() {
     terminos: string[];
     fallbackUsed: boolean;
   } | null>(null);
+  const [showAnimation, setShowAnimation] = useState(false);
+  const [jobComplete,   setJobComplete]   = useState(false);
 
   // ── GSAP entrance animation ───────────────────────────────────────────────
   useGSAP(
@@ -129,6 +134,8 @@ export function LookalikeTrigger() {
     setError(null);
     setDone(false);
     setResumen(null);
+    setShowAnimation(true);
+    setJobComplete(false);
 
     try {
       const res  = await fetch("/api/prospecting/lookalike", {
@@ -140,6 +147,7 @@ export function LookalikeTrigger() {
       if (!res.ok) {
         setError((data as { error?: string }).error ?? "Error al iniciar el análisis.");
         setFase(-1);
+        setShowAnimation(false);
         return;
       }
 
@@ -158,9 +166,12 @@ export function LookalikeTrigger() {
 
       setFase(FASES.length);
       setDone(true);
+      // Signal animation that the job is done; navigation handled by onComplete
+      setJobComplete(true);
     } catch {
       setError("Error de conexión. Inténtalo de nuevo.");
       setFase(-1);
+      setShowAnimation(false);
     }
   }
 
@@ -311,6 +322,14 @@ export function LookalikeTrigger() {
             </button>
           </Magnetic>
         </div>
+      )}
+
+      {/* Animation overlay — mounts when analysis starts, navigates on complete */}
+      {showAnimation && (
+        <ProspectingAnimation
+          isJobComplete={jobComplete}
+          onComplete={() => router.push("/leads")}
+        />
       )}
     </div>
   );
