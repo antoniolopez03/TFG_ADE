@@ -140,40 +140,25 @@ export function ProspectingAnimation({
 
         // ② Walk → Company 1
         .add((): void => { legCycle.play(); })
-        .add(walk(0, 0.22, 1.9))
+        .add(walk(0, 0.22, 3))
         .add((): void => { legCycle.pause(); })
-        .to("#c1-person", { autoAlpha: 1, x: -13, duration: 0.28 })
-        .to(
-          "#c1-shake",
-          { autoAlpha: 1, scale: 1, duration: 0.32, transformOrigin: "center center" }
-        )
-        .to(["#c1-person", "#c1-shake"], { autoAlpha: 0, duration: 0.24 }, "+=0.45")
+        .to({}, { duration: 0.6 })
 
         // ③ Walk → Company 2
         .add((): void => { legCycle.play(); })
-        .add(walk(0.22, 0.47, 1.65))
+        .add(walk(0.22, 0.47, 5))
         .add((): void => { legCycle.pause(); })
-        .to("#c2-person", { autoAlpha: 1, x: -13, duration: 0.28 })
-        .to(
-          "#c2-shake",
-          { autoAlpha: 1, scale: 1, duration: 0.32, transformOrigin: "center center" }
-        )
-        .to(["#c2-person", "#c2-shake"], { autoAlpha: 0, duration: 0.24 }, "+=0.45")
+        .to({}, { duration: 0.6 })
 
         // ④ Walk → Company 3
         .add((): void => { legCycle.play(); })
-        .add(walk(0.47, 0.70, 1.45))
+        .add(walk(0.47, 0.70, 5))
         .add((): void => { legCycle.pause(); })
-        .to("#c3-person", { autoAlpha: 1, x: -13, duration: 0.28 })
-        .to(
-          "#c3-shake",
-          { autoAlpha: 1, scale: 1, duration: 0.32, transformOrigin: "center center" }
-        )
-        .to(["#c3-person", "#c3-shake"], { autoAlpha: 0, duration: 0.24 }, "+=0.45")
+        .to({}, { duration: 0.6 })
 
         // ⑤ Walk → House
         .add((): void => { legCycle.play(); })
-        .add(walk(0.70, 1, 1.3))
+        .add(walk(0.70, 1, 5))
         .add((): void => { legCycle.pause(); })
         // Walker enters the door
         .to("#walker", { autoAlpha: 0, y: -4, duration: 0.35 })
@@ -239,12 +224,6 @@ export function ProspectingAnimation({
               </feMerge>
             </filter>
           </defs>
-
-          {/* ── Ground shadow ─────────────────────────────────────────── */}
-          <line
-            x1="30" y1="243" x2="775" y2="243"
-            stroke="#7c2d12" strokeWidth="1.5"
-          />
 
           {/* ── Winding road ─────────────────────────────────────────── */}
           {/*
@@ -354,27 +333,27 @@ export function ProspectingAnimation({
           </g>
 
           {/* ════════════════════════════════════════════════════════════
-              COMPANY 3  — path ≈ 70 %,  path coords ≈ (540, 212)
+              COMPANY 3  — Elevada 10px, path coords ≈ (540, 202)
           ════════════════════════════════════════════════════════════ */}
           <g id="company-3">
             {/* Antenna */}
-            <line x1="539" y1="136" x2="539" y2="150" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="539" cy="134" r="2.5" fill="#f97316" opacity="0.8" />
+            <line x1="539" y1="126" x2="539" y2="140" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="539" cy="124" r="2.5" fill="#f97316" opacity="0.8" />
             {/* Roof band */}
-            <rect x="518" y="150" width="44" height="9" fill="#7c2d12" stroke="#9a3412" strokeWidth="1.2" rx="1" />
+            <rect x="518" y="140" width="44" height="9" fill="#7c2d12" stroke="#9a3412" strokeWidth="1.2" rx="1" />
             {/* Body */}
-            <rect x="518" y="158" width="44" height="67" fill="#431407" stroke="#9a3412" strokeWidth="1.5" rx="2" />
+            <rect x="518" y="148" width="44" height="67" fill="#431407" stroke="#9a3412" strokeWidth="1.5" rx="2" />
             {/* Windows */}
-            <rect x="525" y="165" width="9" height="7" fill="#f97316" opacity="0.55" rx="1" />
-            <rect x="541" y="165" width="9" height="7" fill="#f97316" opacity="0.55" rx="1" />
-            <rect x="525" y="179" width="9" height="7" fill="#f97316" opacity="0.35" rx="1" />
-            <rect x="541" y="179" width="9" height="7" fill="#f97316" opacity="0.35" rx="1" />
-            <rect x="525" y="193" width="9" height="7" fill="#f97316" opacity="0.18" rx="1" />
-            <rect x="541" y="193" width="9" height="7" fill="#f97316" opacity="0.18" rx="1" />
+            <rect x="525" y="155" width="9" height="7" fill="#f97316" opacity="0.55" rx="1" />
+            <rect x="541" y="155" width="9" height="7" fill="#f97316" opacity="0.55" rx="1" />
+            <rect x="525" y="169" width="9" height="7" fill="#f97316" opacity="0.35" rx="1" />
+            <rect x="541" y="169" width="9" height="7" fill="#f97316" opacity="0.35" rx="1" />
+            <rect x="525" y="183" width="9" height="7" fill="#f97316" opacity="0.18" rx="1" />
+            <rect x="541" y="183" width="9" height="7" fill="#f97316" opacity="0.18" rx="1" />
             {/* Door */}
-            <rect x="530" y="210" width="12" height="15" fill="#f97316" opacity="0.45" rx="1" />
+            <rect x="530" y="200" width="12" height="15" fill="#f97316" opacity="0.45" rx="1" />
             {/* Company rep */}
-            <g id="c3-person" transform="translate(577, 202)">
+            <g id="c3-person" transform="translate(577, 192)">
               <circle cx="0" cy="-15" r="5" fill="#fdba74" />
               <line x1="0" y1="-10" x2="0" y2="1" stroke="#fdba74" strokeWidth="2" strokeLinecap="round" />
               <line x1="-6" y1="-7" x2="6" y2="-7" stroke="#fdba74" strokeWidth="1.8" strokeLinecap="round" />
@@ -382,7 +361,7 @@ export function ProspectingAnimation({
               <line x1="0" y1="1" x2="5" y2="11" stroke="#fdba74" strokeWidth="1.8" strokeLinecap="round" />
             </g>
             {/* Handshake seal */}
-            <g id="c3-shake" transform="translate(560, 196)" filter="url(#glow-green)">
+            <g id="c3-shake" transform="translate(560, 186)" filter="url(#glow-green)">
               <circle cx="0" cy="0" r="13" fill="rgba(249,115,22,0.12)" stroke="#f97316" strokeWidth="1.8" />
               <path d="M -7,-2 C -5,-7 5,-7 7,-2" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
               <path d="M -7,2 C -5,7 5,7 7,2" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
@@ -395,33 +374,33 @@ export function ProspectingAnimation({
           </g>
 
           {/* ════════════════════════════════════════════════════════════
-              DESTINATION HOUSE  — path 100 %,  coords ≈ (760, 200)
+              DESTINATION HOUSE  — Elevada 35px, path 100 % en X:755 Y:205
           ════════════════════════════════════════════════════════════ */}
           <g id="dest-house">
             {/* Chimney */}
-            <rect x="769" y="175" width="7" height="16" fill="#7c2d12" stroke="#f97316" strokeWidth="1.2" />
+            <rect x="769" y="140" width="7" height="16" fill="#7c2d12" stroke="#f97316" strokeWidth="1.2" />
             {/* Roof */}
             <polygon
-              points="728,203 757,175 786,203"
+              points="728,168 757,140 786,168"
               fill="#7c2d12"
               stroke="#f97316"
               strokeWidth="2"
             />
             {/* House body */}
             <rect
-              x="732" y="202" width="50" height="38"
+              x="732" y="167" width="50" height="38"
               fill="#431407" stroke="#f97316" strokeWidth="2" rx="2"
             />
             {/* Door */}
-            <rect x="749" y="220" width="13" height="20" fill="#f97316" opacity="0.72" rx="1" />
-            <circle cx="759" cy="231" r="1.5" fill="#ffedd5" />
+            <rect x="749" y="185" width="13" height="20" fill="#f97316" opacity="0.72" rx="1" />
+            <circle cx="759" cy="196" r="1.5" fill="#ffedd5" />
             {/* Left window */}
-            <rect x="737" y="209" width="11" height="9" fill="#fdba74" opacity="0.5" rx="1" />
+            <rect x="737" y="174" width="11" height="9" fill="#fdba74" opacity="0.5" rx="1" />
             {/* Right window */}
-            <rect x="766" y="209" width="11" height="9" fill="#fdba74" opacity="0.5" rx="1" />
+            <rect x="766" y="174" width="11" height="9" fill="#fdba74" opacity="0.5" rx="1" />
             {/* Warm light glow behind windows */}
-            <rect x="737" y="209" width="11" height="9" fill="#fb923c" opacity="0.12" rx="1" />
-            <rect x="766" y="209" width="11" height="9" fill="#fb923c" opacity="0.12" rx="1" />
+            <rect x="737" y="174" width="11" height="9" fill="#fb923c" opacity="0.12" rx="1" />
+            <rect x="766" y="174" width="11" height="9" fill="#fb923c" opacity="0.12" rx="1" />
           </g>
 
           {/* ════════════════════════════════════════════════════════════

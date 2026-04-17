@@ -552,15 +552,19 @@ export async function executeApolloProspectingJob(
     dominiosExcluidos
   );
 
-  for (const person of people) {
-    const result = await processApolloPerson({
+  const processPromises = people.map((person) =>
+    processApolloPerson({
       userClient: input.userClient,
       organizacionId: input.organizacionId,
       fuente: resolveFuenteFromTipo(input.tipo),
       tipo: input.tipo,
       person,
-    });
+    })
+  );
 
+  const processResults = await Promise.all(processPromises);
+
+  for (const result of processResults) {
     if (result.cacheHit) {
       cacheHits += 1;
     }
@@ -606,60 +610,68 @@ export async function executeApolloLookalikeJob(
   const tamano = resolveTamanoFromParametros(input.parametros);
   const seenPeople = new Set<string>();
 
-  for (const term of normalizedTerms) {
-    if (leads.length >= maxResults) {
-      break;
-    }
-
-    const remaining = maxResults - leads.length;
-    const people = await searchPeopleWithCompany({
+  const searchPromises = normalizedTerms.map((term) =>
+    searchPeopleWithCompany({
       sector: term,
       ubicacion: location,
       tamano: tamano ?? undefined,
-      perPage: remaining,
-    });
+      perPage: maxResults,
+    })
+  );
 
-    for (const person of people) {
-      if (leads.length >= maxResults) {
-        break;
-      }
+  const peopleByTerm = await Promise.all(searchPromises);
+  const allPeople = peopleByTerm.flat();
 
-      const personKey = [
-        toStringOrNull(person.id),
-        normalizeEmail(toStringOrNull(person.email)),
-        toStringOrNull(person.linkedin_url),
-        toStringOrNull(person.name),
-      ]
-        .filter((value): value is string => Boolean(value))
-        .join("|");
+  const processPromises: Array<
+    Promise<{ lead: LeadCreado | null; cacheHit: boolean; cacheMiss: boolean }>
+  > = [];
 
-      if (personKey && seenPeople.has(personKey)) {
-        continue;
-      }
+  for (const person of allPeople) {
+    if (processPromises.length >= maxResults) {
+      break;
+    }
 
-      if (personKey) {
-        seenPeople.add(personKey);
-      }
+    const personKey = [
+      toStringOrNull(person.id),
+      normalizeEmail(toStringOrNull(person.email)),
+      toStringOrNull(person.linkedin_url),
+      toStringOrNull(person.name),
+    ]
+      .filter((value): value is string => Boolean(value))
+      .join("|");
 
-      const result = await processApolloPerson({
+    if (personKey && seenPeople.has(personKey)) {
+      continue;
+    }
+
+    if (personKey) {
+      seenPeople.add(personKey);
+    }
+
+    processPromises.push(
+      processApolloPerson({
         userClient: input.userClient,
         organizacionId: input.organizacionId,
         fuente: "lookalike",
         tipo: "apollo_lookalike",
         person,
-      });
+      })
+    );
+  }
 
-      if (result.cacheHit) {
-        cacheHits += 1;
-      }
+  const processResults = await Promise.all(processPromises);
 
-      if (result.cacheMiss) {
-        cacheMisses += 1;
-      }
+  for (const result of processResults) {
+    if (result.cacheHit) {
+      cacheHits += 1;
+    }
 
-      if (result.lead) {
-        leads.push(result.lead);
-      }
+    if (result.cacheMiss) {
+      cacheMisses += 1;
+    }
+
+    if (result.lead) {
+      leads.push(result.lead);
     }
   }
 
