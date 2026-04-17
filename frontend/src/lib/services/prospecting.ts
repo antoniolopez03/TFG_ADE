@@ -6,7 +6,7 @@ import {
   searchPeopleWithCompany,
 } from "@/lib/services/apollo-mock";
 
-const MAX_PROSPECTS_PER_SEARCH = 5;
+const MAX_PROSPECTS_PER_SEARCH = 3;
 
 type ProspectingTipo = "apollo_search" | "apollo_lookalike";
 type LeadFuente = "prospeccion" | "lookalike";
