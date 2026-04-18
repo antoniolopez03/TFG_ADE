@@ -140,25 +140,25 @@ export function ProspectingAnimation({
 
         // ② Walk → Company 1
         .add((): void => { legCycle.play(); })
-        .add(walk(0, 0.22, 3))
+        .add(walk(0, 0.22, 6))
         .add((): void => { legCycle.pause(); })
         .to({}, { duration: 0.6 })
 
         // ③ Walk → Company 2
         .add((): void => { legCycle.play(); })
-        .add(walk(0.22, 0.47, 5))
+        .add(walk(0.22, 0.47, 6))
         .add((): void => { legCycle.pause(); })
         .to({}, { duration: 0.6 })
 
         // ④ Walk → Company 3
         .add((): void => { legCycle.play(); })
-        .add(walk(0.47, 0.70, 5))
+        .add(walk(0.47, 0.70, 6))
         .add((): void => { legCycle.pause(); })
         .to({}, { duration: 0.6 })
 
         // ⑤ Walk → House
         .add((): void => { legCycle.play(); })
-        .add(walk(0.70, 1, 5))
+        .add(walk(0.70, 1, 6))
         .add((): void => { legCycle.pause(); })
         // Walker enters the door
         .to("#walker", { autoAlpha: 0, y: -4, duration: 0.35 })
