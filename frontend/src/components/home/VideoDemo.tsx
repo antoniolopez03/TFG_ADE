@@ -3,14 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 
-const DEMO_VIDEO_URL = process.env.NEXT_PUBLIC_DEMO_VIDEO_URL?.trim() ?? "";
-const HAS_CONFIGURED_VIDEO = DEMO_VIDEO_URL.length > 0;
+const DEMO_VIDEO_URL = "/video/hero.mp4";
 
-interface VideoFallbackProps {
-  hasConfiguredVideo: boolean;
-}
-
-function VideoFallback({ hasConfiguredVideo }: VideoFallbackProps) {
+function VideoFallback() {
   return (
     <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl bg-gray-950">
       <div className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-tl-full bg-leadby-500/20 blur-2xl" />
@@ -42,9 +37,8 @@ function VideoFallback({ hasConfiguredVideo }: VideoFallbackProps) {
 
         <p className="text-lg font-semibold text-white">Vista previa del flujo LeadBy</p>
         <p className="max-w-md text-sm leading-relaxed text-white/70">
-          {hasConfiguredVideo
-            ? "Estamos actualizando el vídeo corporativo. Mientras tanto, te mostramos el flujo en una demo guiada."
-            : "Estamos preparando el vídeo corporativo definitivo. Puedes solicitar una demostración personalizada ahora mismo."}
+          No hemos podido cargar el vídeo en este momento. Puedes solicitar una demostración guiada
+          personalizada ahora mismo.
         </p>
 
         <Link
@@ -61,19 +55,22 @@ function VideoFallback({ hasConfiguredVideo }: VideoFallbackProps) {
 export function VideoDemo() {
   const [hasError, setHasError] = useState(false);
 
-  if (!HAS_CONFIGURED_VIDEO || hasError) {
-    return <VideoFallback hasConfiguredVideo={HAS_CONFIGURED_VIDEO} />;
+  if (hasError) {
+    return <VideoFallback />;
   }
 
   return (
     <video
-      src={DEMO_VIDEO_URL}
       poster="/images/demo-poster.svg"
       controls
       playsInline
       preload="metadata"
+      aria-label="Vídeo demo del flujo LeadBy"
       onError={() => setHasError(true)}
       className="aspect-video w-full rounded-2xl object-cover"
-    />
+    >
+      <source src={DEMO_VIDEO_URL} type="video/mp4" />
+      Tu navegador no soporta vídeo HTML5.
+    </video>
   );
 }

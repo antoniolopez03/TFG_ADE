@@ -141,7 +141,7 @@ HubSpot parte vacío, instancia nueva desde cero.
 
 | # | Tarea |
 |---|-------|
-| 7.1 | Revisar y pulir Hero Section con vídeo corporativo embebido |
+| 7.1 | [x] Revisar y pulir Hero Section con vídeo corporativo embebido |
 | 7.2 | [x] Verificar página de Pricing con planes de suscripción |
 | 7.3 | [x] Revisar blog: verificar pre-renderizado SSG de artículos Markdown |
 | 7.4 | [x] Verificar páginas legales (RGPD, Términos) con contenido completo |
