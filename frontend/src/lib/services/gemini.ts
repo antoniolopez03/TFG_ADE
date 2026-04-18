@@ -470,7 +470,7 @@ function buildFallbackEmailDraft(
     valueProp
       ? `<ul><li>${valueProp}</li><li>Mensajes 1:1 adaptados por empresa y contacto</li><li>Flujo integrado con CRM para seguimiento comercial</li></ul>`
       : "<ul><li>Prospeccion B2B con enfoque en cuentas de alto potencial</li><li>Mensajes 1:1 adaptados por empresa y contacto</li><li>Flujo integrado con CRM para seguimiento comercial</li></ul>",
-    '<p style="text-align:center; margin:24px 0 0;"><a href="https://leadby.app/demo" style="background-color:#0f766e; color:#ffffff; padding:12px 20px; border-radius:8px; text-decoration:none; display:inline-block; font-size:14px; font-weight:700;">Agendar 15 minutos</a></p>',
+    '<p style="text-align:center; margin:24px 0 0;"><a href="https://leadby.vercel.app/contact" style="background-color:#0f766e; color:#ffffff; padding:12px 20px; border-radius:8px; text-decoration:none; display:inline-block; font-size:14px; font-weight:700;">Agendar 15 minutos</a></p>',
     "<p>Un saludo,<br />Equipo LeadBy</p>",
   ].join("");
 
@@ -555,7 +555,7 @@ export async function generateProspectEmailDraft(
     "- Incluye una lista <ul> con 2 o 3 beneficios concretos.",
     "- Incluye un CTA final con un boton HTML centrado y profesional.",
     "- El boton debe ser un <a> con estilos inline y texto EXACTO: Agendar 15 minutos.",
-    "- El boton debe usar esta URL: https://leadby.app/demo",
+    "- El boton debe usar esta URL: https://leadby.vercel.app/contact",
     "- Usa el boton dentro de un <p style=\"text-align:center; margin:24px 0 0;\">...</p>.",
     "- Maximo 150 palabras de texto visible (sin contar etiquetas HTML).",
     "- No inventes datos no proporcionados fuera del icebreaker ficticio.",

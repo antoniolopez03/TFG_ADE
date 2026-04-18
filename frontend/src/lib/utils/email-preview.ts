@@ -34,7 +34,9 @@ function toPreviewHtmlBody(text: string): string {
 }
 
 /**
- * Construye un documento HTML aislado para previsualizar el borrador sin ejecutar scripts.
+ * Construye un documento HTML aislado para previsualizar el borrador.
+ * Usa allow-scripts únicamente para reenviar mousemove al parent vía postMessage,
+ * lo que permite que el cursor personalizado del parent siga funcionando dentro del iframe.
  */
 export function buildEmailPreviewDocument(content: string): string {
   const body = toPreviewHtmlBody(content);
@@ -45,11 +47,11 @@ export function buildEmailPreviewDocument(content: string): string {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
-      html,
-      body {
+      html, body {
         margin: 0;
         padding: 0;
         background: #ffffff;
+        cursor: none !important;
       }
 
       body {
@@ -58,17 +60,28 @@ export function buildEmailPreviewDocument(content: string): string {
         padding: 16px;
       }
 
-      p,
-      ul,
-      ol {
+      p, ul, ol {
         margin: 0 0 14px;
       }
 
       a {
         color: #0f766e;
+        cursor: none !important;
       }
     </style>
   </head>
-  <body>${body}</body>
+  <body>${body}<script>
+    (function () {
+      document.addEventListener('mousemove', function (e) {
+        parent.postMessage({ type: 'iframe-mm', x: e.clientX, y: e.clientY }, '*');
+      }, { passive: true });
+      document.addEventListener('mouseleave', function () {
+        parent.postMessage({ type: 'iframe-ml' }, '*');
+      });
+      document.addEventListener('mouseenter', function () {
+        parent.postMessage({ type: 'iframe-me' }, '*');
+      });
+    })();
+  </script></body>
 </html>`;
 }

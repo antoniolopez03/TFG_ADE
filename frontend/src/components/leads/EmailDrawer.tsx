@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { X, ExternalLink, Loader2, Send, Trash2, Eye, Code2 } from "lucide-react";
+import { X, ExternalLink, Loader2, Send, Trash2, Eye, Edit3 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { buildEmailPreviewDocument, hasHtmlTags } from "@/lib/utils/email-preview";
@@ -23,6 +23,7 @@ export function EmailDrawer({
   const [asunto, setAsunto] = useState("");
   const [cuerpo, setCuerpo] = useState("");
   const [modoVistaCuerpo, setModoVistaCuerpo] = useState<"preview" | "html">("preview");
+  const MAX_PREVIEW_HEIGHT = 520;
   const [previewHeight, setPreviewHeight] = useState(340);
   const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
   const [actionLoading, setActionLoading] = useState<"discard" | "send" | null>(
@@ -41,33 +42,45 @@ export function EmailDrawer({
 
   const syncPreviewHeight = useCallback(() => {
     const frame = previewFrameRef.current;
-    if (!frame) {
-      return;
-    }
-
+    if (!frame) return;
     const doc = frame.contentDocument;
-    if (!doc) {
-      return;
-    }
-
+    if (!doc) return;
     const bodyHeight = doc.body?.scrollHeight ?? 0;
     const htmlHeight = doc.documentElement?.scrollHeight ?? 0;
-    const nextHeight = Math.max(bodyHeight, htmlHeight, 200);
-
+    const nextHeight = Math.min(Math.max(bodyHeight, htmlHeight, 200), MAX_PREVIEW_HEIGHT);
     setPreviewHeight((current) => (current === nextHeight ? current : nextHeight));
   }, []);
 
   useEffect(() => {
-    if (modoVistaCuerpo !== "preview") {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      syncPreviewHeight();
-    }, 0);
-
+    if (modoVistaCuerpo !== "preview") return;
+    const timeoutId = window.setTimeout(syncPreviewHeight, 0);
     return () => window.clearTimeout(timeoutId);
   }, [cuerpo, modoVistaCuerpo, syncPreviewHeight]);
+
+  // Reenvía los mousemove del iframe al parent para que el cursor personalizado funcione.
+  useEffect(() => {
+    if (modoVistaCuerpo !== "preview") return;
+
+    function onMessage(e: MessageEvent) {
+      const frame = previewFrameRef.current;
+      if (!frame) return;
+      const rect = frame.getBoundingClientRect();
+
+      if (e.data?.type === "iframe-mm") {
+        window.dispatchEvent(
+          new MouseEvent("mousemove", {
+            bubbles: true,
+            cancelable: true,
+            clientX: rect.left + (e.data.x as number),
+            clientY: rect.top + (e.data.y as number),
+          })
+        );
+      }
+    }
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [modoVistaCuerpo]);
 
   if (!lead) return null;
   const selectedLead = lead;
@@ -262,27 +275,38 @@ export function EmailDrawer({
                       : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
                   )}
                 >
-                  <Code2 className="w-3.5 h-3.5" />
-                  HTML
+                  <Edit3 className="w-3.5 h-3.5" />
+                  Editar
                 </button>
               </div>
             </div>
 
             {modoVistaCuerpo === "preview" ? (
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white">
+              <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white">
                 {cuerpo.trim() ? (
-                  <iframe
-                    title="Vista previa del correo"
-                    sandbox=""
-                    srcDoc={buildEmailPreviewDocument(cuerpo)}
-                    ref={previewFrameRef}
-                    onLoad={syncPreviewHeight}
-                    className="w-full pointer-events-none"
-                    style={{ height: `${previewHeight}px` }}
-                  />
+                  <>
+                    <iframe
+                      title="Vista previa del correo"
+                      sandbox="allow-scripts"
+                      srcDoc={buildEmailPreviewDocument(cuerpo)}
+                      ref={previewFrameRef}
+                      onLoad={syncPreviewHeight}
+                      className="w-full"
+                      style={{ height: `${previewHeight}px`, display: "block" }}
+                    />
+                    {/* Hint de edición superpuesto */}
+                    <button
+                      type="button"
+                      onClick={() => setModoVistaCuerpo("html")}
+                      className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-600 shadow-sm text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 transition-colors backdrop-blur-sm"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      Editar contenido
+                    </button>
+                  </>
                 ) : (
                   <div className="h-[160px] flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 px-4 text-center bg-white dark:bg-gray-900">
-                    El borrador está vacío. Cambia a la pestaña HTML para escribirlo.
+                    El borrador está vacío. Cambia a &quot;Editar&quot; para escribirlo.
                   </div>
                 )}
               </div>
@@ -290,8 +314,8 @@ export function EmailDrawer({
               <textarea
                 value={cuerpo}
                 onChange={(e) => setCuerpo(e.target.value)}
-                rows={12}
-                className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 w-full resize-none font-mono bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                rows={14}
+                className="border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leadby-500/30 focus:border-leadby-500 w-full resize-y font-mono bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 placeholder="El borrador generado por IA aparecerá aquí..."
               />
             )}

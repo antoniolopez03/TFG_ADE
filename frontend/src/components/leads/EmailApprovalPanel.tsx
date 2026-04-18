@@ -11,7 +11,6 @@ import {
   Loader2,
   Sparkles,
   Eye,
-  Code2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
@@ -53,6 +52,7 @@ export function EmailApprovalPanel({
   const [estadoActual, setEstadoActual] = useState(estado);
   const [enviado, setEnviado] = useState(estado === "enviado");
   const [modoVistaCuerpo, setModoVistaCuerpo] = useState<"preview" | "html">("preview");
+  const MAX_PREVIEW_HEIGHT = 520;
   const [previewHeight, setPreviewHeight] = useState(360);
   const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
   const borradorDisponible = emailBorradorActual ?? emailBorrador;
@@ -61,19 +61,12 @@ export function EmailApprovalPanel({
 
   const syncPreviewHeight = useCallback(() => {
     const frame = previewFrameRef.current;
-    if (!frame) {
-      return;
-    }
-
+    if (!frame) return;
     const doc = frame.contentDocument;
-    if (!doc) {
-      return;
-    }
-
+    if (!doc) return;
     const bodyHeight = doc.body?.scrollHeight ?? 0;
     const htmlHeight = doc.documentElement?.scrollHeight ?? 0;
-    const nextHeight = Math.max(bodyHeight, htmlHeight, 220);
-
+    const nextHeight = Math.min(Math.max(bodyHeight, htmlHeight, 220), MAX_PREVIEW_HEIGHT);
     setPreviewHeight((current) => (current === nextHeight ? current : nextHeight));
   }, []);
 
@@ -87,16 +80,35 @@ export function EmailApprovalPanel({
   }, [emailAprobado, emailBorrador, asuntoInicial, estado]);
 
   useEffect(() => {
-    if (modoVistaCuerpo !== "preview") {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      syncPreviewHeight();
-    }, 0);
-
+    if (modoVistaCuerpo !== "preview") return;
+    const timeoutId = window.setTimeout(syncPreviewHeight, 0);
     return () => window.clearTimeout(timeoutId);
   }, [contenido, modoVistaCuerpo, syncPreviewHeight]);
+
+  // Reenvía los mousemove del iframe al parent para que el cursor personalizado funcione.
+  useEffect(() => {
+    if (modoVistaCuerpo !== "preview") return;
+
+    function onMessage(e: MessageEvent) {
+      const frame = previewFrameRef.current;
+      if (!frame) return;
+      const rect = frame.getBoundingClientRect();
+
+      if (e.data?.type === "iframe-mm") {
+        window.dispatchEvent(
+          new MouseEvent("mousemove", {
+            bubbles: true,
+            cancelable: true,
+            clientX: rect.left + (e.data.x as number),
+            clientY: rect.top + (e.data.y as number),
+          })
+        );
+      }
+    }
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [modoVistaCuerpo]);
 
   async function handleGenerarBorrador() {
     setGeneratingDraft(true);
@@ -318,27 +330,38 @@ export function EmailApprovalPanel({
                   : "text-gray-500 hover:text-gray-700"
               )}
             >
-              <Code2 className="w-3.5 h-3.5" />
-              HTML
+              <Edit3 className="w-3.5 h-3.5" />
+              Editar
             </button>
           </div>
         </div>
 
         {modoVistaCuerpo === "preview" ? (
-          <div className="w-full border border-gray-200 rounded-lg overflow-hidden bg-white">
+          <div className="relative w-full border border-gray-200 rounded-lg overflow-hidden bg-white">
             {contenido.trim() ? (
-              <iframe
-                title="Vista previa del borrador"
-                sandbox=""
-                srcDoc={buildEmailPreviewDocument(contenido)}
-                ref={previewFrameRef}
-                onLoad={syncPreviewHeight}
-                className="w-full pointer-events-none"
-                style={{ height: `${previewHeight}px` }}
-              />
+              <>
+                <iframe
+                  title="Vista previa del borrador"
+                  sandbox="allow-scripts"
+                  srcDoc={buildEmailPreviewDocument(contenido)}
+                  ref={previewFrameRef}
+                  onLoad={syncPreviewHeight}
+                  className="w-full"
+                  style={{ height: `${previewHeight}px`, display: "block" }}
+                />
+                {/* Hint de edición superpuesto */}
+                <button
+                  type="button"
+                  onClick={() => setModoVistaCuerpo("html")}
+                  className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/90 border border-gray-200 shadow-sm text-[11px] font-medium text-gray-600 hover:text-gray-900 hover:border-gray-300 transition-colors backdrop-blur-sm"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  Editar contenido
+                </button>
+              </>
             ) : (
               <div className="h-[180px] flex items-center justify-center text-sm text-gray-500 px-4 text-center">
-                El borrador está vacío. Cambia a la pestaña HTML para escribir el contenido.
+                El borrador está vacío. Cambia a &quot;Editar&quot; para escribir el contenido.
               </div>
             )}
           </div>
@@ -346,7 +369,7 @@ export function EmailApprovalPanel({
           <textarea
             value={contenido}
             onChange={(e) => setContenido(e.target.value)}
-            rows={12}
+            rows={14}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono resize-y"
           />
         )}
