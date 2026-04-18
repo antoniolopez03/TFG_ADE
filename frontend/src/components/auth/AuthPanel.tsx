@@ -95,7 +95,7 @@ export function AuthPanel({ variant = "default" }: AuthPanelProps) {
   return (
     <div
       ref={panelRef}
-      className="relative hidden flex-col justify-between overflow-hidden bg-leadby-hero p-10 md:flex lg:p-14"
+      className="relative hidden flex-col justify-between overflow-hidden bg-leadby-hero px-10 pb-10 pt-2 md:flex lg:px-14 lg:pb-14 lg:pt-3"
     >
       {/* ── Float orbs ──────────────────────────────────────────────────── */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -143,9 +143,9 @@ export function AuthPanel({ variant = "default" }: AuthPanelProps) {
       )}
 
       {/* ── Main copy ───────────────────────────────────────────────────── */}
-      <div className="relative flex flex-1 flex-col justify-center py-12">
+      <div className="relative flex flex-1 flex-col justify-center py-6 lg:py-8">
         {isLoginVariant && (
-          <div className="ap-headline mb-20 flex justify-center">
+          <div className="ap-headline mb-6 flex justify-center">
             <Image
               src="/LEADBY-Auth.png"
               alt="LeadBy"

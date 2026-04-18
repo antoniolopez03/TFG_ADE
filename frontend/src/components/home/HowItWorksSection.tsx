@@ -5,14 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
-import {
-  ArrowDown,
-  ArrowRight,
-  Database,
-  Rocket,
-  Search,
-  type LucideIcon,
-} from "lucide-react";
+import { Database, Rocket, Search, type LucideIcon } from "lucide-react";
 
 type Step = {
   number: string;
@@ -21,6 +14,8 @@ type Step = {
   description: string;
   highlights: string[];
   glowClass: string;
+  iconClass: string;
+  hoverClass: string;
 };
 
 const STEPS: Step[] = [
@@ -35,6 +30,9 @@ const STEPS: Step[] = [
       "Contactos relevantes desde el primer paso",
     ],
     glowClass: "from-leadby-500/22 to-transparent",
+    iconClass: "bg-leadby-500/10 border-leadby-500/25 text-leadby-500",
+    hoverClass:
+      "hover:shadow-[0_16px_48px_rgba(255,117,31,0.15)] hover:border-leadby-500/35",
   },
   {
     number: "02",
@@ -47,6 +45,9 @@ const STEPS: Step[] = [
       "Base sólida para mensajes hiperpersonalizados",
     ],
     glowClass: "from-cyan-500/18 to-transparent",
+    iconClass: "bg-cyan-500/10 border-cyan-500/25 text-cyan-500",
+    hoverClass:
+      "hover:shadow-[0_16px_48px_rgba(6,182,212,0.15)] hover:border-cyan-500/35",
   },
   {
     number: "03",
@@ -59,6 +60,9 @@ const STEPS: Step[] = [
       "Menos tareas manuales, más foco en cerrar",
     ],
     glowClass: "from-emerald-500/18 to-transparent",
+    iconClass: "bg-emerald-500/10 border-emerald-500/25 text-emerald-500",
+    hoverClass:
+      "hover:shadow-[0_16px_48px_rgba(16,185,129,0.15)] hover:border-emerald-500/35",
   },
 ];
 
@@ -75,48 +79,93 @@ export function HowItWorksSection() {
           noMotion: "(prefers-reduced-motion: reduce)",
         },
         (ctx) => {
-          const { motion } = ctx.conditions as { motion: boolean; noMotion: boolean };
+          const { motion } = ctx.conditions as {
+            motion: boolean;
+            noMotion: boolean;
+          };
 
           if (!motion) {
-            gsap.set([".hiw-label", ".hiw-headline", ".hiw-sub", ".hiw-flow-item"], {
-              autoAlpha: 1,
-              clearProps: "transform",
-            });
+            gsap.set(
+              [
+                ".hiw-label",
+                ".hiw-headline",
+                ".hiw-sub",
+                ".hiw-card",
+                ".hiw-node-1",
+                ".hiw-node-2",
+                ".hiw-node-3",
+              ],
+              { autoAlpha: 1, clearProps: "transform" }
+            );
             return;
           }
 
-          gsap.set(".hiw-flow-item", { autoAlpha: 0, y: 40 });
+          // ─── Initial states ──────────────────────────────────────────────
+          gsap.set(".hiw-card", { autoAlpha: 0, y: 48 });
+          gsap.set([".hiw-node-1", ".hiw-node-2", ".hiw-node-3"], { scale: 0 });
 
-          const tl = gsap.timeline({
+          // ─── Header ──────────────────────────────────────────────────────
+          const headerTl = gsap.timeline({
             scrollTrigger: {
-              trigger: containerRef.current,
+              trigger: ".hiw-header",
               start: "top 82%",
               once: true,
-              toggleActions: "play none none none",
             },
             defaults: { ease: "power3.out" },
           });
-
-          tl.from(".hiw-label", { y: -12, autoAlpha: 0, duration: 0.35 })
+          headerTl
+            .from(".hiw-label", { y: -12, autoAlpha: 0, duration: 0.35 })
             .from(".hiw-headline", { y: 20, autoAlpha: 0, duration: 0.45 }, "-=0.2")
-            .from(".hiw-sub", { y: 16, autoAlpha: 0, duration: 0.4 }, "-=0.2")
-            .to(
-              ".hiw-flow-item",
-              {
+            .from(".hiw-sub", { y: 16, autoAlpha: 0, duration: 0.4 }, "-=0.2");
+
+          // ─── Progress line fill — scrubbed to full section scroll range ──
+          gsap.fromTo(
+            ".hiw-progress-fill",
+            { scaleX: 0 },
+            {
+              scaleX: 1,
+              ease: "none",
+              scrollTrigger: {
+                trigger: containerRef.current,
+                start: "top 55%",
+                end: "bottom 55%",
+                scrub: 1.5,
+              },
+            }
+          );
+
+          // ─── Step nodes pop in when cards section enters viewport ─────────
+          const nodesTl = gsap.timeline({
+            scrollTrigger: {
+              trigger: ".hiw-steps-grid",
+              start: "top 80%",
+              once: true,
+            },
+          });
+          nodesTl
+            .to(".hiw-node-1", { scale: 1, duration: 0.45, ease: "back.out(2.5)" })
+            .to(".hiw-node-2", { scale: 1, duration: 0.45, ease: "back.out(2.5)" }, "-=0.28")
+            .to(".hiw-node-3", { scale: 1, duration: 0.45, ease: "back.out(2.5)" }, "-=0.28");
+
+          // ─── Cards batch reveal ────────────────────────────────────────────
+          ScrollTrigger.batch(".hiw-card", {
+            start: "top 90%",
+            onEnter: (cards) => {
+              gsap.to(cards, {
                 autoAlpha: 1,
                 y: 0,
-                duration: 0.6,
-                stagger: 0.15,
+                duration: 0.65,
+                stagger: 0.12,
                 ease: "power3.out",
                 overwrite: true,
-              },
-              "-=0.08"
-            );
+              });
+            },
+            once: true,
+          });
         }
       );
 
       document.fonts.ready.then(() => ScrollTrigger.refresh());
-
       return () => mm.revert();
     },
     { scope: containerRef }
@@ -125,20 +174,25 @@ export function HowItWorksSection() {
   return (
     <section
       ref={containerRef}
-      className="relative overflow-hidden border-y border-black/5 py-24 dark:border-white/8"
+      className="relative overflow-hidden border-y border-black/5 py-28 dark:border-white/8"
     >
+      {/* ─── Ambient blobs ──────────────────────────────────────────────── */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-24 top-12 h-64 w-64 rounded-full bg-leadby-500/8 blur-3xl"
+        className="pointer-events-none absolute -left-32 top-16 h-80 w-80 rounded-full bg-leadby-500/6 blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-20 bottom-10 h-56 w-56 rounded-full bg-cyan-500/8 blur-3xl"
+        className="pointer-events-none absolute -right-24 bottom-12 h-64 w-64 rounded-full bg-cyan-500/6 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-20 h-72 w-72 rounded-full bg-emerald-500/4 blur-3xl"
       />
 
       <div className="mx-auto max-w-6xl px-6">
-        {/* Header */}
-        <div className="mx-auto mb-16 max-w-3xl text-center">
+        {/* ─── Section header ─────────────────────────────────────────────── */}
+        <div className="hiw-header mx-auto mb-16 max-w-3xl text-center">
           <p
             className="hiw-label mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-leadby-500"
             style={{ visibility: "hidden" }}
@@ -160,66 +214,93 @@ export function HowItWorksSection() {
           </p>
         </div>
 
-        {/* Steps + flow connectors */}
-        <div className="flex flex-col items-stretch gap-8 md:gap-10 lg:flex-row lg:items-stretch lg:gap-12">
-          {STEPS.map(({ number, icon: Icon, title, description, highlights, glowClass }, index) => (
-            <div key={number} className="contents">
+        {/* ─── Desktop progress bar (hidden on mobile) ────────────────────── */}
+        <div className="relative mx-4 mb-12 hidden lg:block" aria-hidden>
+          {/* Track */}
+          <div className="h-px w-full rounded-full bg-black/10 dark:bg-white/10" />
+          {/* Scrubbed fill */}
+          <div
+            className="hiw-progress-fill absolute inset-0 h-px origin-left rounded-full bg-gradient-to-r from-leadby-500 via-cyan-500 to-emerald-500"
+          />
+          {/* Node 01 — left edge */}
+          <div className="absolute top-1/2 left-0 -translate-y-1/2">
+            <div className="hiw-node-1 h-3.5 w-3.5 rounded-full bg-leadby-500 shadow-[0_3px_10px_rgba(255,117,31,0.5)] ring-2 ring-white dark:ring-black" />
+          </div>
+          {/* Node 02 — center */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div className="hiw-node-2 h-3.5 w-3.5 rounded-full bg-cyan-500 shadow-[0_3px_10px_rgba(6,182,212,0.5)] ring-2 ring-white dark:ring-black" />
+          </div>
+          {/* Node 03 — right edge */}
+          <div className="absolute top-1/2 right-0 -translate-y-1/2">
+            <div className="hiw-node-3 h-3.5 w-3.5 rounded-full bg-emerald-500 shadow-[0_3px_10px_rgba(16,185,129,0.5)] ring-2 ring-white dark:ring-black" />
+          </div>
+        </div>
+
+        {/* ─── Steps grid ─────────────────────────────────────────────────── */}
+        <div className="hiw-steps-grid grid grid-cols-1 gap-6 md:gap-8 lg:grid-cols-3">
+          {STEPS.map(
+            ({
+              number,
+              icon: Icon,
+              title,
+              description,
+              highlights,
+              glowClass,
+              iconClass,
+              hoverClass,
+            }) => (
               <article
-                className="hiw-flow-item group relative overflow-hidden rounded-3xl border border-black/8 bg-white/85 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-leadby-500/35 hover:shadow-[0_12px_40px_rgba(255,117,31,0.14)] dark:border-white/8 dark:bg-white/[0.05] md:p-10 lg:flex-1"
+                key={number}
+                className={`hiw-card group relative overflow-hidden rounded-3xl border border-black/8 bg-white/85 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 dark:border-white/8 dark:bg-white/[0.05] md:p-10 ${hoverClass}`}
                 style={{ visibility: "hidden" }}
               >
+                {/* Top gradient glow */}
                 <div
                   aria-hidden
-                  className={
-                    "pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b " +
-                    glowClass +
-                    " opacity-80"
-                  }
+                  className={`pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b ${glowClass} opacity-90`}
                 />
 
+                {/* Watermark step number */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -bottom-3 -right-1 select-none text-[7.5rem] font-black leading-none text-black/[0.035] dark:text-white/[0.045]"
+                >
+                  {number}
+                </div>
+
+                {/* Step badge + icon row */}
                 <div className="relative mb-8 flex items-center justify-between">
-                  <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-full border border-leadby-500/35 bg-leadby-500/10 px-2 text-xs font-semibold text-leadby-600 dark:text-leadby-400">
+                  <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-leadby-500/30 bg-leadby-500/8 px-2.5 text-xs font-bold tracking-widest text-leadby-500 dark:text-leadby-400">
                     {number}
                   </span>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-leadby-500/25 bg-white/90 text-leadby-500 shadow-sm dark:bg-black/20">
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${iconClass} shadow-sm`}
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
                 </div>
 
-                <h3 className="relative pr-4 text-xl font-semibold leading-snug">{title}</h3>
-                <p className="relative mt-4 text-sm leading-relaxed text-black/65 dark:text-white/65">
+                {/* Content */}
+                <h3 className="relative text-xl font-semibold leading-snug">{title}</h3>
+                <p className="relative mt-3 text-sm leading-relaxed text-black/60 dark:text-white/60">
                   {description}
                 </p>
 
-                <ul className="relative mt-8 space-y-3">
-                  {highlights.map((highlight) => (
+                {/* Highlights */}
+                <ul className="relative mt-7 space-y-2.5">
+                  {highlights.map((hl) => (
                     <li
-                      key={highlight}
-                      className="flex items-start gap-3 text-sm text-black/60 dark:text-white/60"
+                      key={hl}
+                      className="flex items-start gap-3 text-sm text-black/55 dark:text-white/55"
                     >
-                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-leadby-500" />
-                      <span>{highlight}</span>
+                      <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-leadby-500" />
+                      {hl}
                     </li>
                   ))}
                 </ul>
               </article>
-
-              {index < STEPS.length - 1 ? (
-                <div
-                  aria-hidden
-                  className="hiw-flow-item flex items-center justify-center"
-                  style={{ visibility: "hidden" }}
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-black/10 bg-white/90 text-leadby-500 shadow-[0_8px_25px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-black/35 lg:hidden">
-                    <ArrowDown className="h-5 w-5" />
-                  </div>
-                  <div className="hidden h-12 w-12 items-center justify-center rounded-full border border-black/10 bg-white/90 text-leadby-500 shadow-[0_8px_25px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-black/35 lg:flex">
-                    <ArrowRight className="h-5 w-5" />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ))}
+            )
+          )}
         </div>
       </div>
     </section>

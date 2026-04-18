@@ -181,10 +181,10 @@ export function ProspectingAnimation({
   // ── Waiting spinner ──────────────────────────────────────────────────────
   if (waiting) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-black backdrop-blur-sm">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
-          <p className="text-sm text-white/70">Finalizando búsqueda…</p>
+          <p className="text-sm text-black/70 dark:text-white/70">Finalizando búsqueda…</p>
         </div>
       </div>
     );
@@ -194,10 +194,10 @@ export function ProspectingAnimation({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-white dark:bg-black px-4 backdrop-blur-sm"
     >
       {/* Subtitle */}
-      <p className="text-xs tracking-widest text-white/40 uppercase">
+      <p className="text-xs tracking-widest text-black/40 dark:text-white/40 uppercase">
         Buscando clientes potenciales…
       </p>
 
@@ -449,14 +449,14 @@ export function ProspectingAnimation({
       </div>
 
       {/* Step label */}
-      <p className="text-xs text-white/30">
+      <p className="text-xs text-black/30 dark:text-white/30">
         Cada parada es una empresa candidata para tu pipeline
       </p>
 
       {/* Skip button — bottom-right corner */}
       <button
         onClick={handleSkip}
-        className="absolute bottom-6 right-6 text-xs text-white/30 transition-colors hover:text-white/60"
+        className="absolute bottom-6 right-6 text-xs text-black/30 dark:text-white/30 transition-colors hover:text-black/60 dark:hover:text-white/60"
         type="button"
       >
         Saltar animación →

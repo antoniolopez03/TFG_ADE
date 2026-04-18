@@ -90,16 +90,16 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="grid min-h-screen md:grid-cols-[45fr_55fr]">
+    <div className="grid h-screen overflow-hidden md:grid-cols-[45fr_55fr]">
       {/* ── Left: branding panel (hidden on mobile) ──────────────────── */}
       <AuthPanel variant="login" />
 
       {/* ── Right: form ──────────────────────────────────────────────── */}
-      <div className="flex flex-col items-center justify-center bg-background px-6 py-12 md:px-10 lg:px-16">
+      <div className="flex flex-col items-center justify-center overflow-y-auto bg-background px-6 py-6 md:px-10 lg:px-16">
         <div ref={formRef} className="w-full max-w-sm">
 
           {/* Mobile-only logo */}
-          <div className="auth-logo mb-8 flex justify-center md:hidden">
+          <div className="auth-logo mb-5 flex justify-center md:hidden">
             <Link href="/" className="flex items-center gap-2.5">
               <Image src="/LEADBY-Logo.png" alt="LeadBy" width={36} height={36} className="h-9 w-9" />
               <span className="text-sm font-semibold uppercase tracking-[0.2em]">LeadBy</span>
@@ -107,11 +107,11 @@ function LoginPageContent() {
           </div>
 
           {/* Heading */}
-          <div className="auth-heading mb-8">
+          <div className="auth-heading mb-5">
             <h1 className="text-2xl font-semibold text-foreground md:text-3xl">
               Acceso a la plataforma
             </h1>
-            <p className="mt-2 text-sm text-black/60 dark:text-white/60">
+            <p className="mt-1.5 text-sm text-black/60 dark:text-white/60">
               Introduce tus credenciales corporativas para gestionar tu operativa de ventas.
             </p>
           </div>
@@ -135,7 +135,7 @@ function LoginPageContent() {
           </AnimatePresence>
 
           {/* Form */}
-          <form onSubmit={handleLogin} noValidate className="space-y-5">
+          <form onSubmit={handleLogin} noValidate className="space-y-4">
 
             {/* Email */}
             <div className="auth-field">
@@ -212,7 +212,7 @@ function LoginPageContent() {
           </form>
 
           {/* Footer links */}
-          <div className="auth-links mt-6 space-y-3 text-center">
+          <div className="auth-links mt-4 space-y-2 text-center">
             <p className="text-sm text-black/60 dark:text-white/60">
               ¿No tienes cuenta?{" "}
               <Link
